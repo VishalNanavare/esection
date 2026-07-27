@@ -69,7 +69,24 @@ class Filters extends BaseFilters
      *
      * @var array<string, list<string>>
      */
-    public array $methods = [];
+    /**
+     * CSRF is enforced per HTTP method rather than via $globals['before'] so
+     * GET/HEAD navigation is untouched and only state-changing requests pay
+     * the check. Safe here because Config\Routing::$autoRoute is false, so a
+     * controller cannot be reached with an unexpected verb.
+     *
+     * All 10 POST routes have a token source: 9 forms carry csrf_field() and
+     * students/storeBatch sends the X-CSRF-TOKEN header (Security::
+     * getPostedToken() checks POST body, then header, then JSON body).
+     *
+     * Rollback is one line: set this back to [].
+     */
+    public array $methods = [
+        'POST'   => ['csrf'],
+        'PUT'    => ['csrf'],
+        'PATCH'  => ['csrf'],
+        'DELETE' => ['csrf'],
+    ];
 
     /**
      * List of filter aliases that should run on any
