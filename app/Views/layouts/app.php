@@ -272,6 +272,11 @@
     <script src="<?= base_url('assets/vendor/sweetalert2/sweetalert2.min.js') ?>"></script>
     <script src="<?= base_url('assets/js/excel.js') ?>"></script>
     <script>
+        // Some SweetAlert2 builds only export `Sweetalert2` (the UMD global)
+        // and never assign `Swal`. Normalise here so every call site can rely
+        // on window.Swal existing -- or being null, which each site checks.
+        window.Swal = window.Swal || window.Sweetalert2 || null;
+
         $(window).on('load', function() {
             setTimeout(function() {
                 $('#splash_screen').addClass('fade-out');
@@ -279,6 +284,34 @@
         });
 
         $(document).ready(function() {
+            // --- Logout is bound FIRST, deliberately. -----------------------
+            // Anything that throws below (a missing library, a malformed flash
+            // message) would otherwise abort this callback before the logout
+            // handler was ever attached, silently breaking sign-out.
+            $('.logout-btn').on('click', function(e) {
+                // No dialog library? Fall through to the plain <a href> rather
+                // than cancelling navigation and leaving the button inert.
+                if (!window.Swal) {
+                    return true;
+                }
+
+                e.preventDefault();
+                var logoutUrl = this.href;
+
+                Swal.fire({
+                    title: 'Log Out of E-Section?',
+                    text: 'Are you sure you want to exit your active staff session?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Log Out',
+                    cancelButtonText: 'Cancel'
+                }).then(function(result) {
+                    if (result && result.isConfirmed) {
+                        window.location.href = logoutUrl;
+                    }
+                });
+            });
+
             // Live Clock
             setInterval(function() {
                 var now = new Date();
@@ -291,42 +324,32 @@
                 $('#wrapper').toggleClass('sidebar-collapsed');
             });
 
-            // SweetAlert2 Flash Messages
+            // --- Flash messages ---------------------------------------------
+            // Values are emitted as whole JSON literals, never hand-quoted: a
+            // single apostrophe in a DB-derived message used to terminate the
+            // JS string and take this entire <script> block down with it.
             <?php if (session()->getFlashdata('success')): ?>
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success',
-                    text: '<?= session()->getFlashdata('success') ?>',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: <?= json_encode((string) session()->getFlashdata('success'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>,
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
             <?php endif; ?>
 
             <?php if (session()->getFlashdata('error')): ?>
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: '<?= session()->getFlashdata('error') ?>',
-                    confirmButtonText: 'OK'
-                });
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: <?= json_encode((string) session()->getFlashdata('error'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>,
+                        confirmButtonText: 'OK'
+                    });
+                }
             <?php endif; ?>
-
-            // Logout Confirmation Prompt
-            $('.logout-btn').on('click', function(e) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'Log Out of E-Section?',
-                    text: 'Are you sure you want to exit your active staff session?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, Log Out',
-                    cancelButtonText: 'Cancel'
-                }).then(function(result) {
-                    if (result.isConfirmed) {
-                        window.location.href = '<?= base_url('auth/logout') ?>';
-                    }
-                });
-            });
         });
     </script>
     <?= $this->renderSection('scripts') ?>

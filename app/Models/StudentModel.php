@@ -17,25 +17,50 @@ class StudentModel extends Model
         'in_favour_of', 'en_time'
     ];
 
+    /**
+     * The confirmation join key.
+     *
+     * conf_stud_data.student_id is populated by migration 000002, backfilled
+     * from the legacy `name` column which holds student_details.id.
+     *
+     * This used to probe with fieldExists() and fall back to
+     *   conf_stud_data.case_no = student_details.eligibility_case_no
+     * which OVER-COUNTS: it returns 4,358 rows from a 4,208-row table because
+     * 219 eligibility_case_no values are duplicated across students.
+     */
+    private const CONF_JOIN = 'conf_stud_data.student_id = student_details.id';
+
+    /**
+     * A fresh query builder.
+     *
+     * Deliberately NOT Model::builder(), which returns a single shared
+     * instance -- its accumulated where/join state leaks between calls and
+     * corrupts results when these methods are used inside a loop.
+     */
+    private function table(): \CodeIgniter\Database\BaseBuilder
+    {
+        return $this->db->table($this->table);
+    }
+
     public function getMaxId(): int
     {
-        $query = $this->builder()->selectMax('id')->get()->getRowArray();
-        return $query ? (int) $query['id'] : 0;
+        $row = $this->table()->selectMax('id')->get()->getRowArray();
+        return $row ? (int) $row['id'] : 0;
     }
 
     public function getTotalStudentsCount(): int
     {
-        return $this->builder()->countAllResults();
+        return $this->table()->countAllResults();
     }
 
     public function getStudentsByArraySpace(string $arraySpace): array
     {
-        return $this->builder()->where('array_space', $arraySpace)->get()->getResultArray();
+        return $this->table()->where('array_space', $arraySpace)->get()->getResultArray();
     }
 
     public function getDistinctYears(): array
     {
-        return $this->builder()
+        return $this->table()
                     ->select('admission_taken_year')
                     ->distinct()
                     ->where('admission_taken_year IS NOT NULL')
@@ -46,7 +71,7 @@ class StudentModel extends Model
 
     public function getDistinctStreamsFromStudents(): array
     {
-        return $this->builder()
+        return $this->table()
                     ->select('admission_taken_in')
                     ->distinct()
                     ->where('admission_taken_in IS NOT NULL')
@@ -55,20 +80,9 @@ class StudentModel extends Model
                     ->get()->getResultArray();
     }
 
-    private function getConfJoinClause(): string
-    {
-        if ($this->db->fieldExists('student_id', 'conf_stud_data')) {
-            return 'conf_stud_data.student_id = student_details.id';
-        }
-        if ($this->db->fieldExists('case_no', 'conf_stud_data')) {
-            return 'conf_stud_data.case_no = student_details.eligibility_case_no';
-        }
-        return 'conf_stud_data.id = student_details.id';
-    }
-
     public function getGroupedStudentCounts(): array
     {
-        $rows = $this->builder()
+        $rows = $this->table()
                      ->select('admission_taken_in, COUNT(*) as cnt')
                      ->where('admission_taken_in IS NOT NULL')
                      ->where('admission_taken_in !=', '')
@@ -79,15 +93,15 @@ class StudentModel extends Model
         foreach ($rows as $r) {
             $counts[$r['admission_taken_in']] = (int) $r['cnt'];
         }
+
         return $counts;
     }
 
     public function getGroupedConfirmedCounts(): array
     {
-        $joinClause = $this->getConfJoinClause();
-        $rows = $this->builder()
+        $rows = $this->table()
                      ->select('student_details.admission_taken_in, COUNT(DISTINCT student_details.id) as cnt')
-                     ->join('conf_stud_data', $joinClause, 'inner')
+                     ->join('conf_stud_data', self::CONF_JOIN, 'inner')
                      ->where('student_details.admission_taken_in IS NOT NULL')
                      ->where('student_details.admission_taken_in !=', '')
                      ->groupBy('student_details.admission_taken_in')
@@ -97,34 +111,33 @@ class StudentModel extends Model
         foreach ($rows as $r) {
             $counts[$r['admission_taken_in']] = (int) $r['cnt'];
         }
+
         return $counts;
     }
 
+    /**
+     * Students in a year/stream, left-joined to their DD confirmation.
+     *
+     * The dd_* columns are selected unconditionally. They previously sat
+     * behind fieldExists() guards that always failed, which is why the
+     * "DD Status" column in the confirmations view read "Pending" for every
+     * row regardless of the underlying data.
+     */
     public function getStudentsForConfirmation(string $year, string $stream): array
     {
-        $joinClause = $this->getConfJoinClause();
-        $builder    = $this->builder();
-        $selectCols = 'student_details.*';
-
-        if ($this->db->fieldExists('dd_no', 'conf_stud_data')) {
-            $selectCols .= ', conf_stud_data.dd_no';
-        }
-        if ($this->db->fieldExists('bank_name', 'conf_stud_data')) {
-            $selectCols .= ', conf_stud_data.bank_name';
-        }
-        if ($this->db->fieldExists('dd_date', 'conf_stud_data')) {
-            $selectCols .= ', conf_stud_data.dd_date';
-        }
-        if ($this->db->fieldExists('dd_amount', 'conf_stud_data')) {
-            $selectCols .= ', conf_stud_data.dd_amount';
-        }
-
-        return $builder->select($selectCols)
-                       ->join('conf_stud_data', $joinClause, 'left')
-                       ->where('student_details.admission_taken_year', $year)
-                       ->like('student_details.admission_taken_in', $stream)
-                       ->orderBy('student_details.id', 'ASC')
-                       ->get()->getResultArray();
+        return $this->table()
+                    ->select(
+                        'student_details.*,'
+                        . ' conf_stud_data.dd_no,'
+                        . ' conf_stud_data.bank_name,'
+                        . ' conf_stud_data.dd_date,'
+                        . ' conf_stud_data.dd_amount'
+                    )
+                    ->join('conf_stud_data', self::CONF_JOIN, 'left')
+                    ->where('student_details.admission_taken_year', $year)
+                    ->like('student_details.admission_taken_in', $stream)
+                    ->orderBy('student_details.id', 'ASC')
+                    ->get()->getResultArray();
     }
 
     public function getStudentsForReminder(?string $year, ?string $stream, ?string $university): array
@@ -133,11 +146,11 @@ class StudentModel extends Model
             return [];
         }
 
-        $builder = $this->builder()
+        $builder = $this->table()
                         ->where('admission_taken_year', $year)
                         ->like('admission_taken_in', $stream);
 
-        if (!empty($university)) {
+        if (! empty($university)) {
             $builder->like('clg_add', $university);
         }
 
@@ -146,9 +159,12 @@ class StudentModel extends Model
 
     public function getStudentsByIds(array $ids): array
     {
-        if (empty($ids)) {
+        $ids = array_values(array_filter(array_map('intval', $ids)));
+
+        if ($ids === []) {
             return [];
         }
-        return $this->builder()->whereIn('id', array_map('intval', $ids))->get()->getResultArray();
+
+        return $this->table()->whereIn('id', $ids)->get()->getResultArray();
     }
 }

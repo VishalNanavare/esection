@@ -40,12 +40,27 @@ class Confirmations extends BaseController
 
     public function store()
     {
-        $username = session()->get('username') ?? 'esection1';
+        $username = (string) (session()->get('username') ?? '');
+
         try {
             $res = $this->confirmationService->storeConfirmation($this->request->getPost(), $username);
-            return redirect()->to(base_url('confirmations'))->with('success', "DD Payment confirmed for {$res['count']} candidate(s).");
-        } catch (\Exception $e) {
+
+            $message = "DD payment confirmed for {$res['count']} candidate(s).";
+            if (! empty($res['skipped'])) {
+                $message .= " {$res['skipped']} already had a confirmation and were skipped.";
+            }
+
+            return redirect()->to(base_url('confirmations'))->with('success', $message);
+        } catch (\InvalidArgumentException $e) {
+            // Our own validation text -- safe and useful to show the operator.
             return redirect()->to(base_url('confirmations'))->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            // Anything else (DatabaseException, etc.) may carry SQL fragments,
+            // column names or file paths. Log it; show the user a fixed string.
+            log_message('error', '[Confirmations::store] {message}', ['message' => (string) $e]);
+
+            return redirect()->to(base_url('confirmations'))
+                ->with('error', 'The DD confirmation could not be saved. The issue has been logged.');
         }
     }
 }
