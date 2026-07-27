@@ -1,72 +1,56 @@
 <script>
-$(document).ready(function() {
-    // Initialize AJAX Select2 for College Search
-    $('.select2-ajax-college').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/colleges") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return { q: params.term, page: params.page || 1 };
-            },
-            processResults: function(data) {
-                return { results: data.results, pagination: data.pagination };
-            }
-        }
+$(document).ready(function () {
+    esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {
+        context: 'Loading universities failed'
     });
 
-    // Initialize AJAX Select2 for Stream Search
-    $('.select2-ajax-stream').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/streams") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return { q: params.term };
-            },
-            processResults: function(data) {
-                return { results: data.results };
-            }
-        }
+    esAjaxSelect('.select2-ajax-stream', '<?= base_url("api/streams") ?>', {
+        context: 'Loading academic streams failed'
     });
 
     var studentList = [];
 
-    // AJAX Auto-fill College Information on Select2 Change
-    $('#clg_add_select').on('change', function() {
+    // --- Auto-fill university details on selection -------------------------
+    $('#clg_add_select').on('change', function () {
         var colId = $(this).val();
-        if (!colId) return;
+        if (!colId) {
+            return;
+        }
 
         $.ajax({
-            url: '<?= base_url("students/getCollegeInfo/") ?>' + colId,
+            url: '<?= base_url("students/getCollegeInfo/") ?>' + encodeURIComponent(colId),
             type: 'GET',
-            dataType: 'json',
-            success: function(res) {
-                if (res.status === 'success') {
-                    $('#clg_add').val(res.address);
-                    $('#In_Favour_of').val(res.in_favour_of);
-                    $('#to').val(res.head_name || 'The Controller of Examinations');
-                }
+            dataType: 'json'
+        }).done(function (res) {
+            if (!res || res.status !== 'success') {
+                esNotify('warning', 'University details unavailable', (res && res.message) || 'Please fill the address manually.');
+                return;
             }
+
+            $('#clg_add').val(res.address);
+            $('#In_Favour_of').val(res.in_favour_of);
+            $('#to').val(res.head_name || 'The Controller of Examinations');
+        }).fail(function (xhr) {
+            esAjaxError(xhr, 'Could not load the university details');
         });
     });
 
-    // Add Student Row
-    $('#btn_add_student').on('click', function() {
-        var name = $('#stud_name').val().trim();
-        var neeName = $('#stud_nee_name').val().trim() || '-';
-        var caseNo = $('#eligibility_case_no').val().trim();
+    // --- Batch list --------------------------------------------------------
+    $('#btn_add_student').on('click', function () {
+        var name        = $('#stud_name').val().trim();
+        var neeName     = $('#stud_nee_name').val().trim() || '-';
+        var caseNo      = $('#eligibility_case_no').val().trim();
         var verifyByYou = $('#verification_by_you').val().trim() || 'Marksheet Verification';
 
         if (!name || !caseNo) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Missing Required Fields',
-                text: 'Please enter Candidate Full Name and Eligibility Case Number.',
-                confirmButtonText: 'OK'
-            });
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing required fields',
+                    text: 'Please enter the candidate full name and the eligibility case number.',
+                    confirmButtonText: 'OK'
+                });
+            }
             return;
         }
 
@@ -79,120 +63,141 @@ $(document).ready(function() {
 
         renderStudentTable();
 
-        // Clear entry inputs
-        $('#stud_name').val('');
-        $('#stud_nee_name').val('');
-        $('#eligibility_case_no').val('');
-        $('#verification_by_you').val('');
+        $('#stud_name, #stud_nee_name, #eligibility_case_no, #verification_by_you').val('');
+        $('#stud_name').trigger('focus');
 
-        Swal.fire({
-            toast: true,
-            position: 'top-end',
-            icon: 'success',
-            title: 'Candidate added to list',
-            showConfirmButton: false,
-            timer: 2000
-        });
+        esNotify('success', 'Candidate added to the batch');
     });
 
     function renderStudentTable() {
         var tbody = $('#student_batch_table tbody');
         tbody.empty();
 
+        $('#batch_count').text(studentList.length);
+
         if (studentList.length === 0) {
-            tbody.append('<tr id="empty_row"><td colspan="6" class="text-center text-muted py-4">No candidates added to this batch yet.</td></tr>');
+            tbody.append(
+                '<tr id="empty_row"><td colspan="6" class="text-center text-muted py-4">' +
+                'No candidates added to this batch yet.</td></tr>'
+            );
             return;
         }
 
-        $.each(studentList, function(idx, item) {
-            var row = `<tr>
-                <td>${idx + 1}</td>
-                <td class="fw-bold text-dark">${item.student_name}</td>
-                <td>${item.student_nee_name}</td>
-                <td><span class="badge badge-glass-indigo">${item.eligibility_case_no}</span></td>
-                <td>${item.verification_by_you}</td>
-                <td class="text-end">
-                    <button type="button" class="btn btn-sm btn-glass text-danger remove-row" data-index="${idx}">
-                        <i class="fa fa-trash"></i>
-                    </button>
-                </td>
-            </tr>`;
-            tbody.append(row);
+        // Every interpolated value is escaped: these strings are operator
+        // input and were previously concatenated straight into innerHTML,
+        // so a candidate name containing markup executed immediately.
+        $.each(studentList, function (idx, item) {
+            tbody.append(
+                '<tr>' +
+                    '<td>' + (idx + 1) + '</td>' +
+                    '<td class="fw-bold text-dark">' + esEscapeHtml(item.student_name) + '</td>' +
+                    '<td>' + esEscapeHtml(item.student_nee_name) + '</td>' +
+                    '<td><span class="badge badge-glass-indigo">' + esEscapeHtml(item.eligibility_case_no) + '</span></td>' +
+                    '<td>' + esEscapeHtml(item.verification_by_you) + '</td>' +
+                    '<td class="text-end">' +
+                        '<button type="button" class="btn btn-sm btn-glass text-danger remove-row" ' +
+                                'data-index="' + idx + '" title="Remove candidate">' +
+                            '<i class="fa fa-trash"></i>' +
+                        '</button>' +
+                    '</td>' +
+                '</tr>'
+            );
         });
     }
 
-    $(document).on('click', '.remove-row', function() {
-        var idx = $(this).data('index');
-        studentList.splice(idx, 1);
+    $(document).on('click', '.remove-row', function () {
+        studentList.splice($(this).data('index'), 1);
         renderStudentTable();
     });
 
-    // Save and Render PDF Dispatch
-    $('#btn_save_and_pdf').on('click', function() {
+    // --- Save batch and generate the dispatch letter -----------------------
+    $('#btn_save_and_pdf').on('click', function () {
         if (studentList.length === 0) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Empty Candidate Batch',
-                text: 'Please add at least one candidate before saving.',
-                confirmButtonText: 'OK'
-            });
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Empty candidate batch',
+                    text: 'Please add at least one candidate before saving.',
+                    confirmButtonText: 'OK'
+                });
+            }
             return;
         }
 
+        var $btn = $(this).prop('disabled', true);
+
         var payload = {
-            common_no: $('#display_common_no').text(),
-            to_name: $('#to').val(),
-            clg_add: $('#clg_add').val(),
+            common_no:            $('#display_common_no').text(),
+            to_name:              $('#to').val(),
+            clg_add:              $('#clg_add').val(),
             admission_taken_year: $('#admission_taken_year').val(),
-            admission_taken_in: $('#admission_taken_in').val(),
-            in_favour_of: $('#In_Favour_of').val(),
-            students: studentList
+            admission_taken_in:   $('#admission_taken_in').val(),
+            in_favour_of:         $('#In_Favour_of').val(),
+            students:             studentList
         };
 
-        Swal.fire({
-            title: 'Saving Verification Batch...',
-            text: 'Please wait while records are saved and PDF dispatch letter is generated.',
-            allowOutsideClick: false,
-            didOpen: function() {
-                Swal.showLoading();
-            }
-        });
+        if (window.Swal) {
+            Swal.fire({
+                title: 'Saving verification batch...',
+                text: 'Records are being saved and the dispatch letter prepared.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: function () {
+                    Swal.showLoading();
+                }
+            });
+        }
 
         $.ajax({
             url: '<?= base_url("students/storeBatch") ?>',
             type: 'POST',
             contentType: 'application/json',
+            dataType: 'json',
             data: JSON.stringify(payload),
-            headers: {
-                'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
-            },
-            success: function(res) {
-                if (res.status === 'success') {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Verification Batch Saved',
-                        text: res.message,
-                        timer: 2000,
-                        showConfirmButton: false
-                    }).then(function() {
-                        window.open(res.redirect_url, '_blank');
-                        window.location.href = '<?= base_url("dashboard") ?>';
-                    });
-                } else {
+            headers: { 'X-CSRF-TOKEN': '<?= csrf_hash() ?>' }
+        }).done(function (res) {
+            if (!res || res.status !== 'success') {
+                if (window.Swal) {
                     Swal.fire({
                         icon: 'error',
-                        title: 'Save Failed',
-                        text: res.message
+                        title: 'Save failed',
+                        text: (res && res.message) || 'The batch could not be saved.'
                     });
                 }
-            },
-            error: function() {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Server Error',
-                    text: 'A server error occurred while processing your request.'
-                });
+                $btn.prop('disabled', false);
+                return;
             }
+
+            // The PDF is opened from the click handler's continuation rather
+            // than a timed dialog callback: window.open outside a user
+            // gesture is blocked by default in Chrome and Firefox, which is
+            // why the dispatch letter never appeared.
+            var pdf = window.open(res.redirect_url, '_blank');
+
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Verification batch saved',
+                    text: res.message,
+                    confirmButtonText: 'Go to dashboard'
+                }).then(function () {
+                    window.location.href = '<?= base_url("dashboard") ?>';
+                });
+            } else {
+                window.location.href = '<?= base_url("dashboard") ?>';
+            }
+
+            if (!pdf) {
+                esNotify('warning', 'Pop-up blocked', 'Allow pop-ups to open the dispatch letter automatically.');
+            }
+        }).fail(function (xhr) {
+            $btn.prop('disabled', false);
+
+            if (window.Swal) {
+                Swal.close();
+            }
+            esAjaxError(xhr, 'The verification batch could not be saved');
         });
     });
 });

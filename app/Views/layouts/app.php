@@ -369,6 +369,9 @@
             <?php endif; ?>
         });
     </script>
+    <?php // Shared AJAX/Select2 helpers. Must load before any view's
+          // scripts section, which is what consumes them. ?>
+    <?= $this->include('common/ajax_common_js') ?>
     <?= $this->renderSection('scripts') ?>
 </body>
 </html>

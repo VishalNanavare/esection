@@ -1,29 +1,15 @@
 <script>
-$(document).ready(function() {
-    $('.select2-ajax-stream').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/streams") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) { return { q: params.term }; },
-            processResults: function(data) { return { results: data.results }; }
-        }
+$(document).ready(function () {
+    esAjaxSelect('.select2-ajax-stream', '<?= base_url("api/streams") ?>', {
+        context: 'Loading academic streams failed'
     });
 
-    $('.select2-ajax-college').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/colleges") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) { return { q: params.term }; },
-            processResults: function(data) {
-                var items = data.results.map(function(item) {
-                    return { id: item.name, text: item.text };
-                });
-                return { results: items };
-            }
+    // This form persists the university NAME, not its id, so the option
+    // value is remapped. `text` still carries the "Name (State)" label.
+    esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {
+        context: 'Loading universities failed',
+        mapItem: function (item) {
+            return { id: item.name, text: item.text };
         }
     });
 });

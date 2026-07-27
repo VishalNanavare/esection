@@ -1,99 +1,115 @@
 <script>
-$(document).ready(function() {
-    // Initialize AJAX Select2 for State Filter
-    $('.select2-ajax-state').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/states") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return { q: params.term };
-            },
-            processResults: function(data) {
-                return { results: data.results };
-            }
-        }
+$(document).ready(function () {
+    esAjaxSelect('.select2-ajax-state', '<?= base_url("api/states") ?>', {
+        context: 'Loading states failed'
     });
 
-    // Initialize AJAX Select2 for College Filter
-    $('.select2-ajax-college').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/colleges") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) {
-                return { q: params.term };
-            },
-            processResults: function(data) {
-                return { results: data.results };
-            }
-        }
+    esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {
+        context: 'Loading universities failed'
     });
 
-    // Live Filter Table
-    $('#state_filter, #university_name_filter').on('change', function() {
-        var selectedState = $('#state_filter').val();
-        var selectedNameText = $('#university_name_filter option:selected').text();
-        var selectedName = selectedNameText.replace(/\s*\([^)]*\)/, '').trim();
+    // --- Client-side row filter -------------------------------------------
+    // Previously this read `option:selected).text()`, which returns the
+    // literal placeholder "-- All Universities --" when nothing is selected.
+    // That string is truthy, so nameMatch compared every row against it and
+    // picking any state hid the entire table. Now it compares ids, which is
+    // exactly what /api/colleges returns as results[].id, so the brittle
+    // "strip the (State) suffix" regex is gone too -- that regex also
+    // mangled any university with parentheses in its own name.
+    var $rows      = $('.uni-row');
+    var $countNote = $('#filter_count');
 
-        $('.uni-row').each(function() {
-            var stateMatch = !selectedState || $(this).data('state') === selectedState;
-            var nameMatch = !selectedNameText || $(this).data('name') === selectedName;
+    function applyFilter() {
+        var state = $('#state_filter').val() || '';
+        var uniId = $('#university_name_filter').val() || '';
+        var shown = 0;
 
-            if (stateMatch && nameMatch) {
-                $(this).show();
-            } else {
-                $(this).hide();
+        $rows.each(function () {
+            var $row       = $(this);
+            var stateMatch = !state || String($row.data('state')) === String(state);
+            var nameMatch  = !uniId || String($row.data('id')) === String(uniId);
+            var visible    = stateMatch && nameMatch;
+
+            $row.toggle(visible);
+            if (visible) {
+                shown++;
             }
         });
+
+        if ($countNote.length) {
+            $countNote.text(
+                (shown === $rows.length)
+                    ? ($rows.length + ' universities')
+                    : ('Showing ' + shown + ' of ' + $rows.length + ' universities')
+            );
+        }
+
+        $('#no_filter_match').toggle(shown === 0 && $rows.length > 0);
+    }
+
+    $('#state_filter, #university_name_filter').on('change', applyFilter);
+
+    $('#reset_filters').on('click', function () {
+        $('#state_filter').val(null).trigger('change.select2');
+        $('#university_name_filter').val(null).trigger('change.select2');
+        applyFilter();
     });
 
-    $('#reset_filters').on('click', function() {
-        $('#state_filter').val('').trigger('change');
-        $('#university_name_filter').val('').trigger('change');
-        $('.uni-row').show();
-    });
+    applyFilter();
 
-    // Edit University Modal AJAX Load
-    $('.edit-uni-btn').on('click', function() {
+    // --- Edit modal --------------------------------------------------------
+    $('.edit-uni-btn').on('click', function () {
         var id = $(this).data('id');
-        $.ajax({
-            url: '<?= base_url("universities/getJson/") ?>' + id,
-            type: 'GET',
-            dataType: 'json',
-            success: function(res) {
-                if (res.status === 'success') {
-                    var data = res.data;
-                    $('#edit_name').val(data.Name);
-                    $('#edit_state').val(data.States);
-                    $('#edit_head_name').val(data.head_name);
-                    $('#edit_fees').val(data.fees);
-                    $('#edit_in_favour_of').val(data.in_favour_of);
-                    $('#edit_address').val(data.Address);
 
-                    $('#edit_university_form').attr('action', '<?= base_url("universities/update/") ?>' + id);
-                    $('#editUniversityModal').modal('show');
-                }
+        $.ajax({
+            url: '<?= base_url("universities/getJson/") ?>' + encodeURIComponent(id),
+            type: 'GET',
+            dataType: 'json'
+        }).done(function (res) {
+            if (!res || res.status !== 'success' || !res.data) {
+                esNotify('error', 'Could not load university', (res && res.message) || 'Unexpected response.');
+                return;
             }
+
+            var data = res.data;
+            $('#edit_name').val(data.Name);
+            $('#edit_state').val(data.States);
+            $('#edit_head_name').val(data.head_name);
+            $('#edit_fees').val(data.fees);
+            $('#edit_in_favour_of').val(data.in_favour_of);
+            $('#edit_address').val(data.Address);
+            $('#edit_university_form').attr('action', '<?= base_url("universities/update/") ?>' + id);
+            $('#editUniversityModal').modal('show');
+        }).fail(function (xhr) {
+            esAjaxError(xhr, 'Could not load the university record');
         });
     });
 
-    // SweetAlert2 Delete Confirmation
-    $('.delete-uni-btn').on('click', function(e) {
+    // --- Delete confirmation ----------------------------------------------
+    // Bound to the form's submit, not an anchor click. If the dialog library
+    // is unavailable the submit proceeds normally rather than being cancelled
+    // and leaving a dead button.
+    $('.delete-uni-form').on('submit', function (e) {
+        var form = this;
+
+        if (form.dataset.esConfirmed === '1' || !window.Swal) {
+            return true;
+        }
+
         e.preventDefault();
-        var deleteUrl = $(this).attr('href');
+
         Swal.fire({
-            title: 'Delete University Record?',
-            text: 'This university record will be permanently deleted from the directory.',
+            title: 'Delete this university?',
+            text: (form.dataset.name || 'This record') + ' will be permanently removed from the directory.',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, Delete',
+            focusCancel: true,
+            confirmButtonText: 'Yes, delete it',
             cancelButtonText: 'Cancel'
-        }).then(function(result) {
-            if (result.isConfirmed) {
-                window.location.href = deleteUrl;
+        }).then(function (result) {
+            if (result && result.isConfirmed) {
+                form.dataset.esConfirmed = '1';
+                form.submit();
             }
         });
     });

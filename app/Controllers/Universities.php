@@ -25,8 +25,18 @@ class Universities extends BaseController
 
     public function store()
     {
-        $this->universityService->saveUniversity($this->request->getPost());
-        return redirect()->to(base_url('universities'))->with('success', 'New University created successfully.');
+        try {
+            $this->universityService->saveUniversity($this->request->getPost());
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            log_message('error', '[Universities::store] {message}', ['message' => (string) $e]);
+
+            return redirect()->to(base_url('universities'))
+                ->with('error', 'The university could not be created. The issue has been logged.');
+        }
+
+        return redirect()->to(base_url('universities'))->with('success', 'New university created successfully.');
     }
 
     public function getJson($id)
@@ -40,13 +50,29 @@ class Universities extends BaseController
 
     public function update($id)
     {
-        $this->universityService->updateUniversity((int)$id, $this->request->getPost());
+        try {
+            $this->universityService->updateUniversity((int) $id, $this->request->getPost());
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            log_message('error', '[Universities::update] {message}', ['message' => (string) $e]);
+
+            return redirect()->to(base_url('universities'))
+                ->with('error', 'The university could not be updated. The issue has been logged.');
+        }
+
         return redirect()->to(base_url('universities'))->with('success', 'University details updated successfully.');
     }
 
     public function delete($id)
     {
-        $this->universityService->deleteUniversity((int)$id);
+        // Belt-and-braces alongside the POST-only route.
+        if (! $this->request->is('post')) {
+            return redirect()->to(base_url('universities'));
+        }
+
+        $this->universityService->deleteUniversity((int) $id);
+
         return redirect()->to(base_url('universities'))->with('success', 'University record deleted.');
     }
 }

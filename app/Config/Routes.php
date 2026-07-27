@@ -30,7 +30,9 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->post('universities/store', 'Universities::store');
     $routes->get('universities/getJson/(:num)', 'Universities::getJson/$1');
     $routes->post('universities/update/(:num)', 'Universities::update/$1');
-    $routes->get('universities/delete/(:num)', 'Universities::delete/$1');
+    // POST only: a destructive action on a GET route is prefetchable by the
+    // browser, crawlable, and triggerable by any <img src> on the page.
+    $routes->post('universities/delete/(:num)', 'Universities::delete/$1');
     
     // Confirmations
     $routes->get('confirmations', 'Confirmations::index');

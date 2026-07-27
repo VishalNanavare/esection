@@ -1,34 +1,18 @@
 <script>
-$(document).ready(function() {
-    $('.select2-ajax-stream').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/streams") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) { return { q: params.term }; },
-            processResults: function(data) { return { results: data.results }; }
+$(document).ready(function () {
+    esAjaxSelect('.select2-ajax-stream', '<?= base_url("api/streams") ?>', {
+        context: 'Loading academic streams failed'
+    });
+
+    // Reminder letters are addressed to a university by name, so the option
+    // value is the name rather than the numeric id.
+    esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {
+        context: 'Loading universities failed',
+        mapItem: function (item) {
+            return { id: item.name, text: item.text };
         }
     });
 
-    $('.select2-ajax-college').select2({
-        width: '100%',
-        ajax: {
-            url: '<?= base_url("api/colleges") ?>',
-            dataType: 'json',
-            delay: 250,
-            data: function(params) { return { q: params.term }; },
-            processResults: function(data) {
-                var items = data.results.map(function(item) {
-                    return { id: item.name, text: item.text };
-                });
-                return { results: items };
-            }
-        }
-    });
-
-    $('#check_all').on('change', function() {
-        $('.stud-check').prop('checked', $(this).prop('checked'));
-    });
+    esBindCheckAll('#check_all', '.stud-check');
 });
 </script>

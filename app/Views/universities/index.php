@@ -37,6 +37,13 @@
                 </div>
             </div>
 
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <small class="text-muted" id="filter_count"></small>
+                <small class="text-danger d-none" id="no_filter_match">
+                    <i class="fa fa-info-circle me-1"></i> No universities match the current filters.
+                </small>
+            </div>
+
             <!-- University Master Table -->
             <div class="table-responsive">
                 <table class="table table-glass" id="university_table">
@@ -58,9 +65,9 @@
                             </tr>
                         <?php else: ?>
                             <?php $sr = 1; foreach ($colleges as $c): ?>
-                                <tr class="uni-row" data-state="<?= esc($c['States']) ?>" data-name="<?= esc($c['Name']) ?>">
+                                <tr class="uni-row" data-id="<?= esc($c['id']) ?>" data-state="<?= esc($c['States']) ?>" data-name="<?= esc($c['Name']) ?>">
                                     <td class="fw-semibold text-muted"><?= $sr++ ?></td>
-                                    <td class="fw-bold text-dark fs-6" style="color: #0f172a !important;"><?= esc($c['Name']) ?></td>
+                                    <td class="fw-bold text-dark fs-6"><?= esc($c['Name']) ?></td>
                                     <td><span class="badge badge-glass-indigo"><?= esc($c['States']) ?></span></td>
                                     <td><?= esc($c['head_name'] ?: 'The Controller of Examinations') ?></td>
                                     <td class="fw-semibold text-emerald"><?= format_currency($c['fees']) ?></td>
@@ -69,9 +76,16 @@
                                         <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-uni-btn" data-id="<?= $c['id'] ?>">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
-                                        <a href="<?= base_url('universities/delete/' . $c['id']) ?>" class="btn btn-sm btn-glass text-danger delete-uni-btn">
-                                            <i class="fa fa-trash"></i>
-                                        </a>
+                                        <?php // POST, not GET: a destructive action behind a plain
+                                              // link is prefetchable, crawlable and CSRF-able. ?>
+                                        <form action="<?= base_url('universities/delete/' . $c['id']) ?>"
+                                              method="post" class="d-inline delete-uni-form"
+                                              data-name="<?= esc($c['Name']) ?>">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete university">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
