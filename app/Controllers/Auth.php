@@ -50,7 +50,21 @@ class Auth extends BaseController
 
     public function logout()
     {
-        session()->destroy();
-        return redirect()->to(base_url('auth/login'))->with('success', 'Logged out successfully.');
+        $session = session();
+
+        // Do NOT use $session->destroy(): in CI 4.7 that is a bare
+        // session_destroy(), which leaves the session in PHP_SESSION_NONE.
+        // Any setFlashdata() after it -- including the one RedirectResponse
+        // ::with() performs -- is then written to a session that will never
+        // be persisted, so the message silently disappears.
+        //
+        // regenerate(true) destroys the old session file, issues a fresh
+        // session id (defeating fixation) and re-sends the ci_session cookie,
+        // all while keeping the session ACTIVE so flashdata survives.
+        $session->remove(['id', 'username', 'full_name', 'role', 'isLoggedIn']);
+        $session->regenerate(true);
+        $session->setFlashdata('success', 'You have been logged out successfully.');
+
+        return redirect()->to(base_url('auth/login'));
     }
 }

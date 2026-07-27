@@ -12,9 +12,15 @@
                 <p class="text-muted small">Institute of Distance & Open Learning (IDOL)</p>
             </div>
 
+            <?php if (session()->getFlashdata('success')): ?>
+                <div class="alert alert-success bg-success bg-opacity-10 text-success border-success border-opacity-25 rounded-3 mb-3 small" role="status">
+                    <i class="fa fa-check-circle me-1"></i> <?= esc(session()->getFlashdata('success')) ?>
+                </div>
+            <?php endif; ?>
+
             <?php if (session()->getFlashdata('error')): ?>
                 <div class="alert alert-danger bg-danger bg-opacity-10 text-danger border-danger border-opacity-25 rounded-3 mb-3 small" role="alert">
-                    <i class="fa fa-exclamation-circle me-1"></i> <?= session()->getFlashdata('error') ?>
+                    <i class="fa fa-exclamation-circle me-1"></i> <?= esc(session()->getFlashdata('error')) ?>
                 </div>
             <?php endif; ?>
 

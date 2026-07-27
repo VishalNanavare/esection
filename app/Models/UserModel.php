@@ -21,37 +21,36 @@ class UserModel extends Model
         return $res ?: null;
     }
 
+    /**
+     * Dummy bcrypt hash of a value no user can supply. Used to keep the
+     * failure path's timing comparable to the success path so the response
+     * time does not reveal whether a username exists.
+     */
+    private const DUMMY_HASH = '$2y$12$usesomesillystringfoeX7Ic0zXQhhFCFtDaZQ8ojmSNMj/mHKbBK';
+
+    /**
+     * Verify a username/password pair against the stored bcrypt hash.
+     *
+     * This is the ONLY accepted credential path. There are deliberately no
+     * fallbacks: earlier revisions accepted `$password === $username` and
+     * synthesised phantom users with hardcoded ids (1 and 99) that did not
+     * exist in the database, which then got stamped onto inserted records.
+     */
     public function authenticateUser(string $username, string $password): ?array
     {
         $user = $this->findByUsername($username);
 
-        if ($user) {
-            if (password_verify($password, $user['password_hash']) || 
-                $password === $username || 
-                $password === $username . '#123') {
-                return $user;
-            }
+        if ($user === null) {
+            password_verify($password, self::DUMMY_HASH);
+            return null;
         }
 
-        // Fallback matching for admin & esection staff accounts
-        if ($username === 'admin' && ($password === 'admin' || $password === 'a seeded default password')) {
-            return [
-                'id'        => 1,
-                'username'  => 'admin',
-                'full_name' => 'System Administrator',
-                'role'      => 'admin'
-            ];
+        if (! password_verify($password, (string) ($user['password_hash'] ?? ''))) {
+            return null;
         }
 
-        if (str_starts_with($username, 'esection') && ($password === $username || $password === $username . '#123')) {
-            return [
-                'id'        => 99,
-                'username'  => $username,
-                'full_name' => 'E-Section Staff (' . strtoupper($username) . ')',
-                'role'      => 'staff'
-            ];
-        }
+        unset($user['password_hash']);
 
-        return null;
+        return $user;
     }
 }
