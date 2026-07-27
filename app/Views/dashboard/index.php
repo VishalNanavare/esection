@@ -1,16 +1,16 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
 <!-- Header Banner -->
 <div class="row mb-4">
     <div class="col-12">
-        <div class="glass-card p-4 d-flex align-items-center justify-content-between">
+        <div class="glass-card p-4 page-header mb-0">
             <div>
-                <h2 class="fw-bold mb-1">Welcome, <span class="text-gradient-indigo"><?= session()->get('full_name') ?? 'E-Section Staff' ?></span></h2>
-                <p class="text-muted mb-0">IDOL Eligibility & Document Verification Analytics System</p>
+                <h2 class="fw-bold mb-1">Welcome, <span class="text-indigo"><?= esc(session()->get('full_name') ?? 'E-Section Staff') ?></span></h2>
+                <p class="text-muted mb-0">IDOL Eligibility &amp; Document Verification Analytics System</p>
             </div>
-            <div>
-                <a href="<?= base_url('students/new') ?>" class="btn btn-indigo me-2">
+            <div class="d-grid d-sm-flex gap-2">
+                <a href="<?= base_url('students/new') ?>" class="btn btn-indigo">
                     <i class="fa fa-plus me-1"></i> New Eligibility Form
                 </a>
                 <a href="<?= base_url('confirmations') ?>" class="btn btn-emerald">
@@ -21,59 +21,60 @@
     </div>
 </div>
 
+<?php
+// One KPI tile shape, driven by data. This was four copies of an identical
+// ten-line block. The colour classes now actually resolve -- text-indigo,
+// bg-emerald and friends were undefined, so every tile rendered grey.
+$statCards = [
+    [
+        'label' => 'Total Verification Cases',
+        'value' => $total_students,
+        'icon'  => 'fa-users',
+        'tone'  => 'indigo',
+        'meta'  => '<i class="fa fa-arrow-up me-1 text-emerald"></i> System records',
+    ],
+    [
+        'label' => 'DD Confirmed',
+        'value' => $total_confirmed,
+        'icon'  => 'fa-check-circle',
+        'tone'  => 'emerald',
+        'meta'  => '<i class="fa fa-check me-1 text-emerald"></i> Processed &amp; paid',
+    ],
+    [
+        'label' => 'Pending Approval',
+        'value' => $total_pending,
+        'icon'  => 'fa-clock-o',
+        'tone'  => 'warning',
+        'meta'  => '<i class="fa fa-exclamation-triangle me-1 text-amber"></i> Awaiting verification',
+    ],
+    [
+        'label' => 'Registered Universities',
+        'value' => $total_colleges,
+        'icon'  => 'fa-university',
+        'tone'  => 'info',
+        'meta'  => '<i class="fa fa-map-marker me-1 text-muted"></i> Nationwide directory',
+    ],
+];
+?>
 <!-- Metric Stat Cards -->
-<div class="row g-4 mb-4">
-    <div class="col-md-6 col-xl-3">
-        <div class="glass-card p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <span class="text-muted small fw-semibold text-uppercase">Total Verification Cases</span>
-                <div class="p-2 rounded-3 bg-indigo bg-opacity-10 text-indigo border border-indigo border-opacity-25">
-                    <i class="fa fa-users fs-5"></i>
+<div class="row g-3 g-md-4 mb-4">
+    <?php foreach ($statCards as $card): ?>
+        <?php $tone = $card['tone']; ?>
+        <div class="col-6 col-xl-3">
+            <div class="glass-card stat-card h-100">
+                <div class="stat-card__head">
+                    <span class="stat-card__label"><?= esc($card['label']) ?></span>
+                    <span class="stat-card__icon bg-<?= $tone ?> bg-opacity-10 text-<?= $tone ?> border-<?= $tone ?> border-opacity-25">
+                        <i class="fa <?= $tone === 'warning' ? 'fa-clock-o' : esc($card['icon']) ?>"></i>
+                    </span>
                 </div>
+                <p class="stat-card__value text-<?= $tone === 'indigo' || $tone === 'info' ? 'dark' : $tone ?>">
+                    <?= number_format((int) $card['value']) ?>
+                </p>
+                <div class="stat-card__meta"><?= $card['meta'] ?></div>
             </div>
-            <h2 class="display-6 fw-bold mb-1 text-dark"><?= number_format($total_students) ?></h2>
-            <div class="small text-muted"><i class="fa fa-arrow-up me-1 text-emerald"></i> System Records</div>
         </div>
-    </div>
-
-    <div class="col-md-6 col-xl-3">
-        <div class="glass-card p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <span class="text-muted small fw-semibold text-uppercase">DD Confirmed</span>
-                <div class="p-2 rounded-3 bg-emerald bg-opacity-10 text-emerald border border-emerald border-opacity-25">
-                    <i class="fa fa-check-circle fs-5"></i>
-                </div>
-            </div>
-            <h2 class="display-6 fw-bold mb-1 text-emerald"><?= number_format($total_confirmed) ?></h2>
-            <div class="small text-muted"><i class="fa fa-check me-1 text-emerald"></i> Processed & Paid</div>
-        </div>
-    </div>
-
-    <div class="col-md-6 col-xl-3">
-        <div class="glass-card p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <span class="text-muted small fw-semibold text-uppercase">Pending Approval</span>
-                <div class="p-2 rounded-3 bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25">
-                    <i class="fa fa-clock-o fs-5"></i>
-                </div>
-            </div>
-            <h2 class="display-6 fw-bold mb-1 text-warning"><?= number_format($total_pending) ?></h2>
-            <div class="small text-muted"><i class="fa fa-exclamation-triangle me-1"></i> Awaiting Verification</div>
-        </div>
-    </div>
-
-    <div class="col-md-6 col-xl-3">
-        <div class="glass-card p-4">
-            <div class="d-flex align-items-center justify-content-between mb-3">
-                <span class="text-muted small fw-semibold text-uppercase">Registered Universities</span>
-                <div class="p-2 rounded-3 bg-info bg-opacity-10 text-info border border-info border-opacity-25">
-                    <i class="fa fa-university fs-5"></i>
-                </div>
-            </div>
-            <h2 class="display-6 fw-bold mb-1 text-dark"><?= number_format($total_colleges) ?></h2>
-            <div class="small text-muted"><i class="fa fa-map-marker me-1"></i> Nationwide Directory</div>
-        </div>
-    </div>
+    <?php endforeach; ?>
 </div>
 
 <!-- Program Breakdown Table -->
@@ -81,15 +82,15 @@
     <div class="col-12">
         <div class="glass-card p-4">
             <div class="d-flex align-items-center justify-content-between mb-4">
-                <h4 class="fw-bold mb-0"><i class="fa fa-list-alt me-2 text-gradient-indigo"></i> Verification Status by Academic Program</h4>
+                <h4 class="fw-bold mb-0"><i class="fa fa-list-alt me-2 text-indigo"></i> Verification Status by Academic Program</h4>
                 <span class="badge badge-glass-indigo"><?= count($metrics) ?> Programs Tracked</span>
             </div>
 
             <div class="table-responsive">
-                <table class="table table-glass">
+                <table class="table table-glass table-sticky-id">
                     <thead>
                         <tr>
-                            <th style="width: 60px;">Sr. No.</th>
+                            <th class="col-sr">Sr. No.</th>
                             <th>Program / Academic Stream</th>
                             <th class="text-center">Total Students</th>
                             <th class="text-center">DD Confirmed</th>

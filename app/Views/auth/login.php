@@ -43,7 +43,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-indigo w-100 py-2.5">
+                <button type="submit" class="btn btn-indigo w-100">
                     <i class="fa fa-sign-in me-2"></i> Log In to Dashboard
                 </button>
             </form>

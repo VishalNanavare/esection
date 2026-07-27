@@ -1,0 +1,655 @@
+/* ==========================================================================
+   E-Section - Light Enterprise Theme
+   --------------------------------------------------------------------------
+   Loaded by BOTH layouts/app.php and layouts/auth.php. Contains only things
+   that make sense on any page: tokens, base type, components, utilities and
+   vendor widget skins. The application chrome (sidebar/topbar/responsive
+   shell) lives in esection-shell.css and is loaded only by layouts/app.php.
+
+   NOTE: the `glass-` prefix on .glass-card / .btn-glass / .table-glass /
+   .badge-glass-* is historical -- it predates the move from a dark
+   glassmorphism theme to this light enterprise one. The names are kept
+   because renaming them is 60+ markup edits for no user-visible benefit.
+   Must be loaded AFTER bootstrap.min.css: the utility backfill below
+   deliberately relies on source order to win.
+   ========================================================================== */
+
+:root {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #f1f5f9;
+    --bg-card: #ffffff;
+    --bg-card-hover: #ffffff;
+    --border-card: #e2e8f0;
+    --border-accent: #cbd5e1;
+
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --text-heading: #0f172a;
+
+    --accent-indigo: #4f46e5;
+    --accent-indigo-light: #e0e7ff;
+    --accent-indigo-glow: rgba(79, 70, 229, 0.25);
+
+    --accent-emerald: #10b981;
+    --accent-emerald-light: #d1fae5;
+    --accent-emerald-glow: rgba(16, 185, 129, 0.25);
+
+    --accent-cyan: #06b6d4;
+    --accent-amber: #f59e0b;
+    --accent-amber-light: #fef3c7;
+    --accent-rose: #f43f5e;
+
+    /* RGB triplets so the colours can participate in Bootstrap's
+       --bs-*-opacity system (see "Colour utilities" below). */
+    --es-indigo-rgb: 79, 70, 229;
+    --es-emerald-rgb: 16, 185, 129;
+    --es-amber-rgb: 245, 158, 11;
+    --es-cyan-rgb: 6, 182, 212;
+    --es-rose-rgb: 244, 63, 94;
+}
+
+body {
+    background-color: var(--bg-primary);
+    background-image:
+        radial-gradient(at 10% 10%, rgba(79, 70, 229, 0.05) 0px, transparent 50%),
+        radial-gradient(at 90% 90%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text-main);
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+}
+
+/* ==========================================================================
+   Colour utilities
+   --------------------------------------------------------------------------
+   text-indigo / bg-emerald / border-indigo and friends are used across all
+   eight views but were defined NOWHERE -- not here, not in Bootstrap. They
+   are Tailwind-style names in a Bootstrap project, so every one was a no-op
+   and all four dashboard KPI tiles rendered as identical grey boxes.
+
+   They are defined via rgba(var(--es-*-rgb), var(--bs-*-opacity)) rather
+   than a flat hex so that Bootstrap's own bg-opacity-* / text-opacity-*
+   utilities -- which the markup ALREADY uses -- start working as authored.
+   --bs-indigo is deliberately not overridden; Bootstrap 5.1.2 defines it as
+   #6610f2 and redefining a framework token would be a silent trap.
+   ========================================================================== */
+
+.text-indigo   { --bs-text-opacity: 1; color: rgba(var(--es-indigo-rgb),  var(--bs-text-opacity)) !important; }
+.text-emerald  { --bs-text-opacity: 1; color: rgba(var(--es-emerald-rgb), var(--bs-text-opacity)) !important; }
+.text-amber    { --bs-text-opacity: 1; color: rgba(var(--es-amber-rgb),   var(--bs-text-opacity)) !important; }
+.text-cyan     { --bs-text-opacity: 1; color: rgba(var(--es-cyan-rgb),    var(--bs-text-opacity)) !important; }
+.text-rose     { --bs-text-opacity: 1; color: rgba(var(--es-rose-rgb),    var(--bs-text-opacity)) !important; }
+
+.bg-indigo     { --bs-bg-opacity: 1; background-color: rgba(var(--es-indigo-rgb),  var(--bs-bg-opacity)) !important; }
+.bg-emerald    { --bs-bg-opacity: 1; background-color: rgba(var(--es-emerald-rgb), var(--bs-bg-opacity)) !important; }
+.bg-amber      { --bs-bg-opacity: 1; background-color: rgba(var(--es-amber-rgb),   var(--bs-bg-opacity)) !important; }
+.bg-cyan       { --bs-bg-opacity: 1; background-color: rgba(var(--es-cyan-rgb),    var(--bs-bg-opacity)) !important; }
+
+.border-indigo  { --bs-border-opacity: 1; border-color: rgba(var(--es-indigo-rgb),  var(--bs-border-opacity)) !important; }
+.border-emerald { --bs-border-opacity: 1; border-color: rgba(var(--es-emerald-rgb), var(--bs-border-opacity)) !important; }
+.border-amber   { --bs-border-opacity: 1; border-color: rgba(var(--es-amber-rgb),   var(--bs-border-opacity)) !important; }
+.border-cyan    { --bs-border-opacity: 1; border-color: rgba(var(--es-cyan-rgb),    var(--bs-border-opacity)) !important; }
+
+/* Backfill of Bootstrap 5.2's border-opacity utilities into 5.1.2.
+   border-opacity-25 is used 15 times in the views and silently does nothing
+   on this Bootstrap version, so those borders render at FULL strength --
+   that is the heavy grey rule on modal headers and login input addons. */
+.border-opacity-10  { --bs-border-opacity: 0.1; }
+.border-opacity-25  { --bs-border-opacity: 0.25; }
+.border-opacity-50  { --bs-border-opacity: 0.5; }
+.border-opacity-75  { --bs-border-opacity: 0.75; }
+.border-opacity-100 { --bs-border-opacity: 1; }
+
+/* ...and make Bootstrap's own border colours honour that variable. In 5.1.2
+   they are flat literals, so opacity could never apply to them. */
+.border-primary   { --bs-border-opacity: 1; border-color: rgba(var(--bs-primary-rgb),   var(--bs-border-opacity)) !important; }
+.border-secondary { --bs-border-opacity: 1; border-color: rgba(var(--bs-secondary-rgb), var(--bs-border-opacity)) !important; }
+.border-success   { --bs-border-opacity: 1; border-color: rgba(var(--bs-success-rgb),   var(--bs-border-opacity)) !important; }
+.border-danger    { --bs-border-opacity: 1; border-color: rgba(var(--bs-danger-rgb),    var(--bs-border-opacity)) !important; }
+.border-warning   { --bs-border-opacity: 1; border-color: rgba(var(--bs-warning-rgb),   var(--bs-border-opacity)) !important; }
+.border-info      { --bs-border-opacity: 1; border-color: rgba(var(--bs-info-rgb),      var(--bs-border-opacity)) !important; }
+.border-dark      { --bs-border-opacity: 1; border-color: rgba(var(--bs-dark-rgb),      var(--bs-border-opacity)) !important; }
+.border-light     { --bs-border-opacity: 1; border-color: rgba(var(--bs-light-rgb),     var(--bs-border-opacity)) !important; }
+
+/* ==========================================================================
+   Motion
+   ========================================================================== */
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* Scoped to .glass-card only, and behind a reduced-motion guard.
+   Deliberately NOT applied to:
+     .modal-content    - fights Bootstrap's own .modal.fade transform,
+                         producing a visible double-bounce
+     .table-responsive - animation-fill-mode:forwards leaves a permanent
+                         transform, which makes the element a containing
+                         block and clips absolutely-positioned descendants
+                         such as a Select2 dropdown opened inside a cell */
+@media (prefers-reduced-motion: no-preference) {
+    .glass-card {
+        animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+}
+
+@media print {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ==========================================================================
+   Typography
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+    color: var(--text-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* Deprecated aliases: these never produced a gradient. Prefer .text-indigo
+   and .text-emerald. Kept so existing markup does not regress. */
+.text-gradient-indigo  { color: var(--accent-indigo); }
+.text-gradient-emerald { color: var(--accent-emerald); }
+
+/* ==========================================================================
+   Cards & layout components
+   ========================================================================== */
+
+.glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-card);
+    border-radius: 0.85rem;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
+    transition: border-color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
+}
+
+.glass-card:hover {
+    border-color: var(--border-accent);
+    box-shadow: 0 10px 30px -4px rgba(79, 70, 229, 0.1), 0 4px 10px -2px rgba(15, 23, 42, 0.04);
+}
+
+/* Repeated inline styles, extracted. Six views hardcoded the filter panel
+   and one of them had already drifted to a literal #e2e8f0. */
+.filter-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-card);
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.entry-panel {
+    background: var(--bg-card);
+    border: 1px dashed var(--border-accent);
+    border-radius: 0.75rem;
+    padding: 1rem;
+}
+
+.brand-mark {
+    width: 36px;
+    height: 36px;
+    background: var(--accent-indigo-light);
+    border: 1px solid #c7d2fe;
+    border-radius: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+.brand-mark--lg {
+    width: 64px;
+    height: 64px;
+}
+
+.topbar-pill {
+    display: inline-flex;
+    align-items: center;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-card);
+    border-radius: 9999px;
+    padding: 0.3rem 0.8rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.page-header h3 {
+    margin-bottom: 0.25rem;
+}
+
+/* KPI tiles */
+.stat-card { padding: 1.25rem; }
+
+.stat-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.stat-card__label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    line-height: 1.3;
+}
+
+.stat-card__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 0.6rem;
+    border: 1px solid;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+}
+
+/* Replaces .display-6, which is calc(1.375rem + 1.5vw) below 1200px and
+   overflows a 2-up tile on a phone. */
+.stat-card__value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.02em;
+}
+
+.stat-card__meta {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-state__icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-card);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: var(--text-muted);
+    margin-bottom: 0.85rem;
+}
+
+/* ==========================================================================
+   Buttons
+   ========================================================================== */
+
+.btn-indigo {
+    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    color: #ffffff !important;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px 0 var(--accent-indigo-glow);
+    transition: all 0.2s ease;
+}
+
+.btn-indigo:hover {
+    background: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px 0 var(--accent-indigo-glow);
+}
+
+.btn-emerald {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: #ffffff !important;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.6rem 1.4rem;
+    font-weight: 600;
+    box-shadow: 0 4px 12px 0 var(--accent-emerald-glow);
+    transition: all 0.2s ease;
+}
+
+.btn-emerald:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px 0 var(--accent-emerald-glow);
+}
+
+.btn-glass {
+    background: #ffffff;
+    color: var(--text-main) !important;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1.2rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.btn-glass:hover {
+    background: #f1f5f9;
+    color: #0f172a !important;
+    border-color: #94a3b8;
+}
+
+/* .btn-glass hardcodes its padding, which otherwise defeats .btn-sm
+   everywhere the two are combined (table row actions, dashboard links). */
+.btn-sm.btn-glass {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+}
+
+/* ==========================================================================
+   Forms
+   ========================================================================== */
+
+.form-control, .form-select {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    border-radius: 0.5rem;
+    padding: 0.65rem 1rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    background: #ffffff !important;
+    border-color: var(--accent-indigo) !important;
+    box-shadow: 0 0 0 0.25rem var(--accent-indigo-glow) !important;
+    outline: none;
+}
+
+.form-control::placeholder { color: #94a3b8; }
+
+.form-check-input:checked {
+    background-color: var(--accent-indigo);
+    border-color: var(--accent-indigo);
+}
+
+.form-check-input:focus {
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 0 0.2rem var(--accent-indigo-glow);
+}
+
+/* ==========================================================================
+   Tables
+   ========================================================================== */
+
+.table-glass {
+    color: var(--text-main);
+    margin-bottom: 0;
+}
+
+.table-glass th {
+    background: #f8fafc;
+    color: #475569;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    border-bottom: 2px solid #e2e8f0;
+    padding: 1rem;
+    white-space: nowrap;
+}
+
+.table-glass td {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 1rem;
+    vertical-align: middle;
+    background: transparent;
+    color: var(--text-main);
+}
+
+.table-glass tbody tr:hover td { background: #f8fafc; }
+
+.table-responsive { position: relative; min-width: 0; }
+.table-responsive > .table-glass { min-width: 760px; }
+
+.col-sr { width: 52px; }
+
+/* Long university addresses are the widest cell in three tables and would
+   otherwise force ~700px of table width on their own. */
+.cell-address {
+    max-width: 22ch;
+    white-space: normal;
+}
+
+@media (max-width: 1199.98px) {
+    .table-glass th, .table-glass td { padding: 0.75rem 0.6rem; }
+}
+
+@media (max-width: 991.98px) {
+    .table-glass th, .table-glass td { padding: 0.65rem 0.55rem; font-size: 0.875rem; }
+
+    /* Pin the first two columns (checkbox/Sr.No + identity) so a row can
+       still be identified while scrolling horizontally. In all five tables
+       the identity column is nth-child(2). */
+    .table-sticky-id th:nth-child(-n + 2),
+    .table-sticky-id td:nth-child(-n + 2) {
+        position: sticky;
+        z-index: 1;
+        background: var(--bg-card);
+    }
+
+    .table-sticky-id th:nth-child(1),
+    .table-sticky-id td:nth-child(1) { left: 0; }
+
+    .table-sticky-id th:nth-child(2),
+    .table-sticky-id td:nth-child(2) {
+        left: 52px;
+        box-shadow: 1px 0 0 var(--border-card);
+    }
+
+    .table-sticky-id thead th:nth-child(-n + 2) { background: var(--bg-secondary); }
+    .table-sticky-id tbody tr:hover td:nth-child(-n + 2) { background: var(--bg-primary); }
+
+    /* Right-edge affordance signalling there is more table off-screen. */
+    .table-responsive::after {
+        content: '';
+        position: absolute;
+        inset: 0 0 0 auto;
+        width: 18px;
+        pointer-events: none;
+        background: linear-gradient(to left, rgba(15, 23, 42, 0.10), transparent);
+    }
+}
+
+/* ==========================================================================
+   Badges
+   ========================================================================== */
+
+.badge-glass-indigo {
+    background: var(--accent-indigo-light);
+    color: #3730a3;
+    border: 1px solid #c7d2fe;
+    padding: 0.4em 0.8em;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+.badge-glass-emerald {
+    background: var(--accent-emerald-light);
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+    padding: 0.4em 0.8em;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+.badge-glass-amber {
+    background: var(--accent-amber-light);
+    color: #92400e;
+    border: 1px solid #fde68a;
+    padding: 0.4em 0.8em;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   Select2 4.0.5 skin - Bootstrap 5 form-control parity
+   --------------------------------------------------------------------------
+   Heights are expressed in the same terms as .form-control above
+   (calc(1.5em + 1.3rem + 2px)) so the two can never drift apart, and so the
+   raw <select> before Select2 initialises is the same size as the widget
+   that replaces it -- no visible jump on load.
+   ========================================================================== */
+
+.select2-container { width: 100% !important; display: block; }
+
+.select2-container--default .select2-selection--single {
+    height: calc(1.5em + 1.3rem + 2px);
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-main);
+    font-size: 1rem;
+    line-height: calc(1.5em + 1.3rem);
+    padding-left: 1rem;
+    padding-right: 2.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder { color: #94a3b8; }
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: calc(1.5em + 1.3rem);
+    right: 0.6rem;
+    width: 1.25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow b {
+    border-color: #64748b transparent transparent transparent;
+}
+
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 0 0.25rem var(--accent-indigo-glow);
+}
+
+.select2-container--default.select2-container--open.select2-container--below .select2-selection--single {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.select2-container--default.select2-container--open.select2-container--above .select2-selection--single {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.select2-container--default.select2-container--disabled .select2-selection--single { background: #f1f5f9; }
+.select2-container--default .select2-selection--single .select2-selection__clear { color: #94a3b8; margin-right: 1.6rem; }
+
+.select2-dropdown {
+    border: 1px solid var(--accent-indigo);
+    border-radius: 0.5rem;
+    box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.18);
+    /* Select2 ships 1051, below Bootstrap 5's .modal (1055). Raised so a
+       dropdown placed inside a modal is not hidden behind it. Note a modal
+       ALSO needs dropdownParent set at init for focus handling. */
+    z-index: 1060;
+}
+
+.select2-container--open .select2-dropdown--below { border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+.select2-container--open .select2-dropdown--above { border-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+
+.select2-search--dropdown { padding: 0.5rem; }
+
+.select2-container--default .select2-search--dropdown .select2-search__field {
+    border: 1px solid #cbd5e1;
+    border-radius: 0.4rem;
+    padding: 0.45rem 0.65rem;
+    outline: 0;
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field:focus {
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 0 0.2rem var(--accent-indigo-glow);
+}
+
+.select2-results__options { max-height: 15rem; }
+
+.select2-results__option {
+    padding: 0.5rem 1rem;
+    font-size: 0.925rem;
+    color: var(--text-main);
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--accent-indigo-light);
+    color: #3730a3;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: var(--accent-indigo);
+    color: #ffffff;
+}
+
+.select2-container--default .select2-results__option[aria-disabled=true] { color: #94a3b8; }
+
+.select2-results__message,
+.select2-results__option.loading-results {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    padding: 0.6rem 1rem;
+}
+
+/* ==========================================================================
+   SweetAlert2 skin
+   --------------------------------------------------------------------------
+   The .all build injects its stylesheet into <head> at run time, i.e. AFTER
+   this file, so it wins at equal specificity. These rules therefore hang off
+   the customClass names registered in layouts/app.php rather than trying to
+   out-!important the injected CSS. Buttons are handled by
+   buttonsStyling:false, so they inherit .btn-indigo / .btn-glass directly.
+   ========================================================================== */
+
+.swal2-popup.es-swal {
+    border-radius: 0.85rem;
+    border: 1px solid var(--border-card);
+    box-shadow: 0 20px 60px -12px rgba(15, 23, 42, 0.25);
+    font-family: inherit;
+    padding: 1.75rem;
+}
+
+.swal2-title.es-swal__title {
+    color: var(--text-heading);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-size: 1.35rem;
+}
+
+.swal2-html-container.es-swal__text {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+.swal2-container { z-index: 2000; }
+.swal2-toast .swal2-title { font-size: 0.9rem; }

@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
 <div class="row">
@@ -15,7 +15,7 @@
             </div>
 
             <!-- Search & State Filter Bar with AJAX Select2 -->
-            <div class="row g-3 mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid #e2e8f0;">
+            <div class="row g-3 mb-4 filter-panel">
                 <div class="col-md-5">
                     <label class="form-label text-secondary small fw-semibold">Filter by State (AJAX)</label>
                     <select id="state_filter" class="form-select select2-ajax-state">
@@ -30,7 +30,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-2 d-flex align-items-end mt-2 mt-md-0">
                     <button type="button" class="btn btn-glass w-100 py-2" id="reset_filters">
                         <i class="fa fa-refresh me-1"></i> Reset Filters
                     </button>
@@ -46,10 +46,10 @@
 
             <!-- University Master Table -->
             <div class="table-responsive">
-                <table class="table table-glass" id="university_table">
+                <table class="table table-glass table-sticky-id" id="university_table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">#</th>
+                            <th class="col-sr">#</th>
                             <th>University Name</th>
                             <th>State</th>
                             <th>Head Title</th>

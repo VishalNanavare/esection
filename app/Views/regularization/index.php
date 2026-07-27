@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
 <div class="row">
@@ -13,7 +13,7 @@
 
             <form action="<?= base_url('regularization/generateLetter') ?>" method="post" target="_blank">
                 <?= csrf_field() ?>
-                <div class="row g-3 mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid var(--border-card);">
+                <div class="row g-3 mb-4 filter-panel">
                     <div class="col-md-6">
                         <label class="form-label text-secondary small fw-semibold">Admission Letter Addressed To</label>
                         <input type="text" name="admission_letter_for" class="form-control" placeholder="e.g. The Principal / Director" required>

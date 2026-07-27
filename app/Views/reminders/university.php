@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
 <div class="row">
@@ -15,7 +15,7 @@
             </div>
 
             <!-- Search Filter Bar with AJAX Select2 -->
-            <form action="<?= base_url('reminders/university') ?>" method="post" class="row g-3 mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid var(--border-card);">
+            <form action="<?= base_url('reminders/university') ?>" method="post" class="row g-3 mb-4 filter-panel">
                 <?= csrf_field() ?>
                 <div class="col-md-4">
                     <label class="form-label text-secondary small fw-semibold">Academic Year</label>
@@ -62,7 +62,7 @@
                 <form action="<?= base_url('reminders/generateUniversityReminder') ?>" method="post" target="_blank">
                     <?= csrf_field() ?>
                     
-                    <div class="row g-3 mb-4 p-3 rounded-3" style="background: #ffffff; border: 1px dashed #cbd5e1;">
+                    <div class="row g-3 mb-4 entry-panel">
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">Reminder Notice Type</label>
                             <select name="reminder_type" class="form-select" required>
@@ -75,10 +75,10 @@
 
                     <!-- Student Selection Table -->
                     <div class="table-responsive mb-4">
-                        <table class="table table-glass">
+                        <table class="table table-glass table-sticky-id">
                             <thead>
                                 <tr>
-                                    <th style="width: 40px;"><input type="checkbox" id="check_all"></th>
+                                    <th class="col-sr"><input type="checkbox" id="check_all"></th>
                                     <th>Candidate Name</th>
                                     <th>Eligibility Case No.</th>
                                     <th>Target University Address</th>

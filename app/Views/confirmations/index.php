@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
 <div class="row">
@@ -12,7 +12,7 @@
             </div>
 
             <!-- Filter Panel with AJAX Select2 -->
-            <form action="<?= base_url('confirmations') ?>" method="get" class="row g-3 mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid var(--border-card);">
+            <form action="<?= base_url('confirmations') ?>" method="get" class="row g-3 mb-4 filter-panel">
                 <div class="col-md-5">
                     <label class="form-label text-secondary small fw-semibold">Academic Admission Year</label>
                     <select name="year" class="form-select" required>
@@ -36,7 +36,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-2 d-flex align-items-end">
+                <div class="col-md-2 d-flex align-items-end mt-2 mt-md-0">
                     <button type="submit" class="btn btn-indigo w-100 py-2">
                         <i class="fa fa-filter me-1"></i> Load Students
                     </button>
@@ -48,20 +48,20 @@
                     <?= csrf_field() ?>
 
                     <!-- Payment Information Bar -->
-                    <div class="row g-3 mb-4 p-3 rounded-3" style="background: #ffffff; border: 1px dashed #cbd5e1;">
-                        <div class="col-md-3">
+                    <div class="row g-3 mb-4 entry-panel">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label text-secondary small fw-semibold">Demand Draft (DD) No.</label>
                             <input type="text" name="dd_no" class="form-control" placeholder="e.g. 562814" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label text-secondary small fw-semibold">Issuing Bank Name</label>
                             <input type="text" name="bank_name" class="form-control" placeholder="e.g. State Bank of India" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label text-secondary small fw-semibold">DD Issue Date</label>
                             <input type="date" name="dd_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
                         </div>
-                        <div class="col-md-3">
+                        <div class="col-sm-6 col-lg-3">
                             <label class="form-label text-secondary small fw-semibold">DD Total Amount (₹)</label>
                             <input type="text" name="dd_amount" class="form-control" placeholder="e.g. 1500" required>
                         </div>
@@ -69,10 +69,10 @@
 
                     <!-- Students Listing Table -->
                     <div class="table-responsive mb-4">
-                        <table class="table table-glass">
+                        <table class="table table-glass table-sticky-id">
                             <thead>
                                 <tr>
-                                    <th style="width: 40px;"><input type="checkbox" id="check_all_conf"></th>
+                                    <th class="col-sr"><input type="checkbox" id="check_all_conf"></th>
                                     <th>Candidate Name</th>
                                     <th>Maiden Name</th>
                                     <th>Eligibility Case No.</th>

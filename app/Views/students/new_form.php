@@ -1,4 +1,4 @@
-<?= $this->extend('layouts/main') ?>
+<?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
 <div class="row">
@@ -9,11 +9,11 @@
                     <h3 class="fw-bold mb-1"><i class="fa fa-plus-circle me-2 text-gradient-indigo"></i> New Student Verification Form</h3>
                     <p class="text-muted small mb-0">Create eligibility verification dispatch cases for target universities across India.</p>
                 </div>
-                <span class="badge badge-glass-indigo fs-6">Batch #: <span id="display_common_no"><?= $common_no ?></span></span>
+                <span class="badge badge-glass-indigo fs-6">Batch #: <span id="display_common_no"><?= esc($common_no) ?></span></span>
             </div>
 
             <!-- University & Program Details with AJAX Select2 -->
-            <div class="row g-3 mb-4 p-3 rounded-3" style="background: #f8fafc; border: 1px solid var(--border-card);">
+            <div class="row g-3 mb-4 filter-panel">
                 <div class="col-md-6">
                     <label class="form-label text-secondary small fw-semibold">Target University Name (AJAX Search)</label>
                     <select class="form-select select2-ajax-college" id="clg_add_select" required>
@@ -57,17 +57,17 @@
 
             <!-- Single Candidate Input Entry Panel -->
             <h5 class="fw-bold mb-3"><i class="fa fa-user-plus me-2 text-emerald"></i> Add Candidate to Batch Dispatch</h5>
-            <div class="row g-3 mb-4 p-3 rounded-3" style="background: #ffffff; border: 1px dashed #cbd5e1;">
-                <div class="col-md-3">
+            <div class="row g-3 mb-4 entry-panel">
+                <div class="col-sm-6 col-lg-3">
                     <input type="text" class="form-control" id="stud_name" placeholder="Student Full Name">
                 </div>
-                <div class="col-md-3">
+                <div class="col-sm-6 col-lg-3">
                     <input type="text" class="form-control" id="stud_nee_name" placeholder="Nee / Maiden Name (Optional)">
                 </div>
-                <div class="col-md-3">
+                <div class="col-sm-6 col-lg-3">
                     <input type="text" class="form-control" id="eligibility_case_no" placeholder="Eligibility Case No.">
                 </div>
-                <div class="col-md-3">
+                <div class="col-sm-6 col-lg-3">
                     <input type="text" class="form-control" id="verification_by_you" placeholder="Verification Remarks">
                 </div>
                 <div class="col-12 text-end">
@@ -79,10 +79,10 @@
 
             <!-- Candidate Batch Table -->
             <div class="table-responsive mb-4">
-                <table class="table table-glass" id="student_batch_table">
+                <table class="table table-glass table-sticky-id" id="student_batch_table">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">#</th>
+                            <th class="col-sr">#</th>
                             <th>Student Full Name</th>
                             <th>Nee / Maiden Name</th>
                             <th>Eligibility Case No.</th>

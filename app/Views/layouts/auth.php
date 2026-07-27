@@ -7,7 +7,9 @@
     <!-- Offline CSS Assets -->
     <link rel="stylesheet" href="<?= asset_url('assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/font-awesome.min.css') ?>">
-    <link rel="stylesheet" href="<?= asset_url('assets/css/glassmorphism.css') ?>">
+    <?php // Theme only -- the login page has no app chrome, so esection-shell.css
+          // (sidebar/topbar/responsive) is deliberately not loaded here. ?>
+    <link rel="stylesheet" href="<?= asset_url('assets/css/esection-theme.css') ?>">
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 py-5">
     <div class="container">

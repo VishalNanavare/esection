@@ -31,7 +31,9 @@ class PdfController extends BaseController
             'first_row'     => $firstRow,
             'students'      => $students,
             'array_space'   => $decodedSpace,
-            'dispatch_date' => date('d/m/Y')
+            // Key must be 'date': that is what every pdf/*.php template reads.
+            'date'          => date('d/m/Y'),
+            'dispatch_date' => date('d/m/Y'),
         ];
 
         return $this->pdfService->renderPdfResponse('pdf/dispatch_letter', $data, 'verification_dispatch_' . $decodedSpace . '.pdf');
