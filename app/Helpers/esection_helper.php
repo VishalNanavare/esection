@@ -1,5 +1,26 @@
 <?php
 
+if (! function_exists('asset_url')) {
+    /**
+     * base_url() for a static asset, with a filemtime cache-buster appended.
+     *
+     * The nginx vhost sets `expires 7d` on css|js, so replacing a file in
+     * place is invisible to any browser that already downloaded the old one.
+     * Keying the query string on the file's mtime means the URL changes
+     * exactly when the bytes do -- no build step, no manual version bump.
+     *
+     * @param string $path Path under public/, e.g. 'assets/css/app.css'
+     */
+    function asset_url(string $path): string
+    {
+        $path     = ltrim($path, '/');
+        $absolute = FCPATH . $path;
+        $version  = is_file($absolute) ? filemtime($absolute) : null;
+
+        return base_url($path) . ($version !== null ? '?v=' . $version : '');
+    }
+}
+
 if (!function_exists('format_currency')) {
     function format_currency($amount)
     {

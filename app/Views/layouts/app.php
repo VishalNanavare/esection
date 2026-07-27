@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'E-Section Verification System' ?></title>
-    <!-- Offline CSS Assets -->
-    <link rel="stylesheet" href="<?= base_url('assets/css/bootstrap.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/font-awesome.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/vendor/select2/select2.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/vendor/sweetalert2/sweetalert2.min.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/glassmorphism.css') ?>">
+    <title><?= esc($title ?? 'E-Section Verification System') ?></title>
+    <!-- Offline CSS Assets (asset_url appends a filemtime cache-buster) -->
+    <link rel="stylesheet" href="<?= asset_url('assets/css/bootstrap.min.css') ?>">
+    <link rel="stylesheet" href="<?= asset_url('assets/css/font-awesome.min.css') ?>">
+    <link rel="stylesheet" href="<?= asset_url('assets/vendor/select2/select2.min.css') ?>">
+    <link rel="stylesheet" href="<?= asset_url('assets/css/glassmorphism.css') ?>">
+    <?php // SweetAlert2 is the .all build: it injects its own stylesheet at
+          // runtime, so there is deliberately no sweetalert2 <link> here. ?>
     <style>
         :root {
             --sidebar-width: 250px;
@@ -266,16 +267,32 @@
     </div>
 
     <!-- Offline Local JS -->
-    <script src="<?= base_url('assets/js/jquery.min.js') ?>"></script>
-    <script src="<?= base_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
-    <script src="<?= base_url('assets/vendor/select2/select2.min.js') ?>"></script>
-    <script src="<?= base_url('assets/vendor/sweetalert2/sweetalert2.min.js') ?>"></script>
-    <script src="<?= base_url('assets/js/excel.js') ?>"></script>
+    <script src="<?= asset_url('assets/js/jquery.min.js') ?>"></script>
+    <script src="<?= asset_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
+    <script src="<?= asset_url('assets/vendor/select2/select2.min.js') ?>"></script>
+    <script src="<?= asset_url('assets/vendor/sweetalert2/sweetalert2.min.js') ?>"></script>
     <script>
         // Some SweetAlert2 builds only export `Sweetalert2` (the UMD global)
         // and never assign `Swal`. Normalise here so every call site can rely
         // on window.Swal existing -- or being null, which each site checks.
         window.Swal = window.Swal || window.Sweetalert2 || null;
+
+        // Hand button styling to the design system rather than fighting
+        // SweetAlert2's injected CSS. Reassigning window.Swal keeps every
+        // existing Swal.fire(...) call site working unchanged.
+        if (window.Swal && typeof window.Swal.mixin === 'function') {
+            window.Swal = window.Swal.mixin({
+                buttonsStyling: false,
+                customClass: {
+                    popup:         'es-swal',
+                    title:         'es-swal__title',
+                    htmlContainer: 'es-swal__text',
+                    confirmButton: 'btn btn-indigo',
+                    cancelButton:  'btn btn-glass ms-2',
+                    denyButton:    'btn btn-glass ms-2'
+                }
+            });
+        }
 
         $(window).on('load', function() {
             setTimeout(function() {
