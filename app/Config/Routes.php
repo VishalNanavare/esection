@@ -10,6 +10,10 @@ $routes->get('/', 'Auth::login');
 $routes->get('auth/login', 'Auth::login');
 $routes->post('auth/processLogin', 'Auth::processLogin');
 $routes->get('auth/logout', 'Auth::logout');
+$routes->get('auth/forgotPassword', 'Auth::forgotPassword');
+$routes->post('auth/processForgotPassword', 'Auth::processForgotPassword');
+$routes->get('auth/resetPassword/(:segment)', 'Auth::resetPassword/$1');
+$routes->post('auth/processResetPassword', 'Auth::processResetPassword');
 
 // Protected Application Routes
 $routes->group('', ['filter' => 'authFilter'], function ($routes) {
@@ -27,6 +31,7 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     // so it belongs to this page's access right, not Confirmations').
     $routes->group('', ['filter' => 'accessFilter:students_new'], function ($routes) {
         $routes->get('students/new', 'Students::newForm');
+        $routes->get('students/generateCaseNo', 'Students::generateCaseNo');
         $routes->get('students/getCollegeInfo/(:num)', 'Students::getCollegeInfo/$1');
         $routes->post('students/storeBatch', 'Students::storeBatch');
         $routes->get('pdf/dispatch/(:segment)', 'PdfController::dispatchLetter/$1');
@@ -142,6 +147,14 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
         $routes->get('access-rights', 'SettingsAccessRights::index');
         $routes->post('access-rights/store', 'SettingsAccessRights::store');
 
+        // Email (SMTP connection + wording). Sits with Settings, not with the
+        // operational accessFilter:* pages -- SMTP credentials are as
+        // sensitive as any other Settings value.
+        $routes->get('mail', 'SettingsMail::index');
+        $routes->post('mail/store', 'SettingsMail::store');
+        $routes->post('mail/template/(:segment)/store', 'SettingsMail::storeTemplate/$1');
+        $routes->post('mail/test', 'SettingsMail::sendTest');
+
         // Backup. Download takes (:num), never a filename, so the router
         // rejects a non-numeric segment before the controller runs -- the
         // first of several path-traversal gates (see
@@ -152,5 +165,17 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
         $routes->post('backup/password/store', 'SettingsBackup::storePassword');
         $routes->post('backup/retention/store', 'SettingsBackup::storeRetention');
         $routes->get('backup/download/(:num)', 'SettingsBackup::download/$1');
+    });
+
+    // Bulk Email -- deliberately adminFilter, not one of the 6 operational
+    // accessFilter:* pages. It is not in that page-key catalog, and unlike
+    // those pages a mistake here contacts up to 500 external addresses in one
+    // action, closer in risk to Settings than to day-to-day data entry.
+    $routes->group('', ['filter' => 'adminFilter'], function ($routes) {
+        $routes->get('bulk-email', 'BulkEmail::index');
+        $routes->post('bulk-email/send', 'BulkEmail::send');
+        $routes->get('bulk-email/log', 'BulkEmail::log');
+        $routes->post('bulk-email/retry/(:num)', 'BulkEmail::retry/$1');
+        $routes->post('bulk-email/retryAllFailed', 'BulkEmail::retryAllFailed');
     });
 });

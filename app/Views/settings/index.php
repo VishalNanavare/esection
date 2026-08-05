@@ -26,6 +26,7 @@
         ['icon' => 'fa-file-text-o',    'title' => 'Letter Templates',   'desc' => 'Edit the wording on every generated letter, with a live PDF preview.', 'url' => 'settings/letter-templates'],
         ['icon' => 'fa-list-alt',       'title' => 'Activity Log',       'desc' => 'See who changed a setting, and when.',                             'url' => 'settings/activity-log'],
         ['icon' => 'fa-database',       'title' => 'Backup',             'desc' => 'Download a password-protected copy of the database, or an Excel data export.', 'url' => 'settings/backup'],
+        ['icon' => 'fa-envelope',       'title' => 'Email',              'desc' => 'Connect your mail account, and edit the wording of automated emails.',           'url' => 'settings/mail'],
     ];
     ?>
     <?php foreach ($cards as $card): ?>

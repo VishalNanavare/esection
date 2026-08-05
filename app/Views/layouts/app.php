@@ -89,6 +89,12 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                 <?php endif; ?>
                 <?php if (session()->get('role') === 'admin'): ?>
                 <li class="nav-item">
+                    <a href="<?= base_url('bulk-email') ?>" data-label="Send Emails" class="nav-link <?= (str_contains(uri_string(), 'bulk-email')) ? 'active' : '' ?>">
+                        <i class="fa fa-paper-plane"></i>
+                        <span class="link-text">Send Emails</span>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="<?= base_url('settings') ?>" data-label="Settings" class="nav-link <?= (str_contains(uri_string(), 'settings')) ? 'active' : '' ?>">
                         <i class="fa fa-cog"></i>
                         <span class="link-text">Settings</span>
