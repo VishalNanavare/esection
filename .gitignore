@@ -90,6 +90,20 @@ php_errors.log
 /vendor/
 
 #-------------------------
+# Runtime data and local test artifacts
+#-------------------------
+# Staff-uploaded institute logo/letterhead. Runtime data, not source --
+# InstituteDetailsService::storeUploadedFile() recreates the directory on
+# demand, so ignoring it cannot break a fresh deployment.
+/public/uploads/
+
+# curl cookie jars left behind by manual/scripted auth testing. These hold
+# live ci_session and CSRF values, so they must never reach a commit.
+/admin.txt
+cookies*.txt
+*.cookies
+
+#-------------------------
 # IDE / Development Files
 #-------------------------
 
