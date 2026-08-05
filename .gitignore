@@ -141,3 +141,5 @@ _modules/*
 
 /results/
 /phpunit.xml
+/writable/backups/*
+!/writable/backups/index.html

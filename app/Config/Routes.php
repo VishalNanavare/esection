@@ -141,5 +141,16 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
 
         $routes->get('access-rights', 'SettingsAccessRights::index');
         $routes->post('access-rights/store', 'SettingsAccessRights::store');
+
+        // Backup. Download takes (:num), never a filename, so the router
+        // rejects a non-numeric segment before the controller runs -- the
+        // first of several path-traversal gates (see
+        // BackupService::resolveDownload()).
+        $routes->get('backup', 'SettingsBackup::index');
+        $routes->post('backup/sql', 'SettingsBackup::runSql');
+        $routes->post('backup/excel', 'SettingsBackup::runExcel');
+        $routes->post('backup/password/store', 'SettingsBackup::storePassword');
+        $routes->post('backup/retention/store', 'SettingsBackup::storeRetention');
+        $routes->get('backup/download/(:num)', 'SettingsBackup::download/$1');
     });
 });

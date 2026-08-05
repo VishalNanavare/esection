@@ -25,6 +25,7 @@
         ['icon' => 'fa-hashtag',        'title' => 'Document Numbering', 'desc' => 'Configure the case number prefix used on new records.',           'url' => 'settings/numbering'],
         ['icon' => 'fa-file-text-o',    'title' => 'Letter Templates',   'desc' => 'Edit the wording on every generated letter, with a live PDF preview.', 'url' => 'settings/letter-templates'],
         ['icon' => 'fa-list-alt',       'title' => 'Activity Log',       'desc' => 'See who changed a setting, and when.',                             'url' => 'settings/activity-log'],
+        ['icon' => 'fa-database',       'title' => 'Backup',             'desc' => 'Download a password-protected copy of the database, or an Excel data export.', 'url' => 'settings/backup'],
     ];
     ?>
     <?php foreach ($cards as $card): ?>
