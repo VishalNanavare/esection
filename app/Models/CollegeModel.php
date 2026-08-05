@@ -12,7 +12,7 @@ class CollegeModel extends Model
     protected $returnType       = 'array';
     protected $allowedFields    = [
         'Name', 'States', 'Address', 'email_id',
-        'mobile_no', 'fees', 'head_name', 'in_favour_of', 'sel_data'
+        'mobile_no', 'fees', 'head_name', 'in_favour_of', 'sel_data', 'is_active'
     ];
 
     /** Select2 page size. */
@@ -27,6 +27,22 @@ class CollegeModel extends Model
     private function table(): \CodeIgniter\Database\BaseBuilder
     {
         return $this->db->table($this->table);
+    }
+
+    /**
+     * Best-effort reverse lookup: student_details.clg_add stores the
+     * university's postal Address as free text (auto-filled at entry time),
+     * not a foreign key, so this is the only way back to that university's
+     * own record (e.g. for its `fees`) -- an exact string match, which can
+     * legitimately fail to find anything if the address text was ever
+     * hand-edited after entry. Callers must treat a null return as "fees
+     * unknown", not an error.
+     */
+    public function findByAddress(string $address): ?array
+    {
+        $row = $this->table()->where('Address', $address)->get()->getRowArray();
+
+        return $row ?: null;
     }
 
     public function getAllColleges(): array
@@ -48,14 +64,25 @@ class CollegeModel extends Model
     /**
      * Select2-shaped college search.
      *
+     * $activeOnly defaults true because every consumer except the
+     * Universities admin page itself is "pick a target to send a new
+     * letter to" -- a deactivated university should disappear from those
+     * pickers. The Universities page's own filter dropdown passes false
+     * (via `active_only=0`) so a deactivated row can still be found there
+     * to be reactivated -- see ajax_universities_js.php.
+     *
      * @return array{results: array<int, array<string, mixed>>, pagination: array{more: bool}}
      */
-    public function searchColleges(string $term = '', int $page = 1, int $limit = self::PAGE_SIZE): array
+    public function searchColleges(string $term = '', int $page = 1, int $limit = self::PAGE_SIZE, bool $activeOnly = true): array
     {
         $page  = max(1, $page);
         $limit = min(max($limit, 1), 100);
 
         $builder = $this->table();
+
+        if ($activeOnly) {
+            $builder->where('is_active', 1);
+        }
 
         if ($term !== '') {
             $builder->groupStart()

@@ -9,7 +9,10 @@
                     <h3 class="fw-bold mb-1"><i class="fa fa-plus-circle me-2 text-gradient-indigo"></i> New Student Verification Form</h3>
                     <p class="text-muted small mb-0">Create eligibility verification dispatch cases for target universities across India.</p>
                 </div>
-                <span class="badge badge-glass-indigo fs-6">Batch #: <span id="display_common_no"><?= esc($common_no) ?></span></span>
+                <div>
+                    <a href="<?= base_url('students/history') ?>" class="btn btn-glass me-2"><i class="fa fa-history me-1"></i> Batch History</a>
+                    <span class="badge badge-glass-indigo fs-6">Batch #: <span id="display_common_no"><?= esc($common_no) ?></span></span>
+                </div>
             </div>
 
             <!-- University & Program Details with AJAX Select2 -->
@@ -27,13 +30,9 @@
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label text-secondary small fw-semibold">Academic Admission Year</label>
-                    <select class="form-select" id="admission_taken_year" required>
-                        <option value="2025-2026" selected>2025-2026</option>
-                        <option value="2024-2025">2024-2025</option>
-                        <option value="2023-2024">2023-2024</option>
-                        <option value="2022-2023">2022-2023</option>
-                        <option value="JAN-DEC 2025-2025">JAN-DEC 2025-2025</option>
+                    <label class="form-label text-secondary small fw-semibold">Academic Admission Year (AJAX)</label>
+                    <select class="form-select select2-ajax-academic-year" id="admission_taken_year" required>
+                        <option value="" selected>-- Select Academic Year --</option>
                     </select>
                 </div>
 

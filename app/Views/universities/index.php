@@ -9,9 +9,16 @@
                     <h3 class="fw-bold mb-1 text-dark"><i class="fa fa-university me-2 text-indigo"></i> University Master Directory</h3>
                     <p class="text-muted small mb-0">Manage postal addresses, fees, favoring authority titles, and contact information for nationwide target universities.</p>
                 </div>
-                <button type="button" class="btn btn-indigo" data-bs-toggle="modal" data-bs-target="#addUniversityModal">
-                    <i class="fa fa-plus me-1"></i> Add New University
-                </button>
+                <div>
+                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                        <a href="<?= base_url('universities/export') ?>" class="btn btn-glass me-1">
+                            <i class="fa fa-file-excel-o me-1"></i> Export to Excel
+                        </a>
+                    <?php endif; ?>
+                    <button type="button" class="btn btn-indigo" data-bs-toggle="modal" data-bs-target="#addUniversityModal">
+                        <i class="fa fa-plus me-1"></i> Add New University
+                    </button>
+                </div>
             </div>
 
             <!-- Search & State Filter Bar with AJAX Select2 -->
@@ -55,13 +62,14 @@
                             <th>Head Title</th>
                             <th>Verification Fees</th>
                             <th>Payment In Favour Of</th>
+                            <th>Status</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($colleges)): ?>
                             <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No universities recorded in database.</td>
+                                <td colspan="8" class="text-center text-muted py-4">No universities recorded in database.</td>
                             </tr>
                         <?php else: ?>
                             <?php $sr = 1; foreach ($colleges as $c): ?>
@@ -72,19 +80,22 @@
                                     <td><?= esc($c['head_name'] ?: 'The Controller of Examinations') ?></td>
                                     <td class="fw-semibold text-emerald"><?= format_currency($c['fees']) ?></td>
                                     <td class="small text-muted"><?= esc($c['in_favour_of'] ?: '-') ?></td>
+                                    <td><?= render_status_badge((int) ($c['is_active'] ?? 1) === 1 ? 'active' : 'inactive') ?></td>
                                     <td class="text-end">
                                         <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-uni-btn" data-id="<?= $c['id'] ?>">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
-                                        <?php // POST, not GET: a destructive action behind a plain
-                                              // link is prefetchable, crawlable and CSRF-able. ?>
-                                        <form action="<?= base_url('universities/delete/' . $c['id']) ?>"
-                                              method="post" class="d-inline delete-uni-form"
-                                              data-name="<?= esc($c['Name']) ?>">
+                                        <form action="<?= base_url('universities/toggleActive/' . $c['id']) ?>" method="post" class="d-inline">
                                             <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete university">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
+                                            <?php if ((int) ($c['is_active'] ?? 1) === 1): ?>
+                                                <button type="submit" class="btn btn-sm btn-glass text-danger" title="Deactivate university">
+                                                    <i class="fa fa-ban"></i> Deactivate
+                                                </button>
+                                            <?php else: ?>
+                                                <button type="submit" class="btn btn-sm btn-glass text-emerald" title="Reactivate university">
+                                                    <i class="fa fa-check"></i> Reactivate
+                                                </button>
+                                            <?php endif; ?>
                                         </form>
                                     </td>
                                 </tr>
@@ -115,7 +126,10 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-secondary small fw-semibold">State</label>
-                            <input type="text" name="state" class="form-control" placeholder="e.g. Maharashtra" required>
+                            <select name="state" class="form-select" required>
+                                <option value="">-- Select State --</option>
+                                <?= $this->include('common/india_states_options') ?>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">Head Title (To)</label>
@@ -162,7 +176,10 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label text-secondary small fw-semibold">State</label>
-                            <input type="text" name="state" id="edit_state" class="form-control" required>
+                            <select name="state" id="edit_state" class="form-select" required>
+                                <option value="">-- Select State --</option>
+                                <?= $this->include('common/india_states_options') ?>
+                            </select>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">Head Title (To)</label>

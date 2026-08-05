@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\ExcelExportService;
 use App\Services\UniversityService;
 
 class Universities extends BaseController
@@ -64,15 +65,55 @@ class Universities extends BaseController
         return redirect()->to(base_url('universities'))->with('success', 'University details updated successfully.');
     }
 
-    public function delete($id)
+    public function toggleActive($id)
     {
         // Belt-and-braces alongside the POST-only route.
         if (! $this->request->is('post')) {
             return redirect()->to(base_url('universities'));
         }
 
-        $this->universityService->deleteUniversity((int) $id);
+        try {
+            $this->universityService->toggleActive((int) $id);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+        }
 
-        return redirect()->to(base_url('universities'))->with('success', 'University record deleted.');
+        return redirect()->to(base_url('universities'))->with('success', 'University status updated.');
+    }
+
+    /** No server-side filters on this page -- every university, always. */
+    public function export()
+    {
+        $colleges = $this->universityService->getAllColleges();
+
+        $columns = [
+            ['header' => 'Name'],
+            ['header' => 'State'],
+            ['header' => 'Head Title'],
+            ['header' => 'Verification Fees', 'format' => '#,##0.00'],
+            ['header' => 'Payment In Favour Of'],
+            ['header' => 'Address', 'width' => 40],
+            ['header' => 'Status'],
+        ];
+
+        $rows = array_map(static function (array $c): array {
+            return [
+                $c['Name'],
+                $c['States'],
+                $c['head_name'] ?: 'The Controller of Examinations',
+                (float) ($c['fees'] ?: 0),
+                $c['in_favour_of'],
+                $c['Address'],
+                (int) ($c['is_active'] ?? 1) === 1 ? 'Active' : 'Inactive',
+            ];
+        }, $colleges);
+
+        $summaryLine = 'Filters: none (all universities) | ' . count($rows) . ' row(s) | Generated ' . date('d/m/Y H:i');
+
+        try {
+            return (new ExcelExportService())->exportToXlsx($columns, $rows, 'universities', $summaryLine);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+        }
     }
 }

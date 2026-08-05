@@ -4,6 +4,10 @@ $(document).ready(function () {
         context: 'Loading academic streams failed'
     });
 
+    esAjaxSelect('.select2-ajax-academic-year', '<?= base_url("api/academic-years") ?>', {
+        context: 'Loading academic years failed'
+    });
+
     // Reminder letters are addressed to a university by name, so the option
     // value is the name rather than the numeric id.
     esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {

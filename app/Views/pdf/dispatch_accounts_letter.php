@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Eligibility Verification Dispatch Letter</title>
+    <title>Eligibility Verification Dispatch Letter (Accounts Copy)</title>
     <style>
         body {
             font-family: 'Helvetica', 'Arial', sans-serif;
@@ -75,14 +75,15 @@
             text-align: center;
             width: 250px;
         }
+        .accounts-note {
+            margin-top: 60px;
+            border-top: 1px dashed #000;
+            padding-top: 15px;
+        }
     </style>
 </head>
 <body>
 
-    <?php // The small logo is a fallback decorative mark only -- once a full
-          // letterhead is configured, it already contains the institute's
-          // seal/name/address as one designed graphic, so showing both would
-          // stack two seal-like images at the top of an official letter. ?>
     <?php if (!empty($instituteLogoPath) && empty($instituteLetterheadPath)): ?>
         <div style="text-align: center; margin-bottom: 8px;">
             <img src="<?= esc(FCPATH . $instituteLogoPath) ?>" style="max-height: 60px;">
@@ -128,20 +129,13 @@
         <?= $body ?>
     </div>
 
-    <div class="content">
-        <?= $closing ?>
-        <?php if (!empty($first_row['in_favour_of'])): ?>
-            <br>Fee details/payment favouring: <strong><?= esc($first_row['in_favour_of']) ?></strong>.
-        <?php endif; ?>
-    </div>
-
     <table class="student-table">
         <thead>
             <tr>
                 <th style="width: 30px;">Sr.</th>
                 <th>Candidate Full Name</th>
-                <th>Nee / Maiden Name</th>
                 <th>Eligibility Case No.</th>
+                <th>Admission Taken In IDOL</th>
                 <th>Verification Done By You</th>
             </tr>
         </thead>
@@ -149,9 +143,9 @@
             <?php $i = 1; foreach ($students as $s): ?>
                 <tr>
                     <td><?= $i++ ?></td>
-                    <td><strong><?= esc($s['student_name']) ?></strong></td>
-                    <td><?= esc($s['student_nee_name'] ?: '-') ?></td>
+                    <td><strong><?= esc(!empty($s['student_nee_name']) && $s['student_nee_name'] !== '-' ? $s['student_nee_name'] : $s['student_name']) ?></strong></td>
                     <td><?= esc($s['eligibility_case_no']) ?></td>
+                    <td><?= esc($s['admission_taken_in']) ?></td>
                     <td><?= esc($s['verification_of_marksheet_done_by_you'] ?: 'Marksheet Verification') ?></td>
                 </tr>
             <?php endforeach; ?>
@@ -159,7 +153,10 @@
     </table>
 
     <div class="content">
-        Thanking you,
+        <?= $closing ?>
+        <?php if (!empty($ddAmount)): ?>
+            <br>I am also enclosing herewith a <strong>D.D.</strong> of <strong>Rs. <?= esc(number_format($ddAmount, 0)) ?> /-</strong> @ <strong>Rs. <?= esc(number_format($fees, 0)) ?> /-</strong> per document for the said purpose.
+        <?php endif; ?>
     </div>
 
     <div class="footer-sig">
@@ -171,6 +168,22 @@
         <strong><?= esc($instituteSignatoryDesignation ?? 'Deputy Registrar / Assistant Registrar') ?></strong><br>
         <?= esc($footerDepartment ?? 'IDOL Eligibility Section') ?>
     </div>
+
+    <?php if (!empty($ddAmount)): ?>
+        <div class="accounts-note" style="clear: both;">
+            Copy forwarded to the Assistant Registrar (F &amp; A) IDOL for information. He/She is requested to issue
+            <strong>D.D. of Rs. <?= esc(number_format($ddAmount, 0)) ?> ( <?= esc(ucfirst($ddAmountWords ?? '')) ?> Only. ) In Favour of <?= esc($first_row['in_favour_of'] ?? '') ?></strong>
+
+            <div class="footer-sig">
+                <br><br>
+                <?php if (!empty($instituteSignatoryName)): ?>
+                    <strong><?= esc($instituteSignatoryName) ?></strong><br>
+                <?php endif; ?>
+                <strong><?= esc($instituteSignatoryDesignation ?? 'Deputy Registrar / Assistant Registrar') ?></strong><br>
+                <?= esc($footerDepartment ?? 'IDOL Eligibility Section') ?>
+            </div>
+        </div>
+    <?php endif; ?>
 
 </body>
 </html>

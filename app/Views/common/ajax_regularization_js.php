@@ -12,5 +12,13 @@ $(document).ready(function () {
             return { id: item.name, text: item.text };
         }
     });
+
+    esAjaxSelect('.select2-ajax-admission-course', '<?= base_url("api/streams") ?>', {
+        context: 'Loading academic streams failed'
+    });
+
+    esAjaxSelect('.select2-ajax-academic-year', '<?= base_url("api/academic-years") ?>', {
+        context: 'Loading academic years failed'
+    });
 });
 </script>

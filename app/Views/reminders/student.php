@@ -9,6 +9,7 @@
                     <h3 class="fw-bold mb-1 text-dark"><i class="fa fa-user me-2 text-indigo"></i> Candidate Document Reminder Portal</h3>
                     <p class="text-muted small mb-0">Generate direct reminder notices for candidates with missing original marksheets or migration certificates.</p>
                 </div>
+                <a href="<?= base_url('reminders/student/history') ?>" class="btn btn-glass"><i class="fa fa-history me-1"></i> Reminder History</a>
             </div>
 
             <form action="<?= base_url('reminders/generateStudentReminder') ?>" method="post" target="_blank">

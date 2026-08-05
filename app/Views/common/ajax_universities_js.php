@@ -5,7 +5,11 @@ $(document).ready(function () {
     });
 
     esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {
-        context: 'Loading universities failed'
+        context: 'Loading universities failed',
+        // This IS the university management page -- unlike every other page
+        // using this same endpoint to pick a target for a new letter, this
+        // filter must also find deactivated rows so they can be reactivated.
+        extraParams: { active_only: '0' }
     });
 
     // --- Client-side row filter -------------------------------------------
@@ -82,35 +86,6 @@ $(document).ready(function () {
             $('#editUniversityModal').modal('show');
         }).fail(function (xhr) {
             esAjaxError(xhr, 'Could not load the university record');
-        });
-    });
-
-    // --- Delete confirmation ----------------------------------------------
-    // Bound to the form's submit, not an anchor click. If the dialog library
-    // is unavailable the submit proceeds normally rather than being cancelled
-    // and leaving a dead button.
-    $('.delete-uni-form').on('submit', function (e) {
-        var form = this;
-
-        if (form.dataset.esConfirmed === '1' || !window.Swal) {
-            return true;
-        }
-
-        e.preventDefault();
-
-        Swal.fire({
-            title: 'Delete this university?',
-            text: (form.dataset.name || 'This record') + ' will be permanently removed from the directory.',
-            icon: 'warning',
-            showCancelButton: true,
-            focusCancel: true,
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result && result.isConfirmed) {
-                form.dataset.esConfirmed = '1';
-                form.submit();
-            }
         });
     });
 });

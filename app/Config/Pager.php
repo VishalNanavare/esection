@@ -24,6 +24,10 @@ class Pager extends BaseConfig
         'default_full'   => 'CodeIgniter\Pager\Views\default_full',
         'default_simple' => 'CodeIgniter\Pager\Views\default_simple',
         'default_head'   => 'CodeIgniter\Pager\Views\default_head',
+        // This app's own Bootstrap-5-correct template (default_full ships
+        // bare <li><a> tags with no .page-item/.page-link classes, which
+        // renders unstyled under this app's actual Bootstrap 5 build).
+        'glass'          => 'common/pagination_glass',
     ];
 
     /**

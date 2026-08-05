@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\ExcelExportService;
 use App\Services\StudentVerificationService;
 use App\Services\UniversityService;
 
@@ -58,5 +59,100 @@ class Students extends BaseController
         } catch (\Exception $e) {
             return $this->response->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
         }
+    }
+
+    /** Browse previously submitted batches -- mirrors esection_basic's view.php. */
+    public function history()
+    {
+        $data = [
+            'title'   => 'Verification Batch History',
+            'batches' => $this->studentService->getBatchSummaries(),
+        ];
+
+        return view('students/history', $data);
+    }
+
+    /** No server-side filters on this page -- every batch, always. */
+    public function historyExport()
+    {
+        $batches = $this->studentService->getBatchSummaries();
+
+        $columns = [
+            ['header' => 'Batch'],
+            ['header' => 'University Address', 'width' => 35],
+            ['header' => 'Admission Taken In'],
+            ['header' => 'Academic Year'],
+            ['header' => 'Candidates', 'format' => '#,##0'],
+            ['header' => 'Created', 'format' => 'dd/mm/yyyy hh:mm'],
+        ];
+
+        $rows = array_map(static function (array $b): array {
+            $created = is_numeric($b['en_time'])
+                ? (new \DateTimeImmutable())->setTimestamp((int) $b['en_time'])
+                : $b['en_time'];
+
+            return [
+                $b['array_space'],
+                $b['clg_add'],
+                $b['admission_taken_in'],
+                $b['admission_taken_year'],
+                (int) $b['student_count'],
+                $created,
+            ];
+        }, $batches);
+
+        $summaryLine = 'Filters: none | ' . count($rows) . ' row(s) | Generated ' . date('d/m/Y H:i');
+
+        try {
+            return (new ExcelExportService())->exportToXlsx($columns, $rows, 'students_history', $summaryLine);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->to(base_url('students/history'))->with('error', $e->getMessage());
+        }
+    }
+
+    /** One batch's full student list, for the browse/edit/delete view. */
+    public function batchDetail($arraySpace)
+    {
+        $data = [
+            'title'      => 'Verification Batch Detail',
+            'arraySpace' => $arraySpace,
+            'students'   => $this->studentService->getStudentsByArraySpace($arraySpace),
+        ];
+
+        return view('students/batch_detail', $data);
+    }
+
+    public function getJson($id)
+    {
+        $student = $this->studentService->getStudentById((int) $id);
+        if ($student) {
+            return $this->response->setJSON(['status' => 'success', 'data' => $student]);
+        }
+
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Student not found']);
+    }
+
+    /** Mirrors esection_basic's update_new_form.php -> config/stud_update_data.php (only 4 fields are editable there too). */
+    public function update($id)
+    {
+        try {
+            $this->studentService->updateStudent((int) $id, $this->request->getPost());
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Candidate updated.');
+    }
+
+    /** Hard delete -- mirrors esection_basic's config/stud-delete.php `?q=` branch. */
+    public function delete($id)
+    {
+        try {
+            $this->studentService->deleteStudent((int) $id);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+
+        return redirect()->back()->with('success', 'Candidate deleted.');
     }
 }

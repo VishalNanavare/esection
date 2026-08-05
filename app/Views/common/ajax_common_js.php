@@ -91,7 +91,7 @@
      *
      * @param {string}   selector  jQuery selector for the <select>
      * @param {string}   url       endpoint returning {results, pagination}
-     * @param {object=}  options   { mapItem, context, dropdownParent, minimumInputLength }
+     * @param {object=}  options   { mapItem, context, dropdownParent, minimumInputLength, extraParams }
      */
     function esAjaxSelect(selector, url, options) {
         var $el = $(selector);
@@ -112,7 +112,11 @@
                 data: function (params) {
                     // `page` is mandatory: without it Select2 never requests
                     // page 2 and the list is capped at the first page.
-                    return { q: params.term || '', page: params.page || 1 };
+                    var data = { q: params.term || '', page: params.page || 1 };
+                    // Static extra query params (e.g. active_only) a specific
+                    // page's picker needs to send on every request -- unused
+                    // by default, so every existing call site is unaffected.
+                    return options.extraParams ? $.extend({}, data, options.extraParams) : data;
                 },
                 processResults: function (data, params) {
                     params.page = params.page || 1;
@@ -173,10 +177,50 @@
         sync();
     }
 
+    /**
+     * Flatpickr on every `.es-datepicker` input (a plain text input, not a
+     * native `type="date"` -- flatpickr fully replaces the calendar UI, and
+     * a native date input's own browser-drawn picker would otherwise still
+     * pop up underneath/alongside it). `dateFormat: 'Y-m-d'` matches what a
+     * native date input already submitted, so no backend changes were
+     * needed anywhere this replaces one.
+     *
+     * Deliberately NOT using flatpickr's `altInput` option: several edit
+     * modals populate their date field with plain `$('#field').val(x)`
+     * (fetched via AJAX, set directly, no flatpickr API involved) --
+     * altInput keeps the real value in a second hidden input and only
+     * flatpickr's own setDate() updates its separate visible text field, so
+     * a raw `.val()` write would silently desync what's displayed from
+     * what's actually submitted. Binding flatpickr directly to the one
+     * real input (no alt) means `.val()` keeps working exactly as every
+     * existing populate call site already expects.
+     *
+     * Called automatically below for every page (auto-init, not opt-in per
+     * page), so a future date field just needs the `es-datepicker` class,
+     * no JS partial changes required.
+     */
+    function esInitDatePickers() {
+        if (!window.flatpickr) {
+            return;
+        }
+        $('.es-datepicker').each(function () {
+            if (this._flatpickr) {
+                return;
+            }
+            window.flatpickr(this, {
+                dateFormat: 'Y-m-d',
+                allowInput: true
+            });
+        });
+    }
+
     window.esEscapeHtml  = esEscapeHtml;
     window.esNotify      = esNotify;
     window.esAjaxError   = esAjaxError;
     window.esAjaxSelect  = esAjaxSelect;
     window.esBindCheckAll = esBindCheckAll;
+    window.esInitDatePickers = esInitDatePickers;
+
+    $(function () { esInitDatePickers(); });
 })(window, jQuery);
 </script>

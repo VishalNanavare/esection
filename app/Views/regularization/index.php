@@ -9,6 +9,7 @@
                     <h3 class="fw-bold mb-1 text-dark"><i class="fa fa-file-text-o me-2 text-indigo"></i> Student Eligibility Regularization Form</h3>
                     <p class="text-muted small mb-0">Generate official regularization verification letters for candidates requiring eligibility adjustments.</p>
                 </div>
+                <a href="<?= base_url('regularization/history') ?>" class="btn btn-glass"><i class="fa fa-history me-1"></i> Letter History</a>
             </div>
 
             <form action="<?= base_url('regularization/generateLetter') ?>" method="post" target="_blank">
@@ -21,7 +22,7 @@
 
                     <div class="col-md-6">
                         <label class="form-label text-secondary small fw-semibold">Admission Letter Date</label>
-                        <input type="date" name="admission_letter_date" class="form-control" required>
+                        <input type="text" name="admission_letter_date" class="form-control es-datepicker" autocomplete="off" placeholder="YYYY-MM-DD" required>
                     </div>
 
                     <div class="col-md-6">
@@ -39,6 +40,29 @@
                     </div>
 
                     <div class="col-md-6">
+                        <label class="form-label text-secondary small fw-semibold">Admission Taken In (IDOL) (AJAX)</label>
+                        <select name="admission_taken_in" class="form-select select2-ajax-admission-course" required>
+                            <option value="" selected>-- Select Course --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label text-secondary small fw-semibold">Academic Year (AJAX)</label>
+                        <select name="admission_taken_year" class="form-select select2-ajax-academic-year" required>
+                            <option value="" selected>-- Select Academic Year --</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label text-secondary small fw-semibold">Gender</label>
+                        <select name="gender" class="form-select" required>
+                            <option value="" selected>Select</option>
+                            <option value="Mr">Mr.</option>
+                            <option value="Ms">Ms.</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
                         <label class="form-label text-secondary small fw-semibold">Student Full Name</label>
                         <input type="text" name="student_name" class="form-control" placeholder="e.g. Rahul Sharma" required>
                     </div>

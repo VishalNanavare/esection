@@ -9,33 +9,41 @@
                     <h3 class="fw-bold mb-1 text-dark"><i class="fa fa-clock-o me-2 text-indigo"></i> University Verification Reminder Portal</h3>
                     <p class="text-muted small mb-0">Generate 1st and 2nd reminder notice PDF letters for pending eligibility verifications.</p>
                 </div>
-                <a href="<?= base_url('reminders/student') ?>" class="btn btn-glass">
-                    <i class="fa fa-user me-1"></i> Switch to Candidate Reminders
-                </a>
+                <div>
+                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                        <a href="<?= base_url('reminders/university/export?acd_year=' . urlencode($selected_year) . '&stream=' . urlencode($selected_stream) . '&clg_add=' . urlencode($selected_colg)) ?>" class="btn btn-glass me-1">
+                            <i class="fa fa-file-excel-o me-1"></i> Export to Excel
+                        </a>
+                    <?php endif; ?>
+                    <a href="<?= base_url('reminders/university/history') ?>" class="btn btn-glass me-1">
+                        <i class="fa fa-history me-1"></i> Reminder History
+                    </a>
+                    <a href="<?= base_url('reminders/student') ?>" class="btn btn-glass">
+                        <i class="fa fa-user me-1"></i> Switch to Candidate Reminders
+                    </a>
+                </div>
             </div>
 
             <!-- Search Filter Bar with AJAX Select2 -->
-            <form action="<?= base_url('reminders/university') ?>" method="post" class="row g-3 mb-4 filter-panel">
-                <?= csrf_field() ?>
+            <form action="<?= base_url('reminders/university') ?>" method="get" class="row g-3 mb-4 filter-panel">
                 <div class="col-md-4">
-                    <label class="form-label text-secondary small fw-semibold">Academic Year</label>
-                    <select name="acd_year" class="form-select" required>
-                        <option value="">-- Select Year --</option>
-                        <?php foreach ($years as $y): ?>
-                            <option value="<?= esc($y['admission_taken_year']) ?>" <?= $selected_year === $y['admission_taken_year'] ? 'selected' : '' ?>>
-                                <?= esc($y['admission_taken_year']) ?>
-                            </option>
-                        <?php endforeach; ?>
+                    <label class="form-label text-secondary small fw-semibold">Academic Year (AJAX, optional)</label>
+                    <select name="acd_year" class="form-select select2-ajax-academic-year">
+                        <?php if ($selected_year): ?>
+                            <option value="<?= esc($selected_year) ?>" selected><?= esc($selected_year) ?></option>
+                        <?php else: ?>
+                            <option value="">-- All Years --</option>
+                        <?php endif; ?>
                     </select>
                 </div>
 
                 <div class="col-md-4">
-                    <label class="form-label text-secondary small fw-semibold">Academic Program / Stream (AJAX)</label>
-                    <select name="stream" class="form-select select2-ajax-stream" required>
+                    <label class="form-label text-secondary small fw-semibold">Academic Program / Stream (AJAX, optional)</label>
+                    <select name="stream" class="form-select select2-ajax-stream">
                         <?php if ($selected_stream): ?>
                             <option value="<?= esc($selected_stream) ?>" selected><?= esc($selected_stream) ?></option>
                         <?php else: ?>
-                            <option value="">-- Select Stream --</option>
+                            <option value="">-- All Streams --</option>
                         <?php endif; ?>
                     </select>
                 </div>
@@ -71,6 +79,10 @@
                                 <option value="Final Urgent Reminder">Final Urgent Reminder Notice</option>
                             </select>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Head Name (To)</label>
+                            <input type="text" name="head_name" class="form-control" placeholder="The Controller of Examinations">
+                        </div>
                     </div>
 
                     <!-- Student Selection Table -->
@@ -83,6 +95,7 @@
                                     <th>Eligibility Case No.</th>
                                     <th>Target University Address</th>
                                     <th>Academic Year</th>
+                                    <th>Reminder Status</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -95,6 +108,13 @@
                                         <td><span class="badge badge-glass-indigo"><?= esc($stud['eligibility_case_no']) ?></span></td>
                                         <td class="small text-muted"><?= esc($stud['clg_add']) ?></td>
                                         <td><?= esc($stud['admission_taken_year']) ?></td>
+                                        <td>
+                                            <?php if (!empty($stud['reminder_note_count'])): ?>
+                                                <span class="badge badge-glass-amber"><?= (int) $stud['reminder_note_count'] ?> prior notice(s)</span>
+                                            <?php else: ?>
+                                                <span class="text-muted small">None yet</span>
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -107,10 +127,14 @@
                         </button>
                     </div>
                 </form>
+
+                <?php if (!empty($pager)): ?>
+                    <?= $pager->links('default', 'glass') ?>
+                <?php endif; ?>
             <?php else: ?>
                 <div class="text-center text-muted py-5">
                     <i class="fa fa-clock-o fs-1 mb-3 text-secondary"></i>
-                    <p class="mb-0">Select Academic Year & Stream above to display pending student cases for reminder notices.</p>
+                    <p class="mb-0">No candidate records match the current filters.</p>
                 </div>
             <?php endif; ?>
         </div>

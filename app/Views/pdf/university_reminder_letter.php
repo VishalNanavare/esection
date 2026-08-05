@@ -15,11 +15,22 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">UNIVERSITY OF MUMBAI</div>
-        <div>INSTITUTE OF DISTANCE AND OPEN LEARNING (IDOL)</div>
-        <div>Vidyanagari, Santacruz (E), Mumbai - 400 098.</div>
-    </div>
+    <?php if (!empty($instituteLogoPath) && empty($instituteLetterheadPath)): ?>
+        <div style="text-align: center; margin-bottom: 8px;">
+            <img src="<?= esc(FCPATH . $instituteLogoPath) ?>" style="max-height: 60px;">
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($instituteLetterheadPath)): ?>
+        <div class="header" style="padding: 0;">
+            <img src="<?= esc(FCPATH . $instituteLetterheadPath) ?>" style="width: 100%; max-width: 100%; height: auto; display: block;">
+        </div>
+    <?php else: ?>
+        <div class="header">
+            <div class="title"><?= esc($instituteUniversityTitle ?? 'UNIVERSITY OF MUMBAI') ?></div>
+            <div><?= esc($instituteName ?? 'INSTITUTE OF DISTANCE AND OPEN LEARNING (IDOL)') ?></div>
+            <div><?= nl2br(esc($instituteAddress ?? 'Vidyanagari, Santacruz (E), Mumbai - 400 098.')) ?></div>
+        </div>
+    <?php endif; ?>
 
     <div>
         <strong>Ref No.: IDOL/REM/<?= date('Y') ?>/<?= rand(1000,9999) ?></strong>
@@ -29,16 +40,15 @@
     <div style="margin-top: 15px;">
         To,<br>
         <strong><?= esc($first_row['to_name'] ?: 'The Controller of Examinations') ?></strong>,<br>
-        <?= nl2br(esc($first_row['clg_add'])) ?>
+        <?= nl2br(esc($first_row['clg_add'] ?? '')) ?>
     </div>
 
     <div class="subject">
-        Subject: <?= esc($reminder_type) ?> - Verification of Marksheet / Passing Certificate.
+        Subject: <?= $subject ?>
     </div>
 
     <div>
-        Sir/Madam,<br>
-        This is a <strong><?= esc($reminder_type) ?></strong> regarding the verification of marksheet/certificates of candidate(s) admitted to <strong><?= esc($first_row['admission_taken_in']) ?></strong> during academic year <strong><?= esc($first_row['admission_taken_year']) ?></strong>.
+        <?= $body ?>
     </div>
 
     <table class="table">
@@ -47,7 +57,7 @@
                 <th style="width: 30px;">#</th>
                 <th>Candidate Full Name</th>
                 <th>Eligibility Case No.</th>
-                <th>Verification Requested</th>
+                <th>Reminder History</th>
             </tr>
         </thead>
         <tbody>
@@ -56,20 +66,33 @@
                     <td><?= $i++ ?></td>
                     <td><strong><?= esc($s['student_name']) ?></strong></td>
                     <td><?= esc($s['eligibility_case_no']) ?></td>
-                    <td><?= esc($s['verification_of_marksheet_done_by_you'] ?: 'Marksheet Verification') ?></td>
+                    <td>
+                        <?php if (!empty($s['notes'])): ?>
+                            <?php foreach ($s['notes'] as $ni => $note): ?>
+                                <?php if ($ni > 0): ?><hr style="margin: 4px 0;"><?php endif; ?>
+                                <?= esc($note['note_text']) ?><br>Date: <?= esc(!empty($note['note_date']) ? date('d/m/Y', strtotime($note['note_date'])) : '') ?>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <?= esc($s['verification_of_marksheet_done_by_you'] ?? 'Marksheet Verification') ?>
+                        <?php endif; ?>
+                    </td>
                 </tr>
             <?php endforeach; ?>
         </tbody>
     </table>
 
     <div>
-        Kindly verify and return the confirmed verification report at your earliest convenience.
+        <?= $closing ?>
     </div>
 
     <div class="footer">
         <br><br>
-        <strong>Deputy Registrar / Assistant Registrar</strong><br>
-        IDOL Eligibility Section
+        <strong>Yours faithfully,</strong><?= str_repeat('<br>', $instituteSignatureSpaceLines ?? 3) ?>
+        <?php if (!empty($instituteSignatoryName)): ?>
+            <strong><?= esc($instituteSignatoryName) ?></strong><br>
+        <?php endif; ?>
+        <strong><?= esc($instituteSignatoryDesignation ?? 'Deputy Registrar / Assistant Registrar') ?></strong><br>
+        <?= esc($footerDepartment ?? 'IDOL Eligibility Section') ?>
     </div>
 </body>
 </html>

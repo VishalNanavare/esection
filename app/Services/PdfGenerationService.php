@@ -16,11 +16,40 @@ class PdfGenerationService
         // "Undefined variable $date" on every request.
         $data['date'] ??= date('d/m/Y');
 
+        // Injected here, once, so every current AND future letter template
+        // reads the configured institute identity (Settings > Institute
+        // Details) automatically rather than each controller wiring it
+        // separately. Each key stays null (not an empty string) when never
+        // configured, so templates can `?? 'their own hardcoded default'`.
+        $institute = (new InstituteDetailsService())->getAll();
+        $data['instituteName']                ??= $institute['institute_name'] ?: null;
+        $data['instituteUniversityTitle']      ??= $institute['institute_university_title'] ?: null;
+        $data['instituteAddress']              ??= $institute['institute_address'] ?: null;
+        $data['instituteSignatoryName']        ??= $institute['institute_signatory_name'] ?: null;
+        $data['instituteSignatoryDesignation'] ??= $institute['institute_signatory_designation'] ?: null;
+        $data['instituteLogoPath']             ??= $institute['institute_logo_path'] ?: null;
+        $data['instituteLetterheadPath']       ??= $institute['institute_letterhead_path'] ?: null;
+        $rawSignatureSpace = $institute['institute_signature_space_lines'] ?: null;
+        $data['instituteSignatureSpaceLines']  ??= $rawSignatureSpace !== null ? (int) $rawSignatureSpace : null;
+
+        // Same centralized-injection principle as the institute fields
+        // above: every letter template can read the shared "department"
+        // signature line from Settings > Letter Templates without each
+        // controller wiring it separately.
+        $data['footerDepartment'] ??= (new LetterTemplateService())->getFooterDepartment();
+
         $html = view($viewPath, $data);
 
         $options = new Options();
         $options->set('isRemoteEnabled', true);
         $options->set('defaultFont', 'Helvetica');
+        // Dompdf's local file:// access is governed separately from
+        // isRemoteEnabled by its own "chroot" allowlist, which defaults to
+        // Dompdf's own package directory (vendor/dompdf/dompdf) -- not this
+        // app. Without this, an institute logo under public/uploads/ is
+        // silently dropped (no error, just never embedded) because it falls
+        // outside that default chroot.
+        $options->setChroot([FCPATH]);
 
         $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);

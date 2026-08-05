@@ -42,6 +42,27 @@ class StudentModel extends Model
         return $this->db->table($this->table);
     }
 
+    /**
+     * Keeps every historical record's copied university name in sync when a
+     * university is renamed in Settings -- student_details stores clg_add as
+     * a plain string at entry time, not a foreign key, so without this a
+     * rename would leave every past record showing the stale old name.
+     * Mirrors esection_basic's config/clg_edit.php, which did the equivalent
+     * UPDATE ... WHERE clg_add = <old name> as part of every university edit.
+     *
+     * @return int number of rows updated, for the caller to log
+     */
+    public function renameCollegeReferences(string $oldName, string $newName): int
+    {
+        if ($oldName === '' || $oldName === $newName) {
+            return 0;
+        }
+
+        $this->table()->where('clg_add', $oldName)->update(['clg_add' => $newName]);
+
+        return $this->db->affectedRows();
+    }
+
     public function getMaxId(): int
     {
         $row = $this->table()->selectMax('id')->get()->getRowArray();
@@ -56,6 +77,25 @@ class StudentModel extends Model
     public function getStudentsByArraySpace(string $arraySpace): array
     {
         return $this->table()->where('array_space', $arraySpace)->get()->getResultArray();
+    }
+
+    /**
+     * One row per submitted batch (array_space) -- mirrors esection_basic's
+     * view.php outer loop. MAX() picks a representative value for the
+     * fields that are identical across every row in the same batch
+     * (clg_add/admission_taken_year/admission_taken_in/en_time).
+     */
+    public function getBatchSummaries(): array
+    {
+        return $this->table()
+                    ->select(
+                        'array_space, COUNT(*) AS student_count,'
+                        . ' MAX(clg_add) AS clg_add, MAX(admission_taken_year) AS admission_taken_year,'
+                        . ' MAX(admission_taken_in) AS admission_taken_in, MAX(en_time) AS en_time'
+                    )
+                    ->groupBy('array_space')
+                    ->orderBy('MAX(en_time)', 'DESC')
+                    ->get()->getResultArray();
     }
 
     public function getDistinctYears(): array
@@ -116,45 +156,114 @@ class StudentModel extends Model
     }
 
     /**
-     * Students in a year/stream, left-joined to their DD confirmation.
+     * Students, optionally narrowed by year/stream, left-joined to their DD
+     * confirmation, paginated newest-first.
+     *
+     * Both filters are optional (blank = unrestricted) so this also serves
+     * as the page's default "show everything" view -- Erik's own call, so
+     * staff always see real data on open instead of an empty prompt to
+     * search first.
      *
      * The dd_* columns are selected unconditionally. They previously sat
      * behind fieldExists() guards that always failed, which is why the
      * "DD Status" column in the confirmations view read "Pending" for every
      * row regardless of the underlying data.
+     *
+     * Deliberately uses the Model's own chainable builder ($this->select()
+     * ->where()...) rather than the isolated table() helper every other
+     * method here uses -- CI4's paginate() only operates on the Model's own
+     * builder, and this is one call per request, not a loop, so the
+     * "shared state leaks across iterations" risk table() exists to avoid
+     * doesn't apply here.
      */
-    public function getStudentsForConfirmation(string $year, string $stream): array
+    public function getStudentsForConfirmation(string $year, string $stream, int $perPage = 25): array
     {
-        return $this->table()
-                    ->select(
-                        'student_details.*,'
-                        . ' conf_stud_data.dd_no,'
-                        . ' conf_stud_data.bank_name,'
-                        . ' conf_stud_data.dd_date,'
-                        . ' conf_stud_data.dd_amount'
-                    )
-                    ->join('conf_stud_data', self::CONF_JOIN, 'left')
-                    ->where('student_details.admission_taken_year', $year)
-                    ->like('student_details.admission_taken_in', $stream)
-                    ->orderBy('student_details.id', 'ASC')
-                    ->get()->getResultArray();
-    }
+        // conf_stud_data.array_space must be aliased -- student_details has its
+        // own, unrelated array_space column (the dispatch batch id), and
+        // student_details.* is already selected above, so an unaliased second
+        // array_space would silently collide under the same array key.
+        $builder = $this->select(
+                            'student_details.*,'
+                            . ' conf_stud_data.id AS confirmation_id,'
+                            . ' conf_stud_data.array_space AS confirmation_array_space'
+                        )
+                        ->join('conf_stud_data', self::CONF_JOIN, 'left');
 
-    public function getStudentsForReminder(?string $year, ?string $stream, ?string $university): array
-    {
-        if (empty($year) || empty($stream)) {
-            return [];
+        if ($year !== '') {
+            $builder->where('student_details.admission_taken_year', $year);
+        }
+        if ($stream !== '') {
+            $builder->like('student_details.admission_taken_in', $stream);
         }
 
-        $builder = $this->table()
-                        ->where('admission_taken_year', $year)
-                        ->like('admission_taken_in', $stream);
+        return $builder->orderBy('student_details.id', 'DESC')->paginate($perPage);
+    }
 
+    /**
+     * Same filter logic as getStudentsForConfirmation() above, but every
+     * matching row at once instead of one page -- feeds the Excel export,
+     * which must contain exactly what's filtered on screen, not just page 1.
+     */
+    public function getStudentsForConfirmationAll(string $year, string $stream): array
+    {
+        $builder = $this->select(
+                            'student_details.*,'
+                            . ' conf_stud_data.id AS confirmation_id,'
+                            . ' conf_stud_data.array_space AS confirmation_array_space'
+                        )
+                        ->join('conf_stud_data', self::CONF_JOIN, 'left');
+
+        if ($year !== '') {
+            $builder->where('student_details.admission_taken_year', $year);
+        }
+        if ($stream !== '') {
+            $builder->like('student_details.admission_taken_in', $stream);
+        }
+
+        return $builder->orderBy('student_details.id', 'DESC')->get()->getResultArray();
+    }
+
+    /**
+     * Same optional-filter, paginated, newest-first shape as
+     * getStudentsForConfirmation() above, for the University Reminders
+     * search page.
+     */
+    public function getStudentsForReminder(?string $year, ?string $stream, ?string $university, int $perPage = 25): array
+    {
+        $builder = $this->select('*');
+
+        if (! empty($year)) {
+            $builder->where('admission_taken_year', $year);
+        }
+        if (! empty($stream)) {
+            $builder->like('admission_taken_in', $stream);
+        }
         if (! empty($university)) {
             $builder->like('clg_add', $university);
         }
 
-        return $builder->orderBy('id', 'ASC')->get()->getResultArray();
+        return $builder->orderBy('id', 'DESC')->paginate($perPage);
+    }
+
+    /**
+     * Same filter logic as getStudentsForReminder() above, but every
+     * matching row at once instead of one page -- feeds the Excel export.
+     */
+    public function getStudentsForReminderAll(?string $year, ?string $stream, ?string $university): array
+    {
+        $builder = $this->select('*');
+
+        if (! empty($year)) {
+            $builder->where('admission_taken_year', $year);
+        }
+        if (! empty($stream)) {
+            $builder->like('admission_taken_in', $stream);
+        }
+        if (! empty($university)) {
+            $builder->like('clg_add', $university);
+        }
+
+        return $builder->orderBy('id', 'DESC')->get()->getResultArray();
     }
 
     public function getStudentsByIds(array $ids): array

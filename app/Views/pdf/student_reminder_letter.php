@@ -12,11 +12,22 @@
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">UNIVERSITY OF MUMBAI</div>
-        <div>INSTITUTE OF DISTANCE AND OPEN LEARNING (IDOL)</div>
-        <div>Vidyanagari, Santacruz (E), Mumbai - 400 098.</div>
-    </div>
+    <?php if (!empty($instituteLogoPath) && empty($instituteLetterheadPath)): ?>
+        <div style="text-align: center; margin-bottom: 8px;">
+            <img src="<?= esc(FCPATH . $instituteLogoPath) ?>" style="max-height: 60px;">
+        </div>
+    <?php endif; ?>
+    <?php if (!empty($instituteLetterheadPath)): ?>
+        <div class="header" style="padding: 0;">
+            <img src="<?= esc(FCPATH . $instituteLetterheadPath) ?>" style="width: 100%; max-width: 100%; height: auto; display: block;">
+        </div>
+    <?php else: ?>
+        <div class="header">
+            <div class="title"><?= esc($instituteUniversityTitle ?? 'UNIVERSITY OF MUMBAI') ?></div>
+            <div><?= esc($instituteName ?? 'INSTITUTE OF DISTANCE AND OPEN LEARNING (IDOL)') ?></div>
+            <div><?= nl2br(esc($instituteAddress ?? 'Vidyanagari, Santacruz (E), Mumbai - 400 098.')) ?></div>
+        </div>
+    <?php endif; ?>
 
     <div>
         <strong>Ref No.: IDOL/STUD-REM/<?= date('Y') ?>/<?= rand(100,999) ?></strong>
@@ -31,24 +42,24 @@
     </div>
 
     <div class="subject">
-        Subject: Submission of Pending Original Documents for Eligibility Verification.
+        Subject: <?= $subject ?>
     </div>
 
     <div>
-        Dear Candidate,<br>
-        You are hereby informed that your eligibility verification for <strong><?= esc($course_name) ?></strong> course is pending due to non-submission of the following document(s):
-        <br><br>
-        <strong>Missing Documents:</strong> <?= esc($missing_doc) ?>
+        <?= $body ?>
     </div>
 
     <div style="margin-top: 15px;">
-        Please submit the required original documents to the IDOL Eligibility Section within 15 days, failing which your admission eligibility may be cancelled.
+        <?= $closing ?>
     </div>
 
     <div class="footer">
-        <br><br>
-        <strong>Deputy Registrar / Assistant Registrar</strong><br>
-        IDOL Eligibility Section
+        <?= str_repeat('<br>', $instituteSignatureSpaceLines ?? 2) ?>
+        <?php if (!empty($instituteSignatoryName)): ?>
+            <strong><?= esc($instituteSignatoryName) ?></strong><br>
+        <?php endif; ?>
+        <strong><?= esc($instituteSignatoryDesignation ?? 'Deputy Registrar / Assistant Registrar') ?></strong><br>
+        <?= esc($footerDepartment ?? 'IDOL Eligibility Section') ?>
     </div>
 </body>
 </html>

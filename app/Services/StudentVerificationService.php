@@ -7,11 +7,13 @@ use App\Models\StudentModel;
 class StudentVerificationService
 {
     protected StudentModel $studentModel;
+    protected ActivityLogService $activityLogService;
 
     public function __construct()
     {
         helper('esection');
-        $this->studentModel = new StudentModel();
+        $this->studentModel        = new StudentModel();
+        $this->activityLogService  = new ActivityLogService();
     }
 
     public function getNextCommonNo(): int
@@ -59,13 +61,84 @@ class StudentVerificationService
         return $this->studentModel->getStudentsByArraySpace($arraySpace);
     }
 
+    public function getStudentById(int $id): ?array
+    {
+        $res = $this->studentModel->find($id);
+
+        return $res ?: null;
+    }
+
     public function searchStudentsForReminder(?string $year, ?string $stream, ?string $university): array
     {
         return $this->studentModel->getStudentsForReminder($year, $stream, $university);
     }
 
+    /** The pager the last paginated query populated -- read after calling searchStudentsForReminder(). */
+    public function getReminderPager(): ?\CodeIgniter\Pager\PagerInterface
+    {
+        return $this->studentModel->pager;
+    }
+
+    /** Same filters as searchStudentsForReminder() above, unpaginated -- feeds the Excel export. */
+    public function searchStudentsForReminderAll(?string $year, ?string $stream, ?string $university): array
+    {
+        return $this->studentModel->getStudentsForReminderAll($year, $stream, $university);
+    }
+
     public function getTotalStudentsCount(): int
     {
         return $this->studentModel->getTotalStudentsCount();
+    }
+
+    /** Feeds the batch history/browse page -- mirrors esection_basic's view.php. */
+    public function getBatchSummaries(): array
+    {
+        return $this->studentModel->getBatchSummaries();
+    }
+
+    /**
+     * Only the 4 fields esection_basic's own update_new_form.php allowed
+     * editing -- university/year/course were shown but disabled there too,
+     * since changing them would misfile the record into a different batch.
+     *
+     * @throws \InvalidArgumentException on invalid input or missing record
+     */
+    public function updateStudent(int $id, array $postData): void
+    {
+        $student = $this->studentModel->find($id);
+        if (! $student) {
+            throw new \InvalidArgumentException('Student record not found.');
+        }
+
+        $studentName = trim(sanitize_xss($postData['student_name'] ?? ''));
+        if ($studentName === '') {
+            throw new \InvalidArgumentException('Student name is required.');
+        }
+
+        $this->studentModel->update($id, [
+            'student_name'                           => $studentName,
+            'student_nee_name'                        => sanitize_xss($postData['student_nee_name'] ?? ''),
+            'eligibility_case_no'                     => sanitize_xss($postData['eligibility_case_no'] ?? ''),
+            'verification_of_marksheet_done_by_you'   => sanitize_xss($postData['verification_of_marksheet_done_by_you'] ?? ''),
+        ]);
+
+        $this->activityLogService->record('student.update', 'student', $id, 'Updated candidate ' . $studentName);
+    }
+
+    /**
+     * Hard delete -- mirrors esection_basic's config/stud-delete.php `?q=` branch.
+     *
+     * @throws \InvalidArgumentException when the record doesn't exist
+     */
+    public function deleteStudent(int $id): void
+    {
+        $student = $this->studentModel->find($id);
+        if (! $student) {
+            throw new \InvalidArgumentException('Student record not found.');
+        }
+
+        $this->studentModel->delete($id);
+
+        $this->activityLogService->record('student.delete', 'student', $id, 'Deleted candidate ' . $student['student_name']);
     }
 }

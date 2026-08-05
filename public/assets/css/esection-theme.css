@@ -38,6 +38,7 @@
     --accent-amber: #f59e0b;
     --accent-amber-light: #fef3c7;
     --accent-rose: #f43f5e;
+    --accent-rose-light: #ffe4e6;
 
     /* RGB triplets so the colours can participate in Bootstrap's
        --bs-*-opacity system (see "Colour utilities" below). */
@@ -510,6 +511,15 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 600;
 }
 
+.badge-glass-rose {
+    background: var(--accent-rose-light);
+    color: #9f1239;
+    border: 1px solid #fecdd3;
+    padding: 0.4em 0.8em;
+    border-radius: 9999px;
+    font-weight: 600;
+}
+
 /* ==========================================================================
    Select2 4.0.5 skin - Bootstrap 5 form-control parity
    --------------------------------------------------------------------------
@@ -653,3 +663,27 @@ h1, h2, h3, h4, h5, h6 {
 
 .swal2-container { z-index: 2000; }
 .swal2-toast .swal2-title { font-size: 0.9rem; }
+
+/* Pagination -- see app/Views/common/pagination_glass.php */
+.pagination-glass .page-link {
+    color: var(--accent-indigo);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+.pagination-glass .page-item.active .page-link {
+    background-color: var(--accent-indigo);
+    border-color: var(--accent-indigo);
+    color: #fff;
+}
+.pagination-glass .page-item.disabled .page-link {
+    color: var(--text-muted);
+}
+.pagination-glass .page-link:focus {
+    box-shadow: 0 0 0 0.2rem var(--accent-indigo-glow);
+}
+
+/* Deep-link target row -- see confirmations/batch_detail.php + common/ajax_confirmations_history_js.php */
+.confirmation-row-highlight {
+    background-color: var(--accent-amber-light) !important;
+    box-shadow: inset 3px 0 0 0 var(--accent-amber);
+    transition: background-color 0.3s ease;
+}

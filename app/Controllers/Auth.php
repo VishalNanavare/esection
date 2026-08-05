@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Models\UserModel;
+use App\Services\AccessRightsService;
 
 class Auth extends BaseController
 {
@@ -41,6 +42,16 @@ class Auth extends BaseController
                 'role'       => $user['role'] ?? 'staff',
                 'isLoggedIn' => true,
             ];
+
+            // Cached once at login so every AccessFilter check is a plain
+            // in-session array lookup, not a DB hit per request. Admin gets
+            // [] deliberately -- admin bypasses AccessFilter's role check
+            // before this key is ever read, so populating it would be dead
+            // data (Access Rights only ever governs staff accounts).
+            $sessionData['page_access'] = ($sessionData['role'] === 'admin')
+                ? []
+                : (new AccessRightsService())->getPagesForUser((int) $user['id']);
+
             session()->set($sessionData);
             return redirect()->to(base_url('dashboard'));
         }
@@ -61,7 +72,7 @@ class Auth extends BaseController
         // regenerate(true) destroys the old session file, issues a fresh
         // session id (defeating fixation) and re-sends the ci_session cookie,
         // all while keeping the session ACTIVE so flashdata survives.
-        $session->remove(['id', 'username', 'full_name', 'role', 'isLoggedIn']);
+        $session->remove(['id', 'username', 'full_name', 'role', 'isLoggedIn', 'page_access']);
         $session->regenerate(true);
         $session->setFlashdata('success', 'You have been logged out successfully.');
 

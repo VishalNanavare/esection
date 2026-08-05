@@ -15,6 +15,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
     <link rel="stylesheet" href="<?= asset_url('assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/font-awesome.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/vendor/select2/select2.min.css') ?>">
+    <link rel="stylesheet" href="<?= asset_url('assets/vendor/flatpickr/flatpickr.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/esection-theme.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/esection-shell.css') ?>">
     <?php // SweetAlert2 is the .all build: it injects its own stylesheet at
@@ -45,36 +46,55 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                         <span class="link-text">Dashboard</span>
                     </a>
                 </li>
+                <?php if (page_access_granted('students_new')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('students/new') ?>" data-label="New Form" class="nav-link <?= (uri_string() === 'students/new') ? 'active' : '' ?>">
                         <i class="fa fa-plus-circle"></i>
                         <span class="link-text">New Form</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (page_access_granted('confirmations')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('confirmations') ?>" data-label="DD Confirmation" class="nav-link <?= (uri_string() === 'confirmations') ? 'active' : '' ?>">
                         <i class="fa fa-check-square-o"></i>
                         <span class="link-text">DD Confirmation</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (page_access_granted('universities')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('universities') ?>" data-label="University Directory" class="nav-link <?= (uri_string() === 'universities') ? 'active' : '' ?>">
                         <i class="fa fa-university"></i>
                         <span class="link-text">University Directory</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (page_access_granted('regularization')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('regularization') ?>" data-label="Regularization" class="nav-link <?= (uri_string() === 'regularization') ? 'active' : '' ?>">
                         <i class="fa fa-file-text-o"></i>
                         <span class="link-text">Regularization</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php // One nav link covers both reminder pages -- shown if either is granted, since it's just a display nicety, not the enforcement point. ?>
+                <?php if (page_access_granted('reminders_university') || page_access_granted('reminders_student')): ?>
                 <li class="nav-item">
-                    <a href="<?= base_url('reminders/university') ?>" data-label="Reminders" class="nav-link <?= (str_contains(uri_string(), 'reminders')) ? 'active' : '' ?>">
+                    <a href="<?= base_url(page_access_granted('reminders_university') ? 'reminders/university' : 'reminders/student') ?>" data-label="Reminders" class="nav-link <?= (str_contains(uri_string(), 'reminders')) ? 'active' : '' ?>">
                         <i class="fa fa-clock-o"></i>
                         <span class="link-text">Reminders</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (session()->get('role') === 'admin'): ?>
+                <li class="nav-item">
+                    <a href="<?= base_url('settings') ?>" data-label="Settings" class="nav-link <?= (str_contains(uri_string(), 'settings')) ? 'active' : '' ?>">
+                        <i class="fa fa-cog"></i>
+                        <span class="link-text">Settings</span>
+                    </a>
+                </li>
+                <?php endif; ?>
             </ul>
 
             <div class="p-3 border-top border-secondary border-opacity-25 mt-auto">
@@ -134,6 +154,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
     <script src="<?= asset_url('assets/js/jquery.min.js') ?>"></script>
     <script src="<?= asset_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
     <script src="<?= asset_url('assets/vendor/select2/select2.min.js') ?>"></script>
+    <script src="<?= asset_url('assets/vendor/flatpickr/flatpickr.min.js') ?>"></script>
     <script src="<?= asset_url('assets/vendor/sweetalert2/sweetalert2.min.js') ?>"></script>
     <script>
         // Some SweetAlert2 builds only export `Sweetalert2` (the UMD global)

@@ -10,7 +10,7 @@ class UserModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['username', 'email', 'password_hash', 'role', 'full_name', 'created_at', 'updated_at'];
+    protected $allowedFields    = ['username', 'email', 'password_hash', 'role', 'full_name', 'is_active', 'created_at', 'updated_at'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
     protected $updatedField     = 'updated_at';
@@ -19,6 +19,21 @@ class UserModel extends Model
     {
         $res = $this->where('username', $username)->first();
         return $res ?: null;
+    }
+
+    public function getAllOrdered(): array
+    {
+        return $this->orderBy('username', 'ASC')->findAll();
+    }
+
+    /**
+     * Access Rights only ever governs `staff` accounts (admin bypasses every
+     * check unconditionally) -- the role filter is a query here, per the
+     * Pure Model Query Rule, not something callers filter in PHP.
+     */
+    public function getAllStaffOrdered(): array
+    {
+        return $this->where('role', 'staff')->orderBy('username', 'ASC')->findAll();
     }
 
     /**
@@ -46,6 +61,13 @@ class UserModel extends Model
         }
 
         if (! password_verify($password, (string) ($user['password_hash'] ?? ''))) {
+            return null;
+        }
+
+        // A deactivated account gets the same generic failure as a wrong
+        // password -- a distinct "your account is disabled" message would
+        // leak account-exists-but-disabled to anyone probing usernames.
+        if ((int) ($user['is_active'] ?? 1) === 0) {
             return null;
         }
 

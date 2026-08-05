@@ -8,6 +8,10 @@ $(document).ready(function () {
         context: 'Loading academic streams failed'
     });
 
+    esAjaxSelect('.select2-ajax-academic-year', '<?= base_url("api/academic-years") ?>', {
+        context: 'Loading academic years failed'
+    });
+
     var studentList = [];
 
     // --- Auto-fill university details on selection -------------------------

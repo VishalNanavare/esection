@@ -3,15 +3,20 @@
 namespace App\Services;
 
 use App\Models\CollegeModel;
+use App\Models\StudentModel;
 
 class UniversityService
 {
     protected CollegeModel $collegeModel;
+    protected StudentModel $studentModel;
+    protected ActivityLogService $activityLogService;
 
     public function __construct()
     {
         helper('esection');
-        $this->collegeModel = new CollegeModel();
+        $this->collegeModel       = new CollegeModel();
+        $this->studentModel       = new StudentModel();
+        $this->activityLogService = new ActivityLogService();
     }
 
     public function getAllColleges(): array
@@ -30,9 +35,14 @@ class UniversityService
         return $res ?: null;
     }
 
-    public function searchCollegesForSelect2(?string $term, int $page = 1, int $limit = 20): array
+    public function getCollegeByAddress(string $address): ?array
     {
-        return $this->collegeModel->searchColleges($term ?? '', $page, $limit);
+        return $this->collegeModel->findByAddress($address);
+    }
+
+    public function searchCollegesForSelect2(?string $term, int $page = 1, int $limit = 20, bool $activeOnly = true): array
+    {
+        return $this->collegeModel->searchColleges($term ?? '', $page, $limit, $activeOnly);
     }
 
     public function searchStatesForSelect2(?string $term): array
@@ -75,17 +85,67 @@ class UniversityService
         $data = $this->mapUniversityData($postData);
         $data['sel_data'] = '1';
 
-        return (bool) $this->collegeModel->insert($data);
+        $result = (bool) $this->collegeModel->insert($data);
+        $this->activityLogService->record('university.create', 'university', $this->collegeModel->getInsertID(), 'Created university ' . $data['Name']);
+
+        return $result;
     }
 
     public function updateUniversity(int $id, array $postData): bool
     {
-        return (bool) $this->collegeModel->update($id, $this->mapUniversityData($postData));
+        $existing = $this->getCollegeById($id);
+        $oldName  = $existing['Name'] ?? '';
+
+        $data   = $this->mapUniversityData($postData);
+        $result = (bool) $this->collegeModel->update($id, $data);
+
+        $this->activityLogService->record('university.update', 'university', $id, 'Updated university ' . $data['Name']);
+
+        // Mirrors esection_basic's clg_edit.php: student_details stores the
+        // university name as a plain string at entry time, not a foreign
+        // key, so a rename must be propagated or historical records go
+        // stale. Logged separately (legacy did this silently) since
+        // rewriting other tables' historical data is worth an audit trail.
+        if ($oldName !== '' && $oldName !== $data['Name']) {
+            $renamed = $this->studentModel->renameCollegeReferences($oldName, $data['Name']);
+
+            if ($renamed > 0) {
+                $this->activityLogService->record(
+                    'university.rename_cascade',
+                    'student_details',
+                    null,
+                    "Renamed \"{$oldName}\" to \"{$data['Name']}\" across {$renamed} student record(s)"
+                );
+            }
+        }
+
+        return $result;
     }
 
-    public function deleteUniversity(int $id): bool
+    /**
+     * Flip active/inactive. Deliberately no delete(): student_details keeps
+     * a copied name/address at creation time rather than a foreign key to
+     * this table, so a deleted university's name would vanish from every
+     * historical record that referenced it. Deactivating avoids that.
+     *
+     * @throws \InvalidArgumentException when the university does not exist
+     */
+    public function toggleActive(int $id): void
     {
-        return (bool) $this->collegeModel->delete($id);
+        $college = $this->getCollegeById($id);
+        if (! $college) {
+            throw new \InvalidArgumentException('University not found.');
+        }
+
+        $newState = $college['is_active'] ? 0 : 1;
+        $this->collegeModel->update($id, ['is_active' => $newState]);
+
+        $this->activityLogService->record(
+            'university.toggle_active',
+            'university',
+            $id,
+            ($newState ? 'Activated' : 'Deactivated') . ' university ' . $college['Name']
+        );
     }
 
     public function getTotalCollegesCount(): int
