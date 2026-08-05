@@ -10,9 +10,10 @@
         "slack": "https://codeigniterchat.slack.com"
     },
     "require": {
-        "php": "^8.2",
+        "php": "^8.4",
         "codeigniter4/framework": "^4.7",
-        "dompdf/dompdf": "^3.1"
+        "dompdf/dompdf": "^3.1",
+        "openspout/openspout": "^5.10"
     },
     "require-dev": {
         "fakerphp/faker": "^1.9",
