@@ -48,6 +48,10 @@
                 </button>
             </form>
 
+            <div class="mt-3 text-center">
+                <a href="<?= base_url('auth/forgotPassword') ?>" class="small text-muted">Forgot your password?</a>
+            </div>
+
             <div class="mt-4 text-center">
                 <small class="text-muted" style="font-size: 0.75rem;">
                     &copy; <?= date('Y') ?> IDOL Eligibility Section. All rights reserved.

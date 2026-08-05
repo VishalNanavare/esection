@@ -10,7 +10,10 @@ class UserModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['username', 'email', 'password_hash', 'role', 'full_name', 'is_active', 'created_at', 'updated_at'];
+    protected $allowedFields    = [
+        'username', 'email', 'password_hash', 'role', 'full_name', 'is_active',
+        'reset_token_hash', 'reset_expires_at', 'created_at', 'updated_at',
+    ];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
     protected $updatedField     = 'updated_at';
@@ -74,5 +77,33 @@ class UserModel extends Model
         unset($user['password_hash']);
 
         return $user;
+    }
+
+    public function findByEmail(string $email): ?array
+    {
+        $res = $this->where('email', $email)->first();
+
+        return $res ?: null;
+    }
+
+    /** Active user for a given (already-hashed) reset token, if unexpired. */
+    public function findByValidResetTokenHash(string $tokenHash): ?array
+    {
+        $res = $this->where('reset_token_hash', $tokenHash)
+                    ->where('is_active', 1)
+                    ->where('reset_expires_at >=', date('Y-m-d H:i:s'))
+                    ->first();
+
+        return $res ?: null;
+    }
+
+    public function setResetToken(int $id, string $tokenHash, string $expiresAt): void
+    {
+        $this->update($id, ['reset_token_hash' => $tokenHash, 'reset_expires_at' => $expiresAt]);
+    }
+
+    public function clearResetToken(int $id): void
+    {
+        $this->update($id, ['reset_token_hash' => null, 'reset_expires_at' => null]);
     }
 }
