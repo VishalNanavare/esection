@@ -45,6 +45,7 @@ $(document).ready(function () {
         var neeName     = $('#stud_nee_name').val().trim() || '-';
         var caseNo      = $('#eligibility_case_no').val().trim();
         var verifyByYou = $('#verification_by_you').val().trim() || 'Marksheet Verification';
+        var email       = $('#stud_email').val().trim();
 
         if (!name || !caseNo) {
             if (window.Swal) {
@@ -58,17 +59,39 @@ $(document).ready(function () {
             return;
         }
 
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Email looks incorrect',
+                    text: 'Leave it blank or enter a valid address, e.g. name@example.com.',
+                    confirmButtonText: 'OK'
+                });
+            }
+            return;
+        }
+
         studentList.push({
             student_name: name,
             student_nee_name: neeName,
             eligibility_case_no: caseNo,
-            verification_by_you: verifyByYou
+            verification_by_you: verifyByYou,
+            email: email
         });
 
         renderStudentTable();
 
-        $('#stud_name, #stud_nee_name, #eligibility_case_no, #verification_by_you').val('');
+        $('#stud_name, #stud_nee_name, #verification_by_you, #stud_email').val('');
         $('#stud_name').trigger('focus');
+
+        // Refill with a fresh suggestion (Settings > Document Numbering
+        // format) rather than leaving it blank -- fully editable, same as
+        // the one that was just accepted.
+        $.get('<?= base_url("students/generateCaseNo") ?>').done(function (res) {
+            if (res && res.case_no) {
+                $('#eligibility_case_no').val(res.case_no);
+            }
+        });
 
         esNotify('success', 'Candidate added to the batch');
     });
@@ -81,7 +104,7 @@ $(document).ready(function () {
 
         if (studentList.length === 0) {
             tbody.append(
-                '<tr id="empty_row"><td colspan="6" class="text-center text-muted py-4">' +
+                '<tr id="empty_row"><td colspan="7" class="text-center text-muted py-4">' +
                 'No candidates added to this batch yet.</td></tr>'
             );
             return;
@@ -98,6 +121,7 @@ $(document).ready(function () {
                     '<td>' + esEscapeHtml(item.student_nee_name) + '</td>' +
                     '<td><span class="badge badge-glass-indigo">' + esEscapeHtml(item.eligibility_case_no) + '</span></td>' +
                     '<td>' + esEscapeHtml(item.verification_by_you) + '</td>' +
+                    '<td class="small text-muted">' + esEscapeHtml(item.email || '-') + '</td>' +
                     '<td class="text-end">' +
                         '<button type="button" class="btn btn-sm btn-glass text-danger remove-row" ' +
                                 'data-index="' + idx + '" title="Remove candidate">' +

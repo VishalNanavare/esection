@@ -64,10 +64,14 @@
                     <input type="text" class="form-control" id="stud_nee_name" placeholder="Nee / Maiden Name (Optional)">
                 </div>
                 <div class="col-sm-6 col-lg-3">
-                    <input type="text" class="form-control" id="eligibility_case_no" placeholder="Eligibility Case No.">
+                    <input type="text" class="form-control" id="eligibility_case_no" placeholder="Eligibility Case No."
+                           value="<?= esc($suggestedCaseNo) ?>" title="Suggested from Settings &gt; Document Numbering -- edit freely">
                 </div>
                 <div class="col-sm-6 col-lg-3">
                     <input type="text" class="form-control" id="verification_by_you" placeholder="Verification Remarks">
+                </div>
+                <div class="col-sm-6 col-lg-3">
+                    <input type="email" class="form-control" id="stud_email" placeholder="Email (Optional)">
                 </div>
                 <div class="col-12 text-end">
                     <button type="button" class="btn btn-emerald" id="btn_add_student">
@@ -86,12 +90,13 @@
                             <th>Nee / Maiden Name</th>
                             <th>Eligibility Case No.</th>
                             <th>Verification Remarks</th>
+                            <th>Email</th>
                             <th class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr id="empty_row">
-                            <td colspan="6" class="text-center text-muted py-4">No candidates added to this batch yet. Use the form above to add students.</td>
+                            <td colspan="7" class="text-center text-muted py-4">No candidates added to this batch yet. Use the form above to add students.</td>
                         </tr>
                     </tbody>
                 </table>

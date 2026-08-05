@@ -147,6 +147,14 @@
                             <label class="form-label text-secondary small fw-semibold">Full Postal Address</label>
                             <textarea name="address" class="form-control" rows="3" placeholder="Vidyanagar, Kolhapur - 416004, Maharashtra"></textarea>
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Email (Optional)</label>
+                            <input type="email" name="email_id" class="form-control" placeholder="registrar@university.ac.in">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Mobile No. (Optional)</label>
+                            <input type="text" name="mobile_no" class="form-control">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top border-secondary border-opacity-25">
@@ -196,6 +204,14 @@
                         <div class="col-12">
                             <label class="form-label text-secondary small fw-semibold">Full Postal Address</label>
                             <textarea name="address" id="edit_address" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Email (Optional)</label>
+                            <input type="email" name="email_id" id="edit_email_id" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-secondary small fw-semibold">Mobile No. (Optional)</label>
+                            <input type="text" name="mobile_no" id="edit_mobile_no" class="form-control">
                         </div>
                     </div>
                 </div>

@@ -43,6 +43,11 @@ class StudentVerificationService
                 'admission_taken_in'                    => sanitize_xss($payload['admission_taken_in'] ?? ''),
                 'verification_of_marksheet_done_by_you' => sanitize_xss($stud['verification_by_you'] ?? ''),
                 'in_favour_of'                          => sanitize_xss($payload['in_favour_of'] ?? ''),
+                // Optional -- the form validates the shape client-side, but
+                // never trust that alone; an empty/invalid value is stored as
+                // NULL rather than junk, since BulkEmailService treats "no
+                // valid address" as a skip, not an error.
+                'email'                                 => $this->normalizedEmail($stud['email'] ?? ''),
                 'en_time'                               => time()
             ];
 
@@ -54,6 +59,14 @@ class StudentVerificationService
             'count'       => $insertedCount,
             'array_space' => $arraySpace
         ];
+    }
+
+    /** @return string|null a validated address, or null if blank/malformed */
+    private function normalizedEmail($raw): ?string
+    {
+        $email = trim(sanitize_xss((string) $raw));
+
+        return ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) ? $email : null;
     }
 
     public function getStudentsByArraySpace(string $arraySpace): array
@@ -97,9 +110,10 @@ class StudentVerificationService
     }
 
     /**
-     * Only the 4 fields esection_basic's own update_new_form.php allowed
-     * editing -- university/year/course were shown but disabled there too,
-     * since changing them would misfile the record into a different batch.
+     * The 4 fields esection_basic's own update_new_form.php allowed editing,
+     * plus email (added 2026-08-05 for bulk email; university/year/course
+     * were shown but disabled there too, since changing them would misfile
+     * the record into a different batch -- email carries no such risk).
      *
      * @throws \InvalidArgumentException on invalid input or missing record
      */
@@ -120,6 +134,7 @@ class StudentVerificationService
             'student_nee_name'                        => sanitize_xss($postData['student_nee_name'] ?? ''),
             'eligibility_case_no'                     => sanitize_xss($postData['eligibility_case_no'] ?? ''),
             'verification_of_marksheet_done_by_you'   => sanitize_xss($postData['verification_of_marksheet_done_by_you'] ?? ''),
+            'email'                                   => $this->normalizedEmail($postData['email'] ?? ''),
         ]);
 
         $this->activityLogService->record('student.update', 'student', $id, 'Updated candidate ' . $studentName);
@@ -132,6 +147,10 @@ class StudentVerificationService
      */
     public function deleteStudent(int $id): void
     {
+        if (! feature_enabled('feature_delete_enabled')) {
+            throw new \InvalidArgumentException('Deleting records is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         $student = $this->studentModel->find($id);
         if (! $student) {
             throw new \InvalidArgumentException('Student record not found.');

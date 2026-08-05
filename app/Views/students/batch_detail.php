@@ -25,13 +25,14 @@
                             <th>Nee Name</th>
                             <th>Case No.</th>
                             <th>Verification Remark</th>
+                            <th>Email</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($students)): ?>
                             <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No candidates in this batch.</td>
+                                <td colspan="7" class="text-center text-muted py-4">No candidates in this batch.</td>
                             </tr>
                         <?php else: ?>
                             <?php $i = 1; foreach ($students as $s): ?>
@@ -41,16 +42,19 @@
                                     <td><?= esc($s['student_nee_name']) ?></td>
                                     <td><span class="badge badge-glass-indigo"><?= esc($s['eligibility_case_no']) ?></span></td>
                                     <td class="small text-muted"><?= esc($s['verification_of_marksheet_done_by_you']) ?></td>
+                                    <td class="small text-muted"><?= esc($s['email'] ?: '-') ?></td>
                                     <td class="text-end">
                                         <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-student-btn" data-id="<?= $s['id'] ?>">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
+                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
                                         <form action="<?= base_url('students/delete/' . $s['id']) ?>" method="post" class="d-inline delete-student-form" data-name="<?= esc($s['student_name']) ?>">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete permanently">
                                                 <i class="fa fa-trash"></i> Delete
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -89,6 +93,10 @@
                         <div class="col-12">
                             <label class="form-label text-secondary small fw-semibold">Verification Remark</label>
                             <input type="text" name="verification_of_marksheet_done_by_you" id="edit_verification" class="form-control">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-secondary small fw-semibold">Email (Optional)</label>
+                            <input type="email" name="email" id="edit_student_email" class="form-control">
                         </div>
                     </div>
                     <p class="text-muted small mt-3 mb-0">University, academic year, and admission course are fixed for this batch and can't be changed here.</p>

@@ -19,6 +19,7 @@ $(document).ready(function () {
             $('#edit_student_nee_name').val(data.student_nee_name);
             $('#edit_eligibility_case_no').val(data.eligibility_case_no);
             $('#edit_verification').val(data.verification_of_marksheet_done_by_you);
+            $('#edit_student_email').val(data.email);
             $('#edit_student_form').attr('action', '<?= base_url("students/update/") ?>' + id);
             $('#editStudentModal').modal('show');
         }).fail(function (xhr) {

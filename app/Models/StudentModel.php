@@ -14,7 +14,7 @@ class StudentModel extends Model
         'array_space', 'to_name', 'clg_add', 'admission_taken_year',
         'student_name', 'student_nee_name', 'eligibility_case_no',
         'admission_taken_in', 'verification_of_marksheet_done_by_you',
-        'in_favour_of', 'en_time'
+        'in_favour_of', 'en_time', 'email'
     ];
 
     /**
@@ -275,5 +275,29 @@ class StudentModel extends Model
         }
 
         return $this->table()->whereIn('id', $ids)->get()->getResultArray();
+    }
+
+    /**
+     * Candidates as bulk-email recipients, normalised to the id/name/email
+     * shape BulkEmailService works in.
+     *
+     * student_details.email was only added on 2026-08-05, so the 6,345
+     * pre-existing rows are all NULL until staff fill them in. Rows without
+     * an address are still returned: the service lists them as "skipped" so
+     * the gap is visible rather than a silently shorter send.
+     */
+    public function getForBulkEmail(string $year = '', string $stream = ''): array
+    {
+        $builder = $this->table()
+                        ->select('id, student_name AS name, email, eligibility_case_no, admission_taken_in, admission_taken_year');
+
+        if ($year !== '') {
+            $builder->where('admission_taken_year', $year);
+        }
+        if ($stream !== '') {
+            $builder->like('admission_taken_in', $stream);
+        }
+
+        return $builder->orderBy('id', 'DESC')->get()->getResultArray();
     }
 }

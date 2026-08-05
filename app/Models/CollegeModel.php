@@ -144,4 +144,27 @@ class CollegeModel extends Model
     {
         return $this->table()->countAllResults();
     }
+
+    /**
+     * Universities as bulk-email recipients, normalised to the
+     * id/name/email shape BulkEmailService works in.
+     *
+     * Deactivated universities are excluded -- they are deactivated precisely
+     * because the office no longer corresponds with them. Rows with a blank
+     * or malformed email_id are deliberately NOT filtered out here: the
+     * service surfaces them in the "skipped" list so the operator can see who
+     * is missing an address instead of silently mailing a shorter list.
+     */
+    public function getForBulkEmail(string $state = ''): array
+    {
+        $builder = $this->table()
+                        ->select('id, Name AS name, email_id AS email, States AS state')
+                        ->where('is_active', 1);
+
+        if ($state !== '') {
+            $builder->where('States', $state);
+        }
+
+        return $builder->orderBy('Name', 'ASC')->get()->getResultArray();
+    }
 }

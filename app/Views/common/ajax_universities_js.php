@@ -82,6 +82,8 @@ $(document).ready(function () {
             $('#edit_fees').val(data.fees);
             $('#edit_in_favour_of').val(data.in_favour_of);
             $('#edit_address').val(data.Address);
+            $('#edit_email_id').val(data.email_id);
+            $('#edit_mobile_no').val(data.mobile_no);
             $('#edit_university_form').attr('action', '<?= base_url("universities/update/") ?>' + id);
             $('#editUniversityModal').modal('show');
         }).fail(function (xhr) {
