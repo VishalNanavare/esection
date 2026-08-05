@@ -12,6 +12,7 @@ class StudentReminderService
 
     public function __construct()
     {
+        helper('esection');
         $this->studentReminderModel = new StudentReminderModel();
         $this->letterTemplateService = new LetterTemplateService();
         $this->activityLogService    = new ActivityLogService();
@@ -60,6 +61,10 @@ class StudentReminderService
      */
     public function delete(int $id): void
     {
+        if (! feature_enabled('feature_delete_enabled')) {
+            throw new \InvalidArgumentException('Deleting records is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         $record = $this->getById($id);
         if (! $record) {
             throw new \InvalidArgumentException('Reminder record not found.');

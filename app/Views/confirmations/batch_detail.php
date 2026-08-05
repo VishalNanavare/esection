@@ -66,12 +66,14 @@
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
+                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
                                         <form action="<?= base_url('confirmations/delete/' . $r['id']) ?>" method="post" class="d-inline delete-confirmation-form" data-name="<?= esc($r['student_name'] ?? 'This record') ?>">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete this confirmation record">
                                                 <i class="fa fa-trash"></i> Delete
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

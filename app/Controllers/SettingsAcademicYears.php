@@ -90,7 +90,11 @@ class SettingsAcademicYears extends BaseController
             return redirect()->to(base_url('settings/academic-years'));
         }
 
-        $this->academicYearService->delete((int) $id);
+        try {
+            $this->academicYearService->delete((int) $id);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()->to(base_url('settings/academic-years'))->with('error', $e->getMessage());
+        }
 
         return redirect()->to(base_url('settings/academic-years'))->with('success', 'Academic year deleted.');
     }

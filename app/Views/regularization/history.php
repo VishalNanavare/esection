@@ -53,12 +53,14 @@
                                         <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-reg-btn" data-id="<?= $r['id'] ?>" title="Edit">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
+                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
                                         <form action="<?= base_url('regularization/delete/' . $r['id']) ?>" method="post" class="d-inline delete-reg-form" data-name="<?= esc($r['student_name']) ?>">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete permanently">
                                                 <i class="fa fa-trash"></i> Delete
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

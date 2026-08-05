@@ -62,12 +62,14 @@
                                         <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-year-btn" data-id="<?= $y['id'] ?>">
                                             <i class="fa fa-edit"></i> Edit
                                         </button>
+                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
                                         <form action="<?= base_url('settings/academic-years/delete/' . $y['id']) ?>" method="post" class="d-inline delete-year-form" data-name="<?= esc($y['year_label']) ?>">
                                             <?= csrf_field() ?>
                                             <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete academic year">
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

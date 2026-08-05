@@ -234,6 +234,10 @@ class ConfirmationService
      */
     public function deleteConfirmation(int $id): void
     {
+        if (! feature_enabled('feature_delete_enabled')) {
+            throw new \InvalidArgumentException('Deleting records is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         $record = $this->confirmationModel->find($id);
         if (! $record) {
             throw new \InvalidArgumentException('Confirmation record not found.');

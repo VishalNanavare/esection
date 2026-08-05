@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Services\DocumentNumberingService;
 use App\Services\ExcelExportService;
 use App\Services\StudentVerificationService;
 use App\Services\UniversityService;
@@ -10,22 +11,36 @@ class Students extends BaseController
 {
     protected StudentVerificationService $studentService;
     protected UniversityService $universityService;
+    protected DocumentNumberingService $documentNumberingService;
 
     public function __construct()
     {
-        $this->studentService    = new StudentVerificationService();
-        $this->universityService = new UniversityService();
+        $this->studentService           = new StudentVerificationService();
+        $this->universityService        = new UniversityService();
+        $this->documentNumberingService = new DocumentNumberingService();
     }
 
     public function newForm()
     {
         $data = [
-            'title'     => 'New Student Verification Form',
-            'common_no' => $this->studentService->getNextCommonNo(),
-            'colleges'  => $this->universityService->getAllColleges(),
+            'title'          => 'New Student Verification Form',
+            'common_no'      => $this->studentService->getNextCommonNo(),
+            'colleges'       => $this->universityService->getAllColleges(),
+            'suggestedCaseNo' => $this->documentNumberingService->previewNext(),
         ];
 
         return view('students/new_form', $data);
+    }
+
+    /**
+     * A fresh suggested case number, in the configured Settings > Document
+     * Numbering format -- called after each candidate is added, so the next
+     * row starts pre-filled instead of every candidate getting today's first
+     * suggestion. Always editable; this only changes the starting value.
+     */
+    public function generateCaseNo()
+    {
+        return $this->response->setJSON(['case_no' => $this->documentNumberingService->previewNext()]);
     }
 
     public function getCollegeInfo($id)

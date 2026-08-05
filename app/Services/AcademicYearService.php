@@ -11,6 +11,7 @@ class AcademicYearService
 
     public function __construct()
     {
+        helper('esection');
         $this->academicYearModel  = new AcademicYearModel();
         $this->activityLogService = new ActivityLogService();
     }
@@ -83,6 +84,10 @@ class AcademicYearService
 
     public function delete(int $id): void
     {
+        if (! feature_enabled('feature_delete_enabled')) {
+            throw new \InvalidArgumentException('Deleting records is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         $year = $this->getById($id);
         $this->academicYearModel->delete($id);
 
