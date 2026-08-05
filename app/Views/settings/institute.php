@@ -52,7 +52,7 @@
                     <div class="col-md-6">
                         <label class="form-label text-secondary small fw-semibold">Logo</label>
                         <div class="mb-2">
-                            <img id="logo_preview" src="<?= !empty($details['institute_logo_path']) ? base_url($details['institute_logo_path']) : '' ?>"
+                            <img id="logo_preview" src="<?= !empty($details['institute_logo_path']) ? esc(base_url($details['institute_logo_path']), 'attr') : '' ?>"
                                  alt="Logo preview" style="max-height:60px; <?= empty($details['institute_logo_path']) ? 'display:none;' : '' ?>">
                         </div>
                         <input type="file" name="logo" id="logo_input" class="form-control" accept="image/png,image/jpeg"
@@ -63,7 +63,7 @@
                     <div class="col-md-6">
                         <label class="form-label text-secondary small fw-semibold">Letterhead</label>
                         <div class="mb-2">
-                            <img id="letterhead_preview" src="<?= !empty($details['institute_letterhead_path']) ? base_url($details['institute_letterhead_path']) : '' ?>"
+                            <img id="letterhead_preview" src="<?= !empty($details['institute_letterhead_path']) ? esc(base_url($details['institute_letterhead_path']), 'attr') : '' ?>"
                                  alt="Letterhead preview" style="max-height:60px; <?= empty($details['institute_letterhead_path']) ? 'display:none;' : '' ?>">
                         </div>
                         <input type="file" name="letterhead" id="letterhead_input" class="form-control" accept="image/png,image/jpeg"

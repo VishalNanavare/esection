@@ -77,9 +77,14 @@ class Filters extends BaseFilters
      * the check. Safe here because Config\Routing::$autoRoute is false, so a
      * controller cannot be reached with an unexpected verb.
      *
-     * All 10 POST routes have a token source: 9 forms carry csrf_field() and
-     * students/storeBatch sends the X-CSRF-TOKEN header (Security::
+     * Every POST route has a token source: the forms all carry csrf_field(),
+     * and students/storeBatch sends the X-CSRF-TOKEN header (Security::
      * getPostedToken() checks POST body, then header, then JSON body).
+     *
+     * Deliberately NOT stating a route count here -- an earlier version of
+     * this comment claimed "10 POST routes" and was silently wrong by 3x once
+     * the Settings, history and backup routes landed. A number that has to be
+     * hand-maintained to stay true is worse than no number.
      *
      * Rollback is one line: set this back to [].
      */

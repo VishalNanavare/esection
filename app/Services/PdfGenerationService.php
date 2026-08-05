@@ -41,7 +41,14 @@ class PdfGenerationService
         $html = view($viewPath, $data);
 
         $options = new Options();
-        $options->set('isRemoteEnabled', true);
+        // Deliberately FALSE. isRemoteEnabled lets Dompdf make outbound HTTP
+        // requests for any <img src="http://..."> or CSS url() it encounters
+        // while rendering -- the classic Dompdf SSRF vector. No letter
+        // template needs it: every image is a local file under public/
+        // (reached via the chroot below), and all six templates only ever
+        // emit esc()'d text. Leaving it on bought nothing and would turn any
+        // future unescaped field into a server-side request forgery.
+        $options->set('isRemoteEnabled', false);
         $options->set('defaultFont', 'Helvetica');
         // Dompdf's local file:// access is governed separately from
         // isRemoteEnabled by its own "chroot" allowlist, which defaults to

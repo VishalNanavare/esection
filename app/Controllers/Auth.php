@@ -7,6 +7,9 @@ use App\Services\AccessRightsService;
 
 class Auth extends BaseController
 {
+    /** Failed-or-successful login attempts allowed per IP per minute. */
+    private const LOGIN_ATTEMPTS_PER_MINUTE = 5;
+
     protected UserModel $userModel;
 
     public function __construct()
@@ -32,9 +35,34 @@ class Auth extends BaseController
             return redirect()->to(base_url('auth/login'))->with('error', 'Username and password are required.');
         }
 
+        // Brute-force guard: 5 attempts per minute per client IP. Without this
+        // the login endpoint accepts unlimited password guesses -- bcrypt
+        // slows an attacker down but does not stop them.
+        //
+        // Keyed on IP rather than username on purpose: keying on username lets
+        // anyone lock a known account out of the system just by spamming its
+        // name (a denial-of-service against the real user). CI4's Throttler
+        // uses a token-bucket, so honest users who mistype once or twice are
+        // never affected.
+        $throttler = service('throttler');
+
+        if ($throttler->check(md5('login_' . $this->request->getIPAddress()), self::LOGIN_ATTEMPTS_PER_MINUTE, MINUTE) === false) {
+            return redirect()->to(base_url('auth/login'))
+                ->with('error', 'Too many login attempts. Please wait a minute and try again.');
+        }
+
         $user = $this->userModel->authenticateUser($username, $password);
 
         if ($user) {
+            // Regenerate the session ID the moment the session stops being
+            // anonymous and starts being authenticated. Without this, a
+            // session ID known before login (shared/kiosk browser, or planted
+            // via any same-origin XSS) keeps working afterwards as the
+            // logged-in user -- classic session fixation. Same regenerate(true)
+            // logout() already uses; it swaps the id without clearing the
+            // session data being set just below.
+            session()->regenerate(true);
+
             $sessionData = [
                 'id'         => $user['id'],
                 'username'   => $user['username'],
