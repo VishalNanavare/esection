@@ -38,8 +38,19 @@ class Logger extends BaseConfig
      * your log files will fill up very fast.
      *
      * @var int|list<int>
+     *
+     * 5 in production, not 4. At 4 (error and above) the application's own
+     * deliberate warning/info messages were written and then silently
+     * discarded -- including PasswordResetService's "reset requested" trail
+     * and the mail-delivery warnings, i.e. exactly the breadcrumbs someone
+     * would go looking for when a user says "I never got the email".
+     * PHP deprecation notices were dropped on the same threshold.
+     *
+     * 5 keeps warnings and notices while leaving the debug/info firehose off,
+     * so log volume stays proportionate. (See LOG-03 in the audit: the log
+     * directory still has no rotation, which is an ops task.)
      */
-    public $threshold = (ENVIRONMENT === 'production') ? 4 : 9;
+    public $threshold = (ENVIRONMENT === 'production') ? 5 : 9;
 
     /**
      * --------------------------------------------------------------------------

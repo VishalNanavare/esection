@@ -99,9 +99,19 @@ php_errors.log
 
 # curl cookie jars left behind by manual/scripted auth testing. These hold
 # live ci_session and CSRF values, so they must never reach a commit.
+# Patterns kept broad on purpose: the previous list named /admin.txt
+# specifically, which meant the next jar saved under any other name would
+# have been committable.
 /admin.txt
 cookies*.txt
 *.cookies
+jar*.txt
+*.cookiejar
+
+# Local .env backups. .env itself is ignored above, but a copy taken before
+# an edit carries the same database password and encryption key.
+.env.bak*
+.env.*.bak
 
 #-------------------------
 # IDE / Development Files

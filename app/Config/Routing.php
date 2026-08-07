@@ -47,8 +47,14 @@ class Routing extends BaseRouting
      * specified.
      *
      * Default: 'Home'
+     *
+     * 'Auth', not 'Home': the appstarter's Home controller (which only
+     * rendered the CodeIgniter welcome page) has been removed, and this app's
+     * real entry point is the login screen -- which is also what the explicit
+     * `$routes->get('/', 'Auth::login')` already serves. Largely inert while
+     * $autoRoute is false, but it must not name a class that no longer exists.
      */
-    public string $defaultController = 'Home';
+    public string $defaultController = 'Auth';
 
     /**
      * For Defined Routes and Auto Routing.

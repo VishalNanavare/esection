@@ -49,6 +49,14 @@ class PdfGenerationService
         // emit esc()'d text. Leaving it on bought nothing and would turn any
         // future unescaped field into a server-side request forgery.
         $options->set('isRemoteEnabled', false);
+
+        // Dompdf embeds any <script type="text/php"> or PDF-level JavaScript
+        // it finds; the option defaults to ON. No letter template uses it,
+        // and a PDF that runs script on open is exactly the wrong thing to
+        // post to a university or hand to a student. Turning it off costs
+        // nothing here and removes the capability entirely.
+        $options->set('isJavascriptEnabled', false);
+
         $options->set('defaultFont', 'Helvetica');
         // Dompdf's local file:// access is governed separately from
         // isRemoteEnabled by its own "chroot" allowlist, which defaults to
