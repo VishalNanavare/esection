@@ -43,6 +43,14 @@ class Filters extends BaseFilters
     public array $required = [
         'before' => [
             'pagecache',
+            // securityHeaders runs in BOTH phases on purpose. CodeIgniter's
+            // exception handler renders 404/500 pages without running the
+            // after-filter chain, so an after-only registration left every
+            // error response with no X-Frame-Options, no nosniff and no HSTS
+            // (measured). The before() pass seeds them on the shared response
+            // service early enough for the error path to inherit them, and it
+            // is also where X-Powered-By is stripped.
+            'securityHeaders',
         ],
         'after' => [
             'pagecache',
@@ -53,9 +61,13 @@ class Filters extends BaseFilters
 
     public array $globals = [
         'before' => [],
-        'after'  => [
-            'securityHeaders',
-        ],
+        // 'securityHeaders' is deliberately NOT repeated here. It is already
+        // in $required['after'] above, which runs on every response; listing
+        // it in both made the filter execute twice per request, setting the
+        // identical header set a second time for nothing. $required is the
+        // correct home of the two -- it is the list CodeIgniter applies
+        // regardless of route, which is exactly what a security header needs.
+        'after'  => [],
     ];
 
     /**
