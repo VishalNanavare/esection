@@ -78,7 +78,11 @@ class CollegeModel extends Model
         $page  = max(1, $page);
         $limit = min(max($limit, 1), 100);
 
-        $builder = $this->table();
+        // Only the three columns the Select2 payload is built from. The
+        // builder previously selected * -- so every dropdown query pulled the
+        // full row including two varchar(1500) text columns, for 20 rows a
+        // keystroke.
+        $builder = $this->table()->select('id, Name, States');
 
         if ($activeOnly) {
             $builder->where('is_active', 1);
@@ -107,11 +111,17 @@ class CollegeModel extends Model
                 'text'         => ($name !== '' ? $name : '(Unnamed)')
                                   . ' (' . (($c['States'] ?? '') ?: 'India') . ')',
                 'name'         => $name,
-                'state'        => $c['States'] ?? '',
-                'address'      => $c['Address'] ?? '',
-                'in_favour_of' => $c['in_favour_of'] ?? '',
-                'head_name'    => $c['head_name'] ?? '',
-                'fees'         => $c['fees'] ?? '',
+                // address / in_favour_of / head_name / fees / state are
+                // deliberately NOT returned. Every one of the twenty
+                // ajax_*_js partials was checked: the only fields any Select2
+                // consumer reads from this endpoint are `id`, `text` and
+                // `name`. The forms that DO need an address or payee fetch
+                // them from their own endpoints -- students/new uses
+                // GET students/getCollegeInfo/{id}, and the Universities Edit
+                // modal uses GET universities/getJson/{id} -- both of which
+                // are unchanged. Returning the payee/fee/head-of-institution
+                // details of all 469 universities to every dropdown keystroke
+                // was volunteering data no client asked for.
             ];
         }
 
