@@ -25,8 +25,11 @@ class Confirmations extends BaseController
 
     public function index()
     {
-        $selectedYear   = sanitize_xss($this->request->getGet('year') ?? '');
-        $selectedStream = sanitize_xss($this->request->getGet('stream') ?? '');
+        // trim(), NOT sanitize_xss() -- see Reminders::university(). Encoding
+        // a search term before binding it corrupts the term itself; the two
+        // consumers (Query Builder bind, esc()'d view) are already safe.
+        $selectedYear   = trim((string) ($this->request->getGet('year') ?? ''));
+        $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
 
         // Both filters are optional -- blank means "no restriction", so the
         // page always shows real data on open (paginated) rather than an
@@ -48,8 +51,11 @@ class Confirmations extends BaseController
     /** Same filters as index() above, unpaginated -- exports every matching row, not just page 1. */
     public function export()
     {
-        $selectedYear   = sanitize_xss($this->request->getGet('year') ?? '');
-        $selectedStream = sanitize_xss($this->request->getGet('stream') ?? '');
+        // trim(), NOT sanitize_xss() -- see Reminders::university(). Encoding
+        // a search term before binding it corrupts the term itself; the two
+        // consumers (Query Builder bind, esc()'d view) are already safe.
+        $selectedYear   = trim((string) ($this->request->getGet('year') ?? ''));
+        $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
 
         $students = $this->studentModel->getStudentsForConfirmationAll($selectedYear, $selectedStream);
 
@@ -125,10 +131,14 @@ class Confirmations extends BaseController
      */
     public function history()
     {
-        $selectedYear     = sanitize_xss($this->request->getGet('year') ?? '');
-        $selectedStream   = sanitize_xss($this->request->getGet('stream') ?? '');
-        $selectedColg     = sanitize_xss($this->request->getGet('clg_add') ?? '');
-        $selectedName     = sanitize_xss($this->request->getGet('student_name') ?? '');
+        // trim(), NOT sanitize_xss() -- see Reminders::university(). This
+        // screen is the worst affected: both the university filter and the
+        // free-text candidate-name box carry apostrophes and ampersands
+        // routinely, and every one of them silently returned nothing.
+        $selectedYear     = trim((string) ($this->request->getGet('year') ?? ''));
+        $selectedStream   = trim((string) ($this->request->getGet('stream') ?? ''));
+        $selectedColg     = trim((string) ($this->request->getGet('clg_add') ?? ''));
+        $selectedName     = trim((string) ($this->request->getGet('student_name') ?? ''));
 
         // All four filters are optional -- blank means "no restriction", so
         // the page always shows real data on open (paginated) rather than an
@@ -151,10 +161,13 @@ class Confirmations extends BaseController
     /** Same 4 filters as history() above, unpaginated -- exports every matching batch. */
     public function historyExport()
     {
-        $selectedYear   = sanitize_xss($this->request->getGet('year') ?? '');
-        $selectedStream = sanitize_xss($this->request->getGet('stream') ?? '');
-        $selectedColg   = sanitize_xss($this->request->getGet('clg_add') ?? '');
-        $selectedName   = sanitize_xss($this->request->getGet('student_name') ?? '');
+        // trim(), NOT sanitize_xss() -- see Reminders::university(). Encoding
+        // a search term before binding it corrupts the term itself; the two
+        // consumers (Query Builder bind, esc()'d view) are already safe.
+        $selectedYear   = trim((string) ($this->request->getGet('year') ?? ''));
+        $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
+        $selectedColg   = trim((string) ($this->request->getGet('clg_add') ?? ''));
+        $selectedName   = trim((string) ($this->request->getGet('student_name') ?? ''));
 
         $batches = $this->confirmationService->getBatchSummariesAll($selectedYear, $selectedStream, $selectedColg, $selectedName);
 

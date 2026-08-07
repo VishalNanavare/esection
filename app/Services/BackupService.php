@@ -56,13 +56,26 @@ class BackupService
 
     /**
      * Row-level exclusions -- a column filter cannot express these.
-     * The encrypted backup password lives in settings; shipping even its
-     * ciphertext in an unprotected file is needless exposure.
+     *
+     * Every secret the application stores lands in the same `settings`
+     * table as ordinary configuration, so the Excel workbook -- which
+     * ships WITHOUT password protection, by design, for people to read --
+     * has to drop those rows by key. Shipping even the ciphertext is
+     * needless exposure: it travels by email and onto laptops, and it is
+     * the encryption key in .env, not the ciphertext's obscurity, that is
+     * doing the protecting.
+     *
+     * Keys are referenced from the owning service's constant wherever one
+     * exists, so renaming a setting cannot silently reopen the leak.
+     * The SQL backup is unaffected -- it is complete and AES-256 encrypted.
      *
      * @var array<string, array<string, string[]>>
      */
     private const EXCEL_ROW_FILTERS = [
-        'settings' => ['setting_key' => ['backup_zip_password']],
+        'settings' => ['setting_key' => [
+            'backup_zip_password',
+            MailSettingsService::KEY_PASSWORD,
+        ]],
     ];
 
     protected BackupHistoryModel $backupHistoryModel;

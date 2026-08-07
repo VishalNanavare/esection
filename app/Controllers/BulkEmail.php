@@ -37,10 +37,15 @@ class BulkEmail extends BaseController
             $audience = BulkEmailService::AUDIENCE_UNIVERSITY;
         }
 
+        // trim(), NOT sanitize_xss() -- see Reminders::university(). These
+        // feed recipient resolution, so an encoded term does not merely show
+        // an empty screen: it would silently narrow who receives the mail.
+        // ($audience above keeps its guard because it is checked against an
+        // allowlist on the very next line, not bound into a query.)
         $filters = [
-            'state'  => sanitize_xss($this->request->getGet('state') ?? ''),
-            'year'   => sanitize_xss($this->request->getGet('year') ?? ''),
-            'stream' => sanitize_xss($this->request->getGet('stream') ?? ''),
+            'state'  => trim((string) ($this->request->getGet('state') ?? '')),
+            'year'   => trim((string) ($this->request->getGet('year') ?? '')),
+            'stream' => trim((string) ($this->request->getGet('stream') ?? '')),
         ];
 
         // Only resolve once the operator has actually asked to preview --
@@ -77,10 +82,14 @@ class BulkEmail extends BaseController
 
         $audience = sanitize_xss($this->request->getPost('audience') ?? '');
         $slug     = sanitize_xss($this->request->getPost('template_slug') ?? '');
+        // Must use exactly the same treatment as index() above: send()
+        // re-resolves the recipient list from these filters server-side, so
+        // any difference between the two would mean the operator approved
+        // one preview and the system mailed a different set of people.
         $filters  = [
-            'state'  => sanitize_xss($this->request->getPost('state') ?? ''),
-            'year'   => sanitize_xss($this->request->getPost('year') ?? ''),
-            'stream' => sanitize_xss($this->request->getPost('stream') ?? ''),
+            'state'  => trim((string) ($this->request->getPost('state') ?? '')),
+            'year'   => trim((string) ($this->request->getPost('year') ?? '')),
+            'stream' => trim((string) ($this->request->getPost('stream') ?? '')),
         ];
 
         try {
@@ -106,8 +115,12 @@ class BulkEmail extends BaseController
     /** Searchable record of every email, with delivery status. */
     public function log()
     {
+        // $search is a free-text LIKE over recipient addresses and subjects,
+        // so it hits the encoding bug hardest -- searching for an address at
+        // a "&"-containing domain, or a subject with an apostrophe, matched
+        // nothing. $status keeps its guard: it is allowlisted just below.
         $status = sanitize_xss($this->request->getGet('status') ?? '');
-        $search = sanitize_xss($this->request->getGet('q') ?? '');
+        $search = trim((string) ($this->request->getGet('q') ?? ''));
 
         if (! in_array($status, ['', 'sent', 'failed'], true)) {
             $status = '';

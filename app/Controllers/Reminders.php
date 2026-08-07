@@ -38,9 +38,19 @@ class Reminders extends BaseController
         // so the page always shows real data on open), and pager links are
         // always plain <a href> GET navigations -- a POST-submitted filter
         // would be silently lost the moment a pager link was clicked.
-        $selectedYear   = sanitize_xss($this->request->getGet('acd_year') ?? '');
-        $selectedStream = sanitize_xss($this->request->getGet('stream') ?? '');
-        $selectedColg   = sanitize_xss($this->request->getGet('clg_add') ?? '');
+        // trim(), NOT sanitize_xss(): these are search terms, not stored
+        // values. sanitize_xss() is htmlspecialchars(), so it rewrites "&"
+        // to "&amp;" and an apostrophe to "&#039;" BEFORE the value is bound
+        // into the query -- against columns that hold the original
+        // characters. The filter then matches nothing: picking any of the
+        // universities whose name contains "&" (187 student rows on
+        // "U.P. Board of High School & Intermediate" alone) returned an
+        // empty page. Both consumers are already safe without it -- the
+        // Query Builder escapes its own binds, and the view re-emits these
+        // through esc() / urlencode().
+        $selectedYear   = trim((string) ($this->request->getGet('acd_year') ?? ''));
+        $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
+        $selectedColg   = trim((string) ($this->request->getGet('clg_add') ?? ''));
 
         $students = $this->studentService->searchStudentsForReminder($selectedYear, $selectedStream, $selectedColg);
 
@@ -73,9 +83,12 @@ class Reminders extends BaseController
      */
     public function universityExport()
     {
-        $selectedYear   = sanitize_xss($this->request->getGet('acd_year') ?? '');
-        $selectedStream = sanitize_xss($this->request->getGet('stream') ?? '');
-        $selectedColg   = sanitize_xss($this->request->getGet('clg_add') ?? '');
+        // Same reasoning as university() above -- and the export MUST use the
+        // identical treatment, or the file would not match the screen it was
+        // exported from.
+        $selectedYear   = trim((string) ($this->request->getGet('acd_year') ?? ''));
+        $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
+        $selectedColg   = trim((string) ($this->request->getGet('clg_add') ?? ''));
 
         $students = $this->studentService->searchStudentsForReminderAll($selectedYear, $selectedStream, $selectedColg);
 
