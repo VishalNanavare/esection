@@ -6,6 +6,13 @@ use App\Models\StudentModel;
 
 class StudentVerificationService
 {
+    /**
+     * Upper bound on candidates in one storeBatch() call. The New Entry
+     * form builds the list one row per click, so the largest batch ever
+     * recorded is 113 -- this is a ceiling on abuse, not on real use.
+     */
+    private const MAX_BATCH_SIZE = 200;
+
     protected StudentModel $studentModel;
     protected ActivityLogService $activityLogService;
 
@@ -25,6 +32,18 @@ class StudentVerificationService
     {
         if (empty($payload['students']) || !is_array($payload['students'])) {
             throw new \InvalidArgumentException('No valid candidate entries provided in batch payload.');
+        }
+
+        // This is the app's only JSON-body write endpoint, and it previously
+        // validated exactly one thing: that 'students' was a non-empty array.
+        // Size was unbounded, so a single request could ask for an arbitrary
+        // number of INSERTs. The New Entry form adds one row per click, so no
+        // legitimate batch comes close to this ceiling; it exists purely to
+        // stop one request from becoming an unbounded write.
+        if (count($payload['students']) > self::MAX_BATCH_SIZE) {
+            throw new \InvalidArgumentException(
+                'A single batch cannot contain more than ' . self::MAX_BATCH_SIZE . ' candidates.'
+            );
         }
 
         // common_no arrives in the raw JSON body and was the ONLY value here

@@ -64,19 +64,47 @@ class Students extends BaseController
 
     public function storeBatch()
     {
-        $json     = $this->request->getJSON(true);
-        $username = session()->get('username') ?? 'esection1';
+        $json = $this->request->getJSON(true);
+
+        // No silent 'esection1' fallback: array_space is built from this
+        // value, so an absent session would have filed the batch under
+        // another real operator's name and mis-attributed the audit trail.
+        // AuthFilter guarantees a session here, so this can only be a bug.
+        $username = (string) (session()->get('username') ?? '');
+
+        if ($username === '') {
+            log_message('error', '[Students::storeBatch] no username in session for an authenticated request.');
+
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'Your session has expired. Please log in again and re-submit the batch.',
+            ]);
+        }
 
         try {
             $res = $this->studentService->storeCandidateBatch($json ?: [], $username);
+
             return $this->response->setJSON([
                 'status'       => 'success',
                 'message'      => "{$res['count']} student verification cases saved successfully.",
                 'array_space'  => $res['array_space'],
                 'redirect_url' => base_url('pdf/dispatch/' . urlencode($res['array_space']))
             ]);
-        } catch (\Exception $e) {
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            // Our own validation/atomicity failures. These messages are
+            // written for the operator, so they are safe to show verbatim.
             return $this->response->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            // Anything else -- notably DatabaseException, which with
+            // DBDebug=true carries the driver's own text (and can quote the
+            // failing SQL) -- must not reach the browser. Same split
+            // Confirmations::store() already uses.
+            log_message('error', '[Students::storeBatch] {message}', ['message' => (string) $e]);
+
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'The verification batch could not be saved. Please try again.',
+            ]);
         }
     }
 

@@ -48,9 +48,27 @@ class SettingsUsers extends BaseController
     {
         $user = $this->userManagementService->getById((int) $id);
         if ($user) {
-            unset($user['password_hash']);
-            $user['pages'] = $this->accessRightsService->getPagesForUser((int) $id);
-            return $this->response->setJSON(['status' => 'success', 'data' => $user]);
+            // Explicit allowlist, not unset()-as-you-remember. getById() is a
+            // bare find() and returns the whole row, so the previous single
+            // unset('password_hash') silently stopped being sufficient the
+            // moment reset_token_hash / reset_expires_at arrived in a later
+            // migration -- this endpoint was handing out the SHA-256 of a
+            // live password-reset token alongside its expiry. An allowlist
+            // cannot rot that way: a new column is excluded by default.
+            //
+            // These are exactly the fields the Edit User modal binds.
+            return $this->response->setJSON([
+                'status' => 'success',
+                'data'   => [
+                    'id'        => $user['id'],
+                    'username'  => $user['username'],
+                    'full_name' => $user['full_name'] ?? '',
+                    'email'     => $user['email'] ?? '',
+                    'role'      => $user['role'] ?? 'staff',
+                    'is_active' => $user['is_active'] ?? 1,
+                    'pages'     => $this->accessRightsService->getPagesForUser((int) $id),
+                ],
+            ]);
         }
         return $this->response->setJSON(['status' => 'error', 'message' => 'User not found']);
     }

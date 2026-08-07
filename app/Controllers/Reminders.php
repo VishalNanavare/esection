@@ -230,7 +230,21 @@ class Reminders extends BaseController
 
     private function renderBatchPdf(int $batchId)
     {
-        $detail   = $this->universityReminderService->getBatchDetail($batchId);
+        // Same guard universityBatchDetail() already has. getBatchDetail()
+        // throws InvalidArgumentException for an unknown id, and without
+        // this the PDF route answered HTTP 500 (plus a CRITICAL stack trace
+        // in the log) where its sibling redirects with a friendly message.
+        // A stale link to a deleted batch is a normal outcome, not a server
+        // error -- and this route is opened via window.open, so a 500 shows
+        // the user a blank tab with no explanation.
+        try {
+            $detail = $this->universityReminderService->getBatchDetail($batchId);
+        } catch (\InvalidArgumentException $e) {
+            return redirect()
+                ->to(base_url('reminders/university/history'))
+                ->with('error', $e->getMessage());
+        }
+
         $batch    = $detail['batch'];
         $students = $detail['students'];
 

@@ -79,7 +79,20 @@
         }
 
         if (xhr.status === 403) {
-            esNotify('warning', 'Security token expired', 'Please reload the page and try again.');
+            // 403 has two distinct causes here and they need different advice.
+            // AdminFilter and AccessFilter both answer 403 with a JSON body
+            // carrying a specific message ("You do not have permission to
+            // access this page."). A CSRF rejection has no body at all.
+            // Telling someone whose account simply lacks a page grant to
+            // "reload the page and try again" sends them round a loop that
+            // cannot succeed, so only the bodyless case gets that advice.
+            var deniedMessage = (xhr.responseJSON && xhr.responseJSON.message) || '';
+
+            if (deniedMessage) {
+                esNotify('warning', 'Not permitted', deniedMessage);
+            } else {
+                esNotify('warning', 'Security token expired', 'Please reload the page and try again.');
+            }
             return;
         }
 
