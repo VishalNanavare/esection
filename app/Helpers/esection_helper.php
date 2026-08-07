@@ -130,6 +130,33 @@ if (!function_exists('sanitize_xss')) {
     }
 }
 
+if (!function_exists('like_term')) {
+    /**
+     * Neutralise LIKE metacharacters in a user-typed filter term.
+     *
+     * CodeIgniter binds the *value* of a like() call, so this was never an
+     * SQL-injection risk -- the value can never become SQL. But the builder
+     * does not escape the value's own wildcards, while it DOES append
+     * ESCAPE '!' to the statement (verified: the generated SQL is
+     * "... LIKE '%Pune%' ESCAPE '!'"). So a "%" or "_" typed into a filter
+     * box stayed a live wildcard with nothing neutralising it:
+     *
+     *     like('clg_add', 'P%e')   -> 4,349 rows   (% matched anything)
+     *     like('clg_add', 'P!%e')  -> 0 rows       (literal, as intended)
+     *
+     * That silently widens a filtered screen -- and, more importantly, a
+     * filtered EXPORT, which can then contain rows outside the filter the
+     * operator asked for.
+     *
+     * The '!' must be escaped first, so an existing '!' in the search text
+     * is not mistaken for an escape prefix.
+     */
+    function like_term($value): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], (string) $value);
+    }
+}
+
 if (!function_exists('esc_address')) {
     /**
      * Render a postal address that may carry legacy <br> markup.

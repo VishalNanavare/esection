@@ -27,7 +27,19 @@ class StudentVerificationService
             throw new \InvalidArgumentException('No valid candidate entries provided in batch payload.');
         }
 
-        $commonNo   = $payload['common_no'] ?? $this->getNextCommonNo();
+        // common_no arrives in the raw JSON body and was the ONLY value here
+        // that reached the database without passing through sanitize_xss():
+        // it is concatenated straight into array_space, the batch grouping
+        // key that later appears in URLs (pdf/dispatch/<array_space>) and in
+        // every batch screen. It is always an integer produced by
+        // getNextCommonNo() and echoed back by the form, so coerce it rather
+        // than trust the wire. A non-numeric, negative or absent value falls
+        // back to the next real batch number -- exactly the previous default.
+        $commonNo = (int) ($payload['common_no'] ?? 0);
+        if ($commonNo <= 0) {
+            $commonNo = $this->getNextCommonNo();
+        }
+
         $arraySpace = $username . '_' . $commonNo;
 
         // One transaction for the whole batch, matching the sibling write path

@@ -193,7 +193,7 @@ class StudentModel extends Model
             $builder->where('student_details.admission_taken_year', $year);
         }
         if ($stream !== '') {
-            $builder->like('student_details.admission_taken_in', $stream);
+            $builder->like('student_details.admission_taken_in', like_term($stream));
         }
 
         return $builder->orderBy('student_details.id', 'DESC')->paginate($perPage);
@@ -217,7 +217,7 @@ class StudentModel extends Model
             $builder->where('student_details.admission_taken_year', $year);
         }
         if ($stream !== '') {
-            $builder->like('student_details.admission_taken_in', $stream);
+            $builder->like('student_details.admission_taken_in', like_term($stream));
         }
 
         return $builder->orderBy('student_details.id', 'DESC')->get()->getResultArray();
@@ -236,10 +236,10 @@ class StudentModel extends Model
             $builder->where('admission_taken_year', $year);
         }
         if (! empty($stream)) {
-            $builder->like('admission_taken_in', $stream);
+            $builder->like('admission_taken_in', like_term($stream));
         }
         if (! empty($university)) {
-            $builder->like('clg_add', $university);
+            $builder->like('clg_add', like_term($university));
         }
 
         return $builder->orderBy('id', 'DESC')->paginate($perPage);
@@ -257,10 +257,10 @@ class StudentModel extends Model
             $builder->where('admission_taken_year', $year);
         }
         if (! empty($stream)) {
-            $builder->like('admission_taken_in', $stream);
+            $builder->like('admission_taken_in', like_term($stream));
         }
         if (! empty($university)) {
-            $builder->like('clg_add', $university);
+            $builder->like('clg_add', like_term($university));
         }
 
         return $builder->orderBy('id', 'DESC')->get()->getResultArray();
@@ -295,7 +295,7 @@ class StudentModel extends Model
             $builder->where('admission_taken_year', $year);
         }
         if ($stream !== '') {
-            $builder->like('admission_taken_in', $stream);
+            $builder->like('admission_taken_in', like_term($stream));
         }
 
         return $builder->orderBy('id', 'DESC')->get()->getResultArray();

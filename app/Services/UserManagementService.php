@@ -6,6 +6,13 @@ use App\Models\UserModel;
 
 class UserManagementService
 {
+    /**
+     * Minimum password length, shared by every admin-side write path.
+     * Kept identical to PasswordResetService's self-service rule so the
+     * two cannot drift apart again.
+     */
+    public const MIN_PASSWORD_LENGTH = 8;
+
     protected UserModel $userModel;
     protected ActivityLogService $activityLogService;
     protected AccessRightsService $accessRightsService;
@@ -44,6 +51,7 @@ class UserManagementService
         if ($password === '') {
             throw new \InvalidArgumentException('Password is required.');
         }
+        $this->assertPasswordStrength($password);
         if ($this->userModel->findByUsername($username)) {
             throw new \InvalidArgumentException('That username is already in use.');
         }
@@ -119,6 +127,7 @@ class UserManagementService
         // hash. Never hash an empty string over it.
         $password = (string) ($postData['password'] ?? '');
         if ($password !== '') {
+            $this->assertPasswordStrength($password);
             $data['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
         }
 
@@ -165,5 +174,34 @@ class UserManagementService
             $id,
             ($newState ? 'Activated' : 'Deactivated') . ' user ' . $user['username']
         );
+    }
+
+    /**
+     * The one password rule, applied at every point an admin sets one.
+     *
+     * Previously the three write paths disagreed: "Add User" accepted any
+     * non-empty string (a one-character password was hashed and stored),
+     * "Edit User" checked nothing beyond non-blank, and only the
+     * self-service reset required 8 characters. So the strongest rule
+     * guarded the path an attacker does not control, and the weakest
+     * guarded the accounts an administrator creates.
+     *
+     * Deliberately just a length floor, matching
+     * PasswordResetService::resetWithToken() exactly rather than inventing
+     * a stricter composition rule -- the two paths must agree, and adding
+     * character-class requirements here would be a workflow change nobody
+     * asked for.
+     *
+     * Existing stored passwords are untouched: this runs only when a new
+     * one is being set, so no user is locked out and nobody is forced to
+     * reset.
+     */
+    private function assertPasswordStrength(string $password): void
+    {
+        if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+            throw new \InvalidArgumentException(
+                'Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters long.'
+            );
+        }
     }
 }

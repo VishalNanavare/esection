@@ -56,7 +56,7 @@ class CourseModel extends Model
         $builder = $this->table()->select('name')->where('is_active', 1);
 
         if (!empty($term)) {
-            $builder->like('name', $term);
+            $builder->like('name', like_term($term));
         }
 
         $rows = $builder->distinct()->orderBy('name', 'ASC')->get()->getResultArray();

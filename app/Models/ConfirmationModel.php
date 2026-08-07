@@ -177,13 +177,13 @@ class ConfirmationModel extends Model
             $builder->where('conf_stud_data.acd_year', $acdYear);
         }
         if ($stream !== '') {
-            $builder->like('conf_stud_data.stream', $stream);
+            $builder->like('conf_stud_data.stream', like_term($stream));
         }
         if ($university !== '') {
-            $builder->like('student_details.clg_add', $university);
+            $builder->like('student_details.clg_add', like_term($university));
         }
         if ($studentName !== '') {
-            $builder->like('student_details.student_name', $studentName);
+            $builder->like('student_details.student_name', like_term($studentName));
         }
 
         return $builder->groupBy('conf_stud_data.array_space')
@@ -209,13 +209,13 @@ class ConfirmationModel extends Model
             $builder->where('conf_stud_data.acd_year', $acdYear);
         }
         if ($stream !== '') {
-            $builder->like('conf_stud_data.stream', $stream);
+            $builder->like('conf_stud_data.stream', like_term($stream));
         }
         if ($university !== '') {
-            $builder->like('student_details.clg_add', $university);
+            $builder->like('student_details.clg_add', like_term($university));
         }
         if ($studentName !== '') {
-            $builder->like('student_details.student_name', $studentName);
+            $builder->like('student_details.student_name', like_term($studentName));
         }
 
         return $builder->groupBy('conf_stud_data.array_space')

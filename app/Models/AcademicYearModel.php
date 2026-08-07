@@ -48,7 +48,7 @@ class AcademicYearModel extends Model
         $builder = $this->table()->select('year_label');
 
         if (!empty($term)) {
-            $builder->like('year_label', $term);
+            $builder->like('year_label', like_term($term));
         }
 
         $rows = $builder->orderBy('year_label', 'DESC')->get()->getResultArray();

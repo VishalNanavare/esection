@@ -86,8 +86,8 @@ class CollegeModel extends Model
 
         if ($term !== '') {
             $builder->groupStart()
-                    ->like('Name', $term)
-                    ->orLike('States', $term)
+                    ->like('Name', like_term($term))
+                    ->orLike('States', like_term($term))
                     ->groupEnd();
         }
 

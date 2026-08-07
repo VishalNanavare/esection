@@ -31,7 +31,7 @@ class StreamModel extends Model
     {
         $builder = $this->select('Division as stream');
         if (!empty($term)) {
-            $builder->like('Division', $term);
+            $builder->like('Division', like_term($term));
         }
         $streams = $builder->distinct()->orderBy('Division', 'ASC')->findAll();
 

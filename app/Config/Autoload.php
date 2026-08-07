@@ -86,7 +86,22 @@ class Autoload extends AutoloadConfig
      *       'form',
      *   ];
      *
+     * 'esection' is autoloaded application-wide because its functions are
+     * used well outside the Controller layer -- Models call like_term(),
+     * Services call sanitize_xss() and feature_enabled(), and Views call
+     * esc_address() and setting(). Previously the helper was loaded only by
+     * BaseController, so every one of those worked purely because a
+     * Controller happened to run first. Any Command, cron entry, queue
+     * worker or Filter reaching that code had no Controller in the stack
+     * and would have hit a fatal "undefined function".
+     *
+     * Autoloading it here is the root fix for that call-order dependency.
+     * The explicit helper('esection') calls in the Services stay -- they are
+     * idempotent no-ops now, and they keep each Service self-describing
+     * about what it depends on.
+     *
+
      * @var list<string>
      */
-    public $helpers = [];
+    public $helpers = ['esection'];
 }

@@ -193,6 +193,24 @@ class Auth extends BaseController
     {
         $session = session();
 
+        // Logout is a GET (the sidebar link and its SweetAlert confirm depend
+        // on that, so it stays a GET), which means it never reaches the csrf
+        // filter -- Config\Filters::$methods covers POST/PUT/PATCH/DELETE
+        // only. A stranger's page could therefore log a user out mid-batch
+        // with a top-level navigation or an <img src>, since SameSite=Lax
+        // still sends the cookie on a real navigation.
+        //
+        // Rather than change the route (a UX change), require the request to
+        // have come from this app. An absent Referer is allowed on purpose:
+        // browsers omit it in legitimate privacy configurations, and refusing
+        // those would break logout for real users. That still blocks the
+        // cross-site case, which always carries the attacker's own origin.
+        $referer = (string) $this->request->getServer('HTTP_REFERER');
+
+        if ($referer !== '' && ! str_starts_with($referer, base_url())) {
+            return redirect()->to(base_url('dashboard'));
+        }
+
         // Do NOT use $session->destroy(): in CI 4.7 that is a bare
         // session_destroy(), which leaves the session in PHP_SESSION_NONE.
         // Any setFlashdata() after it -- including the one RedirectResponse

@@ -39,8 +39,8 @@ class EmailLogModel extends Model
         }
         if ($search !== '') {
             $builder->groupStart()
-                    ->like('recipient_email', $search)
-                    ->orLike('recipient_name', $search)
+                    ->like('recipient_email', like_term($search))
+                    ->orLike('recipient_name', like_term($search))
                     ->groupEnd();
         }
 
