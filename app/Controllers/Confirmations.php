@@ -38,7 +38,12 @@ class Confirmations extends BaseController
 
         $data = [
             'title'           => 'Demand Draft (DD) Payment Confirmation Portal',
-            'metrics'         => $this->confirmationService->getStreamMetrics(),
+            // 'metrics' removed: getStreamMetrics() runs two whole-table
+            // aggregations, and confirmations/index.php never referenced
+            // $metrics -- neither does its ajax_confirmations_js partial or
+            // the layout. Only dashboard/index.php uses $metrics, and it gets
+            // its own copy from Dashboard::index(). The service method stays;
+            // this only stops calling it where the result was discarded.
             'students'        => $students,
             'pager'           => $this->studentModel->pager,
             'selected_year'   => $selectedYear,

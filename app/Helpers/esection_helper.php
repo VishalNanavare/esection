@@ -130,6 +130,37 @@ if (!function_exists('sanitize_xss')) {
     }
 }
 
+if (!function_exists('esc_address')) {
+    /**
+     * Render a postal address that may carry legacy <br> markup.
+     *
+     * Addresses imported from esection_basic embed a literal "<br>" as their
+     * line-break marker, because the legacy app echoed these fields
+     * unescaped. 2,303 of 6,345 student_details.clg_add rows and 162 of 469
+     * college_details.Address rows still contain one. The CI4 rewrite
+     * correctly escapes output, so that marker now prints as the visible
+     * text "<br>" -- including inside the "To," block of the dispatch letter
+     * that is physically posted to universities:
+     *
+     *     ... Mumbai-400 049. <br>phone- 022-26612877
+     *
+     * Converting the legacy token to a real newline BEFORE escaping restores
+     * the line break the legacy app produced, without weakening anything:
+     * esc() still runs over the entire value, so any other markup in the
+     * data is still neutralised. Only this one known token is translated,
+     * and it is translated into a newline -- never re-emitted as live HTML.
+     *
+     * nl2br() is applied after esc(), matching how the PDF views already
+     * render multi-line values.
+     */
+    function esc_address($value): string
+    {
+        $normalised = preg_replace('/<br\s*\/?>/i', "\n", (string) $value);
+
+        return nl2br(esc($normalised));
+    }
+}
+
 if (!function_exists('setting')) {
     /**
      * Read a value from the Settings module's key/value store.

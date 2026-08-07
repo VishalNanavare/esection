@@ -99,7 +99,7 @@
                         <?php endif; ?>
                     </td>
                     <td><?= esc($r['case_no'] ?? '') ?></td>
-                    <td><?= esc($r['clg_add'] ?? $r['uni_add'] ?? '') ?></td>
+                    <td><?= esc_address($r['clg_add'] ?? $r['uni_add'] ?? '') ?></td>
                     <td style="text-align: center;"><?= esc($r['mig_TC'] ?: '-') ?></td>
                     <td style="text-align: center;"><?= esc($r['s_marks'] ?: '-') ?></td>
                     <td style="text-align: center;"><?= esc($r['p_degree'] ?: '-') ?></td>

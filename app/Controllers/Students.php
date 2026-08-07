@@ -25,7 +25,11 @@ class Students extends BaseController
         $data = [
             'title'          => 'New Student Verification Form',
             'common_no'      => $this->studentService->getNextCommonNo(),
-            'colleges'       => $this->universityService->getAllColleges(),
+            // 'colleges' removed: this materialised all 469 college_details
+            // rows (two varchar(1500) columns) on every page open, and
+            // students/new_form.php never referenced $colleges. The university
+            // picker here is a Select2 fed by GET /api/colleges. getAllColleges()
+            // itself stays -- Universities::index() still uses it.
             'suggestedCaseNo' => $this->documentNumberingService->previewNext(),
         ];
 

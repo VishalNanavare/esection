@@ -19,7 +19,9 @@ class Universities extends BaseController
         $data = [
             'title'    => 'University Master Directory',
             'colleges' => $this->universityService->getAllColleges(),
-            'states'   => $this->universityService->getDistinctStates(),
+            // 'states' removed: universities/index.php renders the static
+            // common/india_states_options partial, not $states. The service
+            // method stays -- CollegeModel::searchStates() backs /api/states.
         ];
         return view('universities/index', $data);
     }

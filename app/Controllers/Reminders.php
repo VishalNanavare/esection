@@ -62,8 +62,11 @@ class Reminders extends BaseController
 
         $data = [
             'title'           => 'University Marksheet Reminder Portal',
-            'streams'         => $this->studentModel->getDistinctStreamsFromStudents(),
-            'colleges'        => $this->universityService->getAllColleges(),
+            // 'streams' and 'colleges' removed: reminders/university.php
+            // references neither (nor does ajax_reminders_js or the layout).
+            // Both pickers on this page are Select2 widgets fed by
+            // GET /api/streams and GET /api/colleges, so loading all 469
+            // universities server-side was pure discarded work on every open.
             'students'        => $students,
             'pager'           => $this->studentService->getReminderPager(),
             'selected_year'   => $selectedYear,
