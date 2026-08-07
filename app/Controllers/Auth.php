@@ -57,7 +57,27 @@ class Auth extends BaseController
                 ->with('error', 'Too many login attempts. Please wait a minute and try again.');
         }
 
-        $user = $this->userModel->authenticateUser($username, $password);
+        // Never let a throwable escape this call. CodeIgniter logs every
+        // uncaught exception at CRITICAL and renders the stack with
+        // render_backtrace(), which formats each scalar frame argument with
+        // var_export() -- full length, no masking. authenticateUser() has the
+        // submitted password as a frame argument, so any failure inside it
+        // (a DB drop mid-query, a bcrypt error) would write that password
+        // verbatim into writable/logs. Config\Exceptions::$sensitiveDataInTrace
+        // does NOT help here: the framework applies it only in the on-screen
+        // debug handler, never on the log path.
+        try {
+            $user = $this->userModel->authenticateUser($username, $password);
+        } catch (\Throwable $e) {
+            // Log the class and message only -- deliberately not the trace.
+            log_message('error', '[Auth::processLogin] authentication failed: {type}: {msg}', [
+                'type' => $e::class,
+                'msg'  => $e->getMessage(),
+            ]);
+
+            return redirect()->to(base_url('auth/login'))
+                ->with('error', 'Login is temporarily unavailable. Please try again in a moment.');
+        }
 
         if ($user) {
             // Regenerate the session ID the moment the session stops being
@@ -149,7 +169,20 @@ class Auth extends BaseController
         try {
             $this->passwordResetService->resetWithToken($token, $newPass, $confirm);
         } catch (\InvalidArgumentException $e) {
+            // Expected validation outcome -- its message is written for the user.
             return redirect()->to(base_url('auth/resetPassword/' . $token))->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            // Anything else must not escape: resetWithToken() carries the new
+            // password AND the reset token as frame arguments, and CodeIgniter's
+            // uncaught-exception logger var_export()s every frame argument in
+            // full into writable/logs. Same reasoning as processLogin() above.
+            log_message('error', '[Auth::processResetPassword] reset failed: {type}: {msg}', [
+                'type' => $e::class,
+                'msg'  => $e->getMessage(),
+            ]);
+
+            return redirect()->to(base_url('auth/resetPassword/' . $token))
+                ->with('error', 'The password could not be reset right now. Please request a new link and try again.');
         }
 
         return redirect()->to(base_url('auth/login'))

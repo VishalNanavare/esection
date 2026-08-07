@@ -30,6 +30,18 @@ class StudentVerificationService
         $commonNo   = $payload['common_no'] ?? $this->getNextCommonNo();
         $arraySpace = $username . '_' . $commonNo;
 
+        // One transaction for the whole batch, matching the sibling write path
+        // (ConfirmationModel::storeConfirmationBatch). Previously each
+        // candidate was an independent INSERT with its return value ignored:
+        // a failure part-way through (deadlock, dropped connection, lock
+        // timeout, an over-long value) left every earlier candidate committed
+        // and abandoned the rest. The controller then reported "Save failed",
+        // so the operator re-submitted and produced a SECOND partial batch --
+        // and the dispatch letter for that array_space printed whichever
+        // subset happened to land. All-or-nothing removes that entirely.
+        $db = $this->studentModel->db;
+        $db->transStart();
+
         $insertedCount = 0;
         foreach ($payload['students'] as $stud) {
             $data = [
@@ -53,6 +65,19 @@ class StudentVerificationService
 
             $this->studentModel->insert($data);
             $insertedCount++;
+        }
+
+        $db->transComplete();
+
+        // transStatus() is false if ANY statement in the block failed, in
+        // which case transComplete() has already rolled the whole batch back.
+        // Throwing here keeps the existing contract: Students::storeBatch
+        // catches \Exception and returns {status:'error'}, which is exactly
+        // what the operator should see -- the difference is that now nothing
+        // was written, so a re-submit produces one clean batch rather than a
+        // duplicated partial one.
+        if ($db->transStatus() === false) {
+            throw new \RuntimeException('The candidate batch could not be saved. No records were written -- please try again.');
         }
 
         return [

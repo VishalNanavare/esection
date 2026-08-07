@@ -89,8 +89,28 @@ class Session extends BaseConfig
      * Whether to destroy session data associated with the old session ID
      * when auto-regenerating the session ID. When set to FALSE, the data
      * will be later deleted by the garbage collector.
+     *
+     * TRUE here, against the framework default. CodeIgniter auto-rotates the
+     * session ID every $timeToUpdate (300s) during normal browsing. With
+     * FALSE the rotated-away session file was left behind for the garbage
+     * collector and stayed a fully valid, authenticated session for up to
+     * $expiration (7200s).
+     *
+     * Demonstrated on this deployment: logged in as admin, polled /dashboard
+     * until the ci_session cookie rotated (~320s), then replayed the OLD id
+     * -- it still returned 200 on /dashboard AND on /settings/users, i.e.
+     * full admin access from an id the browser had already discarded. That
+     * turns any single leaked id (a proxy log, a shared machine, the
+     * world-readable session directory) into a two-hour window instead of a
+     * five-minute one.
+     *
+     * Safe for the active user: the rotating request already holds the NEW
+     * id before the old file is removed, so nobody is logged out. Login and
+     * logout were already unaffected -- both call regenerate(true), which
+     * destroys explicitly; this closes the same gap on the silent periodic
+     * rotation in between.
      */
-    public bool $regenerateDestroy = false;
+    public bool $regenerateDestroy = true;
 
     /**
      * --------------------------------------------------------------------------

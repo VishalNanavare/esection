@@ -20,6 +20,26 @@ use OpenSpout\Writer\XLSX\Writer;
 class ExcelExportService
 {
     /**
+     * exportToXlsx() calls feature_enabled(), which lives in
+     * app/Helpers/esection_helper.php. Config\Autoload::$helpers is empty and
+     * composer.json declares no autoload.files entry, so that helper is loaded
+     * only where something asks for it -- today, BaseController. Every web
+     * request therefore happens to have it, and this class worked purely
+     * because a Controller had already run.
+     *
+     * That is a call-order dependency, not a guarantee: a Command, a cron
+     * entry, a queue worker or a Filter constructing this service has no
+     * Controller in the stack, and the first feature_enabled() call would be
+     * a fatal "undefined function". Loading it here makes the service
+     * self-sufficient. helper() is idempotent and a no-op once loaded, so
+     * this costs nothing on the web path.
+     */
+    public function __construct()
+    {
+        helper('esection');
+    }
+
+    /**
      * @param array<int, array{header: string, format?: string, width?: float}> $columns
      *        Ordered column specs. `format` is an Excel number-format code
      *        (e.g. 'dd/mm/yyyy hh:mm', '#,##0.00') applied to every cell in

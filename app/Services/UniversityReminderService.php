@@ -15,6 +15,7 @@ class UniversityReminderService
 
     public function __construct()
     {
+        helper('esection');
         $this->batchModel          = new UniversityReminderBatchModel();
         $this->noteModel           = new UniversityReminderNoteModel();
         $this->studentModel        = new StudentModel();

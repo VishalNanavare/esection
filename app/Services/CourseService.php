@@ -11,6 +11,7 @@ class CourseService
 
     public function __construct()
     {
+        helper('esection');
         $this->courseModel        = new CourseModel();
         $this->activityLogService = new ActivityLogService();
     }

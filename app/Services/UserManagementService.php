@@ -12,6 +12,7 @@ class UserManagementService
 
     public function __construct()
     {
+        helper('esection');
         $this->userModel            = new UserModel();
         $this->activityLogService   = new ActivityLogService();
         $this->accessRightsService  = new AccessRightsService();

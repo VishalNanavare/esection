@@ -57,6 +57,7 @@ class LetterTemplateService
 
     public function __construct()
     {
+        helper('esection');
         $this->settingService     = new SettingService();
         $this->activityLogService = new ActivityLogService();
     }
