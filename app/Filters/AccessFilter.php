@@ -30,9 +30,25 @@ class AccessFilter implements FilterInterface
             return null;
         }
 
-        $pageKey = $arguments[0] ?? null;
+        // Accepts one key ('accessFilter:universities') or several
+        // ('accessFilter:students_new,universities'), in which case ANY of
+        // them grants access. CI4 already splits a comma-separated filter
+        // argument into $arguments for us, so this needs no framework change
+        // and every existing single-key call site behaves exactly as before.
+        //
+        // The multi-key form exists for the shared Select2 endpoints under
+        // /api/*: they feed pickers on several different pages, so no single
+        // page_key describes them. Requiring "any page that actually uses
+        // this dropdown" is the honest rule -- previously they carried
+        // authFilter alone, which meant the Access Rights system had no
+        // effect on them at all and the full university directory was
+        // enumerable by any logged-in account.
+        $pageKeys = array_values(array_filter(
+            (array) ($arguments ?? []),
+            static fn ($key): bool => is_string($key) && $key !== ''
+        ));
 
-        if ($pageKey === null) {
+        if ($pageKeys === []) {
             log_message('error', '[AccessFilter] Route guarded with accessFilter but no page_key argument was supplied.');
 
             return $this->denyResponse($request);
@@ -44,7 +60,7 @@ class AccessFilter implements FilterInterface
             $granted = (new AccessRightsService())->getPagesForUser((int) session()->get('id'));
         }
 
-        if (in_array($pageKey, $granted, true)) {
+        if (array_intersect($pageKeys, $granted) !== []) {
             return null;
         }
 
