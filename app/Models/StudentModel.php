@@ -69,6 +69,23 @@ class StudentModel extends Model
         return $row ? (int) $row['id'] : 0;
     }
 
+    /**
+     * Is this eligibility case number already taken?
+     *
+     * Used to keep the suggested case number on the New Entry form clear of
+     * numbers already in use. There is no unique index on the column (and
+     * one cannot simply be added -- 218 duplicated values already exist from
+     * legacy imports), so uniqueness of a SUGGESTION has to be checked here.
+     */
+    public function caseNoExists(string $caseNo): bool
+    {
+        if ($caseNo === '') {
+            return false;
+        }
+
+        return $this->table()->where('eligibility_case_no', $caseNo)->countAllResults() > 0;
+    }
+
     public function getTotalStudentsCount(): int
     {
         return $this->table()->countAllResults();

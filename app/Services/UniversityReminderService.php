@@ -111,10 +111,15 @@ class UniversityReminderService
     {
         $batches = $this->batchModel->getAllOrdered();
 
+        // One grouped query for every batch's count, instead of one query per
+        // rendered row. The per-row call materialised the student ids purely
+        // to count them, and the ids were then discarded.
+        $counts = $this->noteModel->getStudentCountsByBatch();
+
         foreach ($batches as &$batch) {
-            $studentIds        = $this->noteModel->getStudentIdsForBatch((int) $batch['id']);
-            $batch['student_count'] = count($studentIds);
+            $batch['student_count'] = $counts[(int) $batch['id']] ?? 0;
         }
+        unset($batch);
 
         return $batches;
     }

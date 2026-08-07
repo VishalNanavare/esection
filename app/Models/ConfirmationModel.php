@@ -91,9 +91,8 @@ class ConfirmationModel extends Model
 
         helper('esection');
 
-        $now        = (string) time();
-        $arraySpace = $this->nextArraySpace();
-        $payload    = [];
+        $now     = (string) time();
+        $payload = [];
 
         foreach ($students as $student) {
             $studentId = (int) $student['id'];
@@ -101,7 +100,9 @@ class ConfirmationModel extends Model
 
             $payload[] = [
                 'student_id'        => $studentId,
-                'array_space'       => $arraySpace,
+                // array_space is filled in below, once the transaction is
+                // open -- see the note at transStart().
+                'array_space'       => 0,
                 // Legacy compatibility: esection_basic stores the owning
                 // student's id in `name`. Keep doing so.
                 'name'              => (string) $studentId,
@@ -124,6 +125,24 @@ class ConfirmationModel extends Model
         }
 
         $this->db->transStart();
+
+        // The MAX(array_space)+1 read now happens INSIDE the transaction and
+        // immediately before the insert. It used to run before the whole
+        // payload loop above, leaving a window as wide as the payload build
+        // during which a second concurrent submission read the same MAX --
+        // both batches then shared one array_space and silently merged into
+        // a single batch on every history screen and PDF.
+        //
+        // This narrows the window to the smallest it can be without a schema
+        // change. A UNIQUE constraint is not possible here: array_space is
+        // deliberately shared by every row of one batch.
+        $arraySpace = $this->nextArraySpace();
+
+        foreach ($payload as &$row) {
+            $row['array_space'] = $arraySpace;
+        }
+        unset($row);
+
         $this->table()->insertBatch($payload);
         $this->db->transComplete();
 

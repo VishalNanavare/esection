@@ -64,4 +64,31 @@ class UniversityReminderNoteModel extends Model
 
         return $counts;
     }
+
+    /**
+     * Distinct student count per reminder batch, in ONE query.
+     *
+     * Feeds the "Candidates" column on University Reminder History, which
+     * previously ran getStudentIdsForBatch() once per rendered row and
+     * counted the returned array in PHP -- a textbook N+1 that grew with
+     * the batch list. Mirrors getNoteCountsForStudents() above; the count
+     * is done in SQL rather than by materialising the ids, since the ids
+     * themselves were never used.
+     *
+     * @return array<int, int> batch_id => distinct student count
+     */
+    public function getStudentCountsByBatch(): array
+    {
+        $rows = $this->table()
+                     ->select('batch_id, COUNT(DISTINCT student_id) AS student_count')
+                     ->groupBy('batch_id')
+                     ->get()->getResultArray();
+
+        $counts = [];
+        foreach ($rows as $row) {
+            $counts[(int) $row['batch_id']] = (int) $row['student_count'];
+        }
+
+        return $counts;
+    }
 }

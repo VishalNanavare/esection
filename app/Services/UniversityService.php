@@ -96,7 +96,21 @@ class UniversityService
         $existing = $this->getCollegeById($id);
         $oldName  = $existing['Name'] ?? '';
 
-        $data   = $this->mapUniversityData($postData);
+        // mapUniversityData() validates and throws BEFORE anything is
+        // written, so it stays outside the transaction.
+        $data = $this->mapUniversityData($postData);
+
+        // A rename is two writes against two tables -- college_details here,
+        // and the cascade across student_details below. They were previously
+        // independent, so a failure between them left the directory renamed
+        // while thousands of historical student rows still carried the old
+        // name. Because student_details stores the university as a plain
+        // string (not an FK), those records would then be permanently
+        // unmatchable by the university filter, with nothing to indicate it.
+        // One transaction makes the rename all-or-nothing.
+        $db = \Config\Database::connect();
+        $db->transStart();
+
         $result = (bool) $this->collegeModel->update($id, $data);
 
         $this->activityLogService->record('university.update', 'university', $id, 'Updated university ' . $data['Name']);
@@ -117,6 +131,12 @@ class UniversityService
                     "Renamed \"{$oldName}\" to \"{$data['Name']}\" across {$renamed} student record(s)"
                 );
             }
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            throw new \RuntimeException('The university could not be updated. No changes were saved.');
         }
 
         return $result;
