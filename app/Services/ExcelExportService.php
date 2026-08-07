@@ -71,6 +71,19 @@ class ExcelExportService
             throw new \InvalidArgumentException('Excel export is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
         }
 
+        // Every export is recorded. An export is a bulk extraction of student
+        // and university records leaving the system as a file -- "who took a
+        // copy of the candidate list, and when" is precisely the question an
+        // audit trail exists to answer, and nothing recorded it before.
+        // Logged here rather than at the eight controller call sites so a
+        // future export cannot be added without an audit entry.
+        (new ActivityLogService())->record(
+            'export.xlsx',
+            'export',
+            null,
+            'Exported ' . count($rows) . ' row(s) to ' . $filenameBase . '.xlsx'
+        );
+
         // OpenSpout's own openToBrowser() writes straight to php://output via
         // raw header() calls, bypassing CI4's Response object entirely --
         // incompatible with this app's "Service returns a Response" pattern.

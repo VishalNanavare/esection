@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Services\AccessRightsService;
+use App\Services\ActivityLogService;
 use App\Services\PasswordResetService;
 
 class Auth extends BaseController
@@ -112,8 +113,32 @@ class Auth extends BaseController
             $sessionData['auth_revalidated_at'] = time();
 
             session()->set($sessionData);
+
+            // Recorded AFTER the session is set, so the entry carries the
+            // real user_id/username rather than nulls. The audit trail had no
+            // authentication events at all: it could show what a user changed
+            // but never that they signed in, which is the first thing anyone
+            // asks when reviewing an incident.
+            (new ActivityLogService())->record(
+                'auth.login',
+                'user',
+                (int) $user['id'],
+                'Signed in from ' . $this->request->getIPAddress()
+            );
+
             return redirect()->to(base_url('dashboard'));
         }
+
+        // Failed attempts matter more than successful ones for spotting a
+        // brute-force run. There is no session here, so record() stores null
+        // for user_id/username -- the attempted username goes in the
+        // description instead. The password is deliberately never touched.
+        (new ActivityLogService())->record(
+            'auth.login_failed',
+            'user',
+            null,
+            'Failed sign-in for "' . $username . '" from ' . $this->request->getIPAddress()
+        );
 
         return redirect()->to(base_url('auth/login'))->with('error', 'Invalid login credentials. Please try again.');
     }
@@ -210,6 +235,16 @@ class Auth extends BaseController
         if ($referer !== '' && ! str_starts_with($referer, base_url())) {
             return redirect()->to(base_url('dashboard'));
         }
+
+        // Recorded BEFORE the session keys are removed, so the entry still
+        // carries who was signing out. Pairs with auth.login to give the
+        // trail a complete session lifecycle.
+        (new ActivityLogService())->record(
+            'auth.logout',
+            'user',
+            (int) ($session->get('id') ?? 0) ?: null,
+            'Signed out'
+        );
 
         // Do NOT use $session->destroy(): in CI 4.7 that is a bare
         // session_destroy(), which leaves the session in PHP_SESSION_NONE.
