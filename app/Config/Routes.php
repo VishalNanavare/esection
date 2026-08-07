@@ -4,6 +4,27 @@ use CodeIgniter\Router\RouteCollection;
 
 /** @var RouteCollection $routes */
 
+/*
+ * Bound (:num) to a realistic id width.
+ *
+ * The framework default is [0-9]+ -- unlimited digits -- so a 21-digit id
+ * reached the controller, hit a plain (int) cast, and PHP 8.5 raised
+ * "the float-string ... is not representable as an int". CodeIgniter
+ * promotes that warning to an ErrorException, which nothing catches, so
+ * the request died as HTTP 500 and appended a ~1KB CRITICAL stack trace to
+ * the log every time. Seven endpoints were reproducibly 500-able this way
+ * by any logged-in user simply editing the URL.
+ *
+ * Ten digits covers the full range of an INT UNSIGNED primary key
+ * (4294967295); the largest id in this database is four digits. So no
+ * reachable URL stops matching -- an over-long id now simply fails to
+ * route and gets the normal 404 instead of a server error.
+ *
+ * Must stay above the route definitions: placeholders are substituted as
+ * each route is declared, so this has no effect on routes defined earlier.
+ */
+$routes->addPlaceholder('num', '[0-9]{1,10}');
+
 $routes->get('/', 'Auth::login');
 
 // Authentication Routes

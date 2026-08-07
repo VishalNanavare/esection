@@ -21,8 +21,20 @@ class Api extends BaseController
 
     public function colleges()
     {
-        $q    = $this->request->getGet('q') ?? $this->request->getGet('term') ?? '';
-        $page = (int) ($this->request->getGet('page') ?? 1);
+        $q = $this->request->getGet('q') ?? $this->request->getGet('term') ?? '';
+
+        // Bounded BEFORE the cast, not after. A bare (int) cast on a numeric
+        // string above PHP_INT_MAX raises a PHP 8.5 warning that CodeIgniter
+        // promotes to an uncaught ErrorException -- ?page=<21 digits> made
+        // this endpoint reply 500 instead of serving Select2 an empty page.
+        // filter_var never warns and always lands inside the range, and it
+        // also folds the ?page[]= array case back to the default. Every
+        // legitimate page number behaves exactly as before.
+        $page = (int) filter_var(
+            $this->request->getGet('page') ?? 1,
+            FILTER_VALIDATE_INT,
+            ['options' => ['default' => 1, 'min_range' => 1, 'max_range' => 100000]]
+        );
         // Defaults true (active only) for every "pick a target university"
         // picker; the Universities admin page itself passes active_only=0
         // so a deactivated row can still be found there to be reactivated.
