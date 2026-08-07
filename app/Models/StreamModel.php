@@ -34,17 +34,6 @@ class StreamModel extends Model
         return $this->table()->orderBy('Division', 'ASC')->get()->getResultArray();
     }
 
-    public function getDistinctDivisions(): array
-    {
-        return $this->table()
-                    ->select('Division')
-                    ->distinct()
-                    ->where('Division IS NOT NULL')
-                    ->where('Division !=', '')
-                    ->orderBy('Division', 'ASC')
-                    ->get()->getResultArray();
-    }
-
     public function searchStreamsForSelect2(?string $term): array
     {
         $builder = $this->table()->select('Division as stream');

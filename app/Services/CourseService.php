@@ -21,12 +21,6 @@ class CourseService
         return $this->courseModel->getAllOrdered();
     }
 
-    /** For future dropdown consumers -- excludes retired courses. */
-    public function getActive(): array
-    {
-        return $this->courseModel->getActiveOrdered();
-    }
-
     public function getById(int $id): ?array
     {
         $res = $this->courseModel->find($id);

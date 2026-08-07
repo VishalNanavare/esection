@@ -115,28 +115,6 @@ class StudentModel extends Model
                     ->get()->getResultArray();
     }
 
-    public function getDistinctYears(): array
-    {
-        return $this->table()
-                    ->select('admission_taken_year')
-                    ->distinct()
-                    ->where('admission_taken_year IS NOT NULL')
-                    ->where('admission_taken_year !=', '')
-                    ->orderBy('admission_taken_year', 'DESC')
-                    ->get()->getResultArray();
-    }
-
-    public function getDistinctStreamsFromStudents(): array
-    {
-        return $this->table()
-                    ->select('admission_taken_in')
-                    ->distinct()
-                    ->where('admission_taken_in IS NOT NULL')
-                    ->where('admission_taken_in !=', '')
-                    ->orderBy('admission_taken_in', 'ASC')
-                    ->get()->getResultArray();
-    }
-
     public function getGroupedStudentCounts(): array
     {
         $rows = $this->table()

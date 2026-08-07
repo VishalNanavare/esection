@@ -35,14 +35,6 @@ class UniversityReminderNoteModel extends Model
                     ->get()->getResultArray();
     }
 
-    /** Every distinct student id that has at least one note in this batch. */
-    public function getStudentIdsForBatch(int $batchId): array
-    {
-        $rows = $this->table()->select('student_id')->distinct()->where('batch_id', $batchId)->get()->getResultArray();
-
-        return array_map(static fn (array $r): int => (int) $r['student_id'], $rows);
-    }
-
     /** How many notes each of the given students already has, across ALL batches -- feeds the search results' status badge. */
     public function getNoteCountsForStudents(array $studentIds): array
     {
@@ -69,11 +61,11 @@ class UniversityReminderNoteModel extends Model
      * Distinct student count per reminder batch, in ONE query.
      *
      * Feeds the "Candidates" column on University Reminder History, which
-     * previously ran getStudentIdsForBatch() once per rendered row and
-     * counted the returned array in PHP -- a textbook N+1 that grew with
-     * the batch list. Mirrors getNoteCountsForStudents() above; the count
-     * is done in SQL rather than by materialising the ids, since the ids
-     * themselves were never used.
+     * previously ran a per-batch id lookup once per rendered row and counted
+     * the returned array in PHP -- a textbook N+1 that grew with the batch
+     * list. Mirrors getNoteCountsForStudents() above; the count is done in
+     * SQL rather than by materialising the ids, since the ids themselves
+     * were never used (that lookup is now gone entirely).
      *
      * @return array<int, int> batch_id => distinct student count
      */

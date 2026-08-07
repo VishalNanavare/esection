@@ -102,8 +102,4 @@ class UserModel extends Model
         $this->update($id, ['reset_token_hash' => $tokenHash, 'reset_expires_at' => $expiresAt]);
     }
 
-    public function clearResetToken(int $id): void
-    {
-        $this->update($id, ['reset_token_hash' => null, 'reset_expires_at' => null]);
-    }
 }
