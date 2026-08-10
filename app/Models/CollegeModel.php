@@ -40,9 +40,49 @@ class CollegeModel extends Model
      */
     public function findByAddress(string $address): ?array
     {
+        if ($address === '') {
+            return null;
+        }
+
         $row = $this->table()->where('Address', $address)->get()->getRowArray();
 
-        return $row ?: null;
+        if ($row) {
+            return $row;
+        }
+
+        // Fallback: the stored copy has been through sanitize_xss().
+        //
+        // student_details.clg_add is written by StudentVerificationService::
+        // storeCandidateBatch(), which runs every field through sanitize_xss()
+        // -- htmlspecialchars(strip_tags(trim($v))). That rewrites "&" to
+        // "&amp;" and DELETES the literal "<br>" that 161 imported addresses
+        // still carry, so the saved value can never equal the source Address
+        // and the exact match above misses:
+        //
+        //   Address : ... High School & Intermediate, Allahabad-211001.
+        //   clg_add : ... High School &amp; Intermediate, Allahabad-211001.
+        //
+        // 193 of 469 universities (41%) are affected. The visible symptom is
+        // that dispatchAccountsLetter() gets null here, reads fees as 0, and
+        // silently omits the DD-amount paragraph from a letter that is posted
+        // to the university -- no error, just a missing figure.
+        //
+        // Comparing the encoded form of each Address against the needle finds
+        // those rows without changing sanitize_xss() (used on every write path
+        // in the app) and without rewriting stored data. 469 rows scanned once
+        // per PDF render is free.
+        //
+        // Deliberately a fallback rather than a replacement: an address that
+        // was never encoded still matches on the first, cheaper query.
+        helper('esection');
+
+        foreach ($this->table()->select('*')->get()->getResultArray() as $candidate) {
+            if (sanitize_xss((string) ($candidate['Address'] ?? '')) === $address) {
+                return $candidate;
+            }
+        }
+
+        return null;
     }
 
     public function getAllColleges(): array
