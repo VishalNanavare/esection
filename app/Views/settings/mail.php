@@ -37,6 +37,9 @@
                         <label class="form-label text-secondary small fw-semibold">Username</label>
                         <input type="text" name="mail_smtp_user" class="form-control" autocomplete="off"
                                value="<?= esc($settings['mail_smtp_user']) ?>">
+                        <small class="text-muted">The login your mail provider expects &mdash; for Gmail and most
+                            providers this is the full email address, not a display name. (Some services use a fixed
+                            username instead, e.g. SendGrid uses <code>apikey</code>.)</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label text-secondary small fw-semibold">
@@ -47,6 +50,9 @@
                         </label>
                         <input type="password" name="mail_smtp_password" class="form-control" autocomplete="new-password"
                                placeholder="<?= $settings['password_configured'] ? 'Leave blank to keep current' : '' ?>">
+                        <small class="text-muted">Most providers require an app-specific password rather than the
+                            account's normal one &mdash; Gmail and Google Workspace both do. Any spaces are removed
+                            automatically, so a code shown in groups can be pasted as-is.</small>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label text-secondary small fw-semibold">Encryption</label>

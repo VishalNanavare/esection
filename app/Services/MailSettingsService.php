@@ -128,7 +128,22 @@ class MailSettingsService
 
         // Blank password field = "leave the stored one alone", so saving other
         // settings does not silently wipe the password.
-        $password = (string) ($postData[self::KEY_PASSWORD] ?? '');
+        //
+        // Whitespace is stripped, not just trimmed at the ends. Google
+        // displays an App Password as four spaced groups ("abcd efgh ijkl
+        // mnop") purely for readability -- the spaces are NOT part of the
+        // credential, and pasting them straight in produces a 19-character
+        // string that Gmail rejects with exactly the same
+        // "535-5.7.8 Username and Password not accepted" as a genuinely wrong
+        // password, which makes it very hard to diagnose. This deployment hit
+        // precisely that.
+        //
+        // Safe across providers: no SMTP provider issues a credential whose
+        // correctness depends on embedded spaces (SendGrid API keys, AWS SES
+        // secrets and Mailgun passwords are all space-free), so removing them
+        // can only turn a guaranteed-failing value into the intended one.
+        $password = preg_replace('/\s+/u', '', (string) ($postData[self::KEY_PASSWORD] ?? ''));
+
         if ($password !== '') {
             $this->savePassword($password);
         }
