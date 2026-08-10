@@ -8,12 +8,18 @@ class FeatureToggleService
         'feature_export_enabled',
         'feature_bulk_email_enabled',
         'feature_delete_enabled',
+        'feature_import_enabled',
     ];
 
     private const LABELS = [
         'feature_export_enabled'     => 'Excel Export',
         'feature_bulk_email_enabled' => 'Bulk Email',
         'feature_delete_enabled'     => 'Delete Records',
+        // Bulk candidate import. Toggleable for the same reason bulk delete
+        // and bulk export are: it is a consequential bulk operation, and an
+        // administrator needs a way to stop it without revoking an operator's
+        // ability to enter candidates one at a time.
+        'feature_import_enabled'     => 'Excel Import',
     ];
 
     protected SettingService $settingService;

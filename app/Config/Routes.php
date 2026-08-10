@@ -71,6 +71,17 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
         $routes->get('students/generateCaseNo', 'Students::generateCaseNo');
         $routes->get('students/getCollegeInfo/(:num)', 'Students::getCollegeInfo/$1');
         $routes->post('students/storeBatch', 'Students::storeBatch');
+
+        // Excel import. Inside this same accessFilter:students_new group on
+        // purpose rather than under a seventh page_key: import writes exactly
+        // what students/new writes, into the same table, producing the same
+        // dispatch letter. A separate key would let an administrator grant
+        // bulk-write without single-write, a distinction with no operational
+        // meaning.
+        $routes->get('students/import', 'Students::importForm');
+        $routes->get('students/import/template', 'Students::importTemplate');
+        $routes->post('students/import/preview', 'Students::importPreview');
+        $routes->post('students/import/commit', 'Students::importCommit');
         $routes->get('pdf/dispatch/(:segment)', 'PdfController::dispatchLetter/$1');
         $routes->get('pdf/dispatchAccounts/(:segment)', 'PdfController::dispatchAccountsLetter/$1');
         $routes->get('students/history', 'Students::history');

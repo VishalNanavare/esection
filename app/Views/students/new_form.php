@@ -10,6 +10,7 @@
                     <p class="text-muted small mb-0">Create eligibility verification dispatch cases for target universities across India.</p>
                 </div>
                 <div>
+                    <a href="<?= base_url('students/import') ?>" class="btn btn-glass me-2"><i class="fa fa-file-excel-o me-1"></i> Import from Excel</a>
                     <a href="<?= base_url('students/history') ?>" class="btn btn-glass me-2"><i class="fa fa-history me-1"></i> Batch History</a>
                     <span class="badge badge-glass-indigo fs-6">Batch #: <span id="display_common_no"><?= esc($common_no) ?></span></span>
                 </div>

@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\DocumentNumberingService;
 use App\Services\ExcelExportService;
+use App\Services\StudentImportService;
 use App\Services\StudentVerificationService;
 use App\Services\UniversityService;
 
@@ -12,12 +13,14 @@ class Students extends BaseController
     protected StudentVerificationService $studentService;
     protected UniversityService $universityService;
     protected DocumentNumberingService $documentNumberingService;
+    protected StudentImportService $studentImportService;
 
     public function __construct()
     {
         $this->studentService           = new StudentVerificationService();
         $this->universityService        = new UniversityService();
         $this->documentNumberingService = new DocumentNumberingService();
+        $this->studentImportService     = new StudentImportService();
     }
 
     public function newForm()
@@ -105,6 +108,109 @@ class Students extends BaseController
                 'status'  => 'error',
                 'message' => 'The verification batch could not be saved. Please try again.',
             ]);
+        }
+    }
+
+    // -----------------------------------------------------------------
+    // Excel import
+    // -----------------------------------------------------------------
+
+    public function importForm()
+    {
+        return view('students/import_form', [
+            'title'     => 'Import Candidates from Excel',
+            'maxSizeKb' => StudentImportService::MAX_SIZE_KB,
+            'maxBatch'  => StudentVerificationService::MAX_BATCH_SIZE,
+        ]);
+    }
+
+    /** The blank workbook, with the admission export's own 24 headings. */
+    public function importTemplate()
+    {
+        try {
+            $path = $this->studentImportService->buildTemplate();
+        } catch (\Throwable $e) {
+            log_message('error', '[Students::importTemplate] {message}', ['message' => (string) $e]);
+
+            return redirect()->to(base_url('students/import'))
+                ->with('error', 'The template could not be generated. The issue has been logged.');
+        }
+
+        try {
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                ->setHeader('Content-Disposition', 'attachment; filename="esection_import_template.xlsx"')
+                ->setBody((string) file_get_contents($path));
+        } finally {
+            @unlink($path);
+        }
+    }
+
+    /**
+     * Parse and validate the upload. Writes NOTHING -- the operator sees the
+     * preview and only then confirms.
+     */
+    public function importPreview()
+    {
+        set_time_limit(0);
+
+        try {
+            $preview = $this->studentImportService->previewUpload(
+                $this->request->getFile('import_file'),
+                (array) ($this->request->getPost('boards') ?? []),
+                (array) ($this->request->getPost('courses') ?? [])
+            );
+
+            return $this->response->setJSON(['status' => 'success', 'data' => $preview]);
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            // Written for the operator -- safe to show verbatim.
+            return $this->response->setStatusCode(422)
+                ->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            log_message('error', '[Students::importPreview] {message}', ['message' => (string) $e]);
+
+            return $this->response->setStatusCode(500)
+                ->setJSON(['status' => 'error', 'message' => 'The file could not be read. The issue has been logged.']);
+        }
+    }
+
+    /**
+     * Write the import. The file is re-sent and re-parsed rather than trusting
+     * rows held in the browser, so the server remains the only source of what
+     * gets written.
+     */
+    public function importCommit()
+    {
+        set_time_limit(0);
+
+        $username = (string) (session()->get('username') ?? '');
+
+        if ($username === '') {
+            log_message('error', '[Students::importCommit] no username in session for an authenticated request.');
+
+            return $this->response->setStatusCode(422)->setJSON([
+                'status'  => 'error',
+                'message' => 'Your session has expired. Please log in again and re-run the import.',
+            ]);
+        }
+
+        try {
+            $result = $this->studentImportService->commitImport(
+                $this->request->getFile('import_file'),
+                (array) ($this->request->getPost('boards') ?? []),
+                (array) ($this->request->getPost('courses') ?? []),
+                $username
+            );
+
+            return $this->response->setJSON(['status' => 'success', 'data' => $result]);
+        } catch (\InvalidArgumentException|\RuntimeException $e) {
+            return $this->response->setStatusCode(422)
+                ->setJSON(['status' => 'error', 'message' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            log_message('error', '[Students::importCommit] {message}', ['message' => (string) $e]);
+
+            return $this->response->setStatusCode(500)
+                ->setJSON(['status' => 'error', 'message' => 'The import could not be completed. The issue has been logged.']);
         }
     }
 

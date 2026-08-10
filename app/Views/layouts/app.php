@@ -53,6 +53,12 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                         <span class="link-text">New Form</span>
                     </a>
                 </li>
+                <li class="nav-item">
+                    <a href="<?= base_url('students/import') ?>" data-label="Import Excel" class="nav-link <?= str_starts_with(uri_string(), 'students/import') ? 'active' : '' ?>">
+                        <i class="fa fa-file-excel-o"></i>
+                        <span class="link-text">Import Excel</span>
+                    </a>
+                </li>
                 <?php endif; ?>
                 <?php if (page_access_granted('confirmations')): ?>
                 <li class="nav-item">

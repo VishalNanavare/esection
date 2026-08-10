@@ -38,6 +38,29 @@ class CollegeModel extends Model
      * hand-edited after entry. Callers must treat a null return as "fees
      * unknown", not an error.
      */
+    /**
+     * The university with exactly this name, or null.
+     *
+     * Used by the importer to auto-resolve a certifying body from the
+     * admission export. Deliberately EXACT and deliberately null on ambiguity:
+     * 17 directory names are duplicated, and the resolved university decides
+     * where an official verification letter is addressed. A fuzzy or
+     * first-of-several match would silently post to the wrong institution, so
+     * anything less than one unambiguous hit is handed back to the operator.
+     */
+    public function findByExactName(string $name): ?array
+    {
+        $name = trim($name);
+
+        if ($name === '' || $name === '-') {
+            return null;
+        }
+
+        $rows = $this->table()->where('Name', $name)->limit(2)->get()->getResultArray();
+
+        return count($rows) === 1 ? $rows[0] : null;
+    }
+
     public function findByAddress(string $address): ?array
     {
         if ($address === '') {
