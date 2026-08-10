@@ -10,8 +10,19 @@ class StudentVerificationService
      * Upper bound on candidates in one storeBatch() call. The New Entry
      * form builds the list one row per click, so the largest batch ever
      * recorded is 113 -- this is a ceiling on abuse, not on real use.
+     *
+     * Public so the importer, its error text and the import screen's copy all
+     * read the same number instead of hardcoding it three times.
      */
-    private const MAX_BATCH_SIZE = 200;
+    public const MAX_BATCH_SIZE = 200;
+
+    /**
+     * How many times to step past an array_space that is already in use before
+     * giving up and letting the write proceed. Bounded rather than a loop: a
+     * collision needs one or two steps in practice, and an unbounded search
+     * inside an open transaction is a worse failure than a rare merge.
+     */
+    private const MAX_ARRAY_SPACE_ATTEMPTS = 25;
 
     protected StudentModel $studentModel;
     protected ActivityLogService $activityLogService;
@@ -28,7 +39,13 @@ class StudentVerificationService
         return $this->studentModel->getMaxId() + 1;
     }
 
-    public function storeCandidateBatch(array $payload, string $username): array
+    /**
+     * @param string $source How the batch was entered -- 'manual' from the New
+     *                       Entry form, 'import' from the Excel importer. Used
+     *                       only to label the audit-trail entry, never stored
+     *                       on the rows, so both paths write identical records.
+     */
+    public function storeCandidateBatch(array $payload, string $username, string $source = 'manual'): array
     {
         if (empty($payload['students']) || !is_array($payload['students'])) {
             throw new \InvalidArgumentException('No valid candidate entries provided in batch payload.');
@@ -54,12 +71,7 @@ class StudentVerificationService
         // getNextCommonNo() and echoed back by the form, so coerce it rather
         // than trust the wire. A non-numeric, negative or absent value falls
         // back to the next real batch number -- exactly the previous default.
-        $commonNo = (int) ($payload['common_no'] ?? 0);
-        if ($commonNo <= 0) {
-            $commonNo = $this->getNextCommonNo();
-        }
-
-        $arraySpace = $username . '_' . $commonNo;
+        $requestedCommonNo = (int) ($payload['common_no'] ?? 0);
 
         // One transaction for the whole batch, matching the sibling write path
         // (ConfirmationModel::storeConfirmationBatch). Previously each
@@ -72,6 +84,33 @@ class StudentVerificationService
         // subset happened to land. All-or-nothing removes that entirely.
         $db = $this->studentModel->db;
         $db->transStart();
+
+        // Derived INSIDE the transaction, and guarded against collision.
+        //
+        // common_no is rendered into the New Entry page at load and posted back
+        // unchanged, so two batches saved from two tabs -- or one long-running
+        // import -- can carry the same number. array_space would then be
+        // identical for both, and because it is the batch grouping key with no
+        // uniqueness constraint, the two batches SILENTLY MERGE: every batch
+        // screen shows them as one, and the dispatch letter reads its header
+        // fields from whichever row comes back first, so it can print the wrong
+        // university entirely.
+        //
+        // Taking the number here rather than before transStart() closes most of
+        // the window; the existence check closes the rest by stepping past a
+        // number already in use instead of joining it.
+        $commonNo = $requestedCommonNo > 0 ? $requestedCommonNo : $this->getNextCommonNo();
+
+        $arraySpace = $username . '_' . $commonNo;
+
+        for ($attempt = 0; $attempt < self::MAX_ARRAY_SPACE_ATTEMPTS; $attempt++) {
+            if (! $this->studentModel->arraySpaceExists($arraySpace)) {
+                break;
+            }
+
+            $commonNo++;
+            $arraySpace = $username . '_' . $commonNo;
+        }
 
         $insertedCount = 0;
         foreach ($payload['students'] as $stud) {
@@ -110,6 +149,23 @@ class StudentVerificationService
         if ($db->transStatus() === false) {
             throw new \RuntimeException('The candidate batch could not be saved. No records were written -- please try again.');
         }
+
+        // Recorded only after the transaction committed, so the trail never
+        // claims a batch that was rolled back.
+        //
+        // This was the one bulk operation in the app with no audit entry:
+        // bulk delete and bulk export are both logged -- and the export
+        // logging comment reasons that "who took a copy of the candidate list,
+        // and when, is precisely the question an audit trail exists to answer".
+        // Who CREATED a hundred candidate records, and from where, is at least
+        // as much of a question. It matters more now the importer can add 200
+        // rows from a file that is never retained.
+        $this->activityLogService->record(
+            'student.batch_create',
+            'student_batch',
+            null,
+            'Created batch ' . $arraySpace . ' with ' . $insertedCount . ' candidate(s) via ' . $source
+        );
 
         return [
             'count'       => $insertedCount,

@@ -86,6 +86,56 @@ class StudentModel extends Model
         return $this->table()->where('eligibility_case_no', $caseNo)->countAllResults() > 0;
     }
 
+    /**
+     * Which of these case numbers already exist, as a value => true lookup.
+     *
+     * The importer needs the same answer as caseNoExists() but for a whole
+     * file at once. Calling that per row would be one query per candidate --
+     * up to 200 round trips just to build a preview.
+     *
+     * @param  string[] $caseNos
+     * @return array<string, bool>
+     */
+    public function findExistingCaseNos(array $caseNos): array
+    {
+        $caseNos = array_values(array_unique(array_filter(
+            array_map(static fn ($v): string => trim((string) $v), $caseNos),
+            static fn (string $v): bool => $v !== ''
+        )));
+
+        if ($caseNos === []) {
+            return [];
+        }
+
+        $rows = $this->table()
+                     ->select('eligibility_case_no')
+                     ->whereIn('eligibility_case_no', $caseNos)
+                     ->get()->getResultArray();
+
+        $found = [];
+        foreach ($rows as $row) {
+            $found[(string) $row['eligibility_case_no']] = true;
+        }
+
+        return $found;
+    }
+
+    /**
+     * Is this batch grouping key already in use?
+     *
+     * array_space has no uniqueness constraint, and two batches sharing one
+     * silently merge on every batch screen and dispatch letter. Checked before
+     * a batch is written so a collision steps to the next number instead.
+     */
+    public function arraySpaceExists(string $arraySpace): bool
+    {
+        if ($arraySpace === '') {
+            return false;
+        }
+
+        return $this->table()->where('array_space', $arraySpace)->countAllResults() > 0;
+    }
+
     public function getTotalStudentsCount(): int
     {
         return $this->table()->countAllResults();
