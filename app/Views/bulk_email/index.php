@@ -78,7 +78,8 @@
                 <?php endif; ?>
 
                 <input type="hidden" name="preview" value="1">
-                <div class="col-md-3 d-flex align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">&nbsp;</label>
                     <button type="submit" class="btn btn-indigo w-100"><i class="fa fa-search me-1"></i> Preview recipients</button>
                 </div>
             </form>
