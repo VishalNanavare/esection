@@ -37,7 +37,8 @@
                     </select>
                 </div>
 
-                <div class="col-md-2 d-flex align-items-end mt-2 mt-md-0">
+                <div class="col-md-2">
+                    <label class="form-label text-secondary small fw-semibold">&nbsp;</label>
                     <button type="button" class="btn btn-glass w-100 py-2" id="reset_filters">
                         <i class="fa fa-refresh me-1"></i> Reset Filters
                     </button>
