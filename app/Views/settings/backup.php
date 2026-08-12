@@ -30,7 +30,7 @@
     </div></div>
 <?php elseif (! $passwordConfigured): ?>
     <div class="row"><div class="col-12">
-        <div class="glass-card p-4 mb-4 border border-warning border-opacity-25">
+        <div class="glass-card p-4 mb-4 border border-warning border-opacity-25" id="backup_setup_notice">
             <h6 class="fw-bold text-amber mb-1"><i class="fa fa-info-circle me-1"></i> Set a backup password first</h6>
             <p class="text-muted small mb-0">The database backup is delivered as a password-protected file. Set the password below before creating your first backup.</p>
         </div>
@@ -50,7 +50,7 @@
                 </div>
                 <form action="<?= base_url('settings/backup/sql') ?>" method="post" class="flex-shrink-0 backup-run-form">
                     <?= csrf_field() ?>
-                    <button type="submit" class="btn btn-indigo" <?= $blocked ? 'disabled' : '' ?>>
+                    <button type="submit" class="btn btn-indigo" id="btn_run_sql" <?= $blocked ? 'disabled' : '' ?>>
                         <i class="fa fa-database me-1"></i> Backup now
                     </button>
                 </form>
@@ -80,13 +80,13 @@
             <div class="d-flex align-items-center justify-content-between mb-3">
                 <h5 class="fw-bold text-dark mb-0"><i class="fa fa-key me-2 text-indigo"></i> Backup password</h5>
                 <?php if ($passwordConfigured): ?>
-                    <span class="badge badge-glass-emerald"><i class="fa fa-check-circle me-1"></i> Configured</span>
+                    <span class="badge badge-glass-emerald" id="backup_password_badge"><i class="fa fa-check-circle me-1"></i> Configured</span>
                 <?php else: ?>
-                    <span class="badge badge-glass-amber">Not configured</span>
+                    <span class="badge badge-glass-amber" id="backup_password_badge">Not configured</span>
                 <?php endif; ?>
             </div>
 
-            <form action="<?= base_url('settings/backup/password/store') ?>" method="post" class="mb-4">
+            <form action="<?= base_url('settings/backup/password/store') ?>" method="post" class="mb-4 backup-settings-form" data-clear-on-success="1">
                 <?= csrf_field() ?>
                 <div class="mb-2">
                     <label class="form-label text-secondary small fw-semibold">New password</label>
@@ -102,12 +102,12 @@
                     At least <?= (int) $minPasswordLength ?> characters. You will need this to open any backup file &mdash;
                     <strong>store it somewhere safe, it cannot be recovered.</strong>
                 </p>
-                <button type="submit" class="btn btn-indigo btn-sm w-100" <?= $encryptionAvailable ? '' : 'disabled' ?>>
+                <button type="submit" class="btn btn-indigo btn-sm w-100" id="backup_password_submit" <?= $encryptionAvailable ? '' : 'disabled' ?>>
                     <?= $passwordConfigured ? 'Change password' : 'Set password' ?>
                 </button>
             </form>
 
-            <form action="<?= base_url('settings/backup/retention/store') ?>" method="post">
+            <form action="<?= base_url('settings/backup/retention/store') ?>" method="post" class="backup-settings-form">
                 <?= csrf_field() ?>
                 <label class="form-label text-secondary small fw-semibold">Backups to keep (per type)</label>
                 <div class="input-group">
@@ -137,47 +137,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($history)): ?>
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No backups have been created yet.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($history as $row): ?>
-                                <tr>
-                                    <td class="small text-muted"><?= esc($row['created_at']) ?></td>
-                                    <td>
-                                        <?php if ($row['type'] === 'sql'): ?>
-                                            <span class="badge badge-glass-indigo"><i class="fa fa-lock me-1"></i> SQL (protected)</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-glass-emerald">Excel</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="small fw-semibold text-dark"><?= esc($row['filename']) ?></td>
-                                    <td class="small text-muted">
-                                        <?= $row['file_size'] !== null
-                                            ? esc(number_format($row['file_size'] / 1024, 1) . ' KB')
-                                            : '-' ?>
-                                    </td>
-                                    <td class="small text-muted"><?= esc($row['created_by'] ?: 'System') ?></td>
-                                    <td class="text-end">
-                                        <a href="<?= base_url('settings/backup/download/' . $row['id']) ?>"
-                                           class="btn btn-sm btn-glass text-primary">
-                                            <i class="fa fa-download"></i> Download
-                                        </a>
-                                        <form action="<?= base_url('settings/backup/delete/' . $row['id']) ?>"
-                                              method="post" class="d-inline js-delete-backup"
-                                              data-filename="<?= esc($row['filename'], 'attr') ?>">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-glass text-danger"
-                                                    title="Delete this backup">
-                                                <i class="fa fa-trash"></i> Delete
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="backup_history_rows">
+                        <?= $this->include('settings/_backup_history_rows') ?>
                     </tbody>
                 </table>
             </div>

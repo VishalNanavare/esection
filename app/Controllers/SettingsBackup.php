@@ -43,16 +43,15 @@ class SettingsBackup extends BaseController
         try {
             $result = $this->backupService->createSqlBackup();
         } catch (\InvalidArgumentException | \RuntimeException $e) {
-            return redirect()->to(base_url('settings/backup'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsBackup::runSql] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/backup'))
-                ->with('error', 'The backup could not be completed. The issue has been logged.');
+            return $this->respond(false, 'The backup could not be completed. The issue has been logged.');
         }
 
-        return redirect()->to(base_url('settings/backup'))->with(
-            'success',
+        return $this->respond(
+            true,
             'Complete system backup created: ' . $result['filename']
             . ' (' . $this->formatBytes($result['size']) . '). '
             . 'This file is password-protected -- use your configured backup password to open it.'
@@ -66,16 +65,15 @@ class SettingsBackup extends BaseController
         try {
             $result = $this->backupService->createExcelBackup();
         } catch (\InvalidArgumentException | \RuntimeException $e) {
-            return redirect()->to(base_url('settings/backup'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsBackup::runExcel] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/backup'))
-                ->with('error', 'The Excel backup could not be completed. The issue has been logged.');
+            return $this->respond(false, 'The Excel backup could not be completed. The issue has been logged.');
         }
 
-        return redirect()->to(base_url('settings/backup'))->with(
-            'success',
+        return $this->respond(
+            true,
             'Excel data backup created: ' . $result['filename']
             . ' (' . $this->formatBytes($result['size']) . ', ' . $result['sheets'] . ' sheets). '
             . 'This file is NOT password-protected -- store it somewhere safe.'
@@ -115,16 +113,14 @@ class SettingsBackup extends BaseController
         try {
             $filename = $this->backupService->deleteBackup((int) $id);
         } catch (\InvalidArgumentException | \RuntimeException $e) {
-            return redirect()->to(base_url('settings/backup'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsBackup::delete] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/backup'))
-                ->with('error', 'The backup could not be deleted. The issue has been logged.');
+            return $this->respond(false, 'The backup could not be deleted. The issue has been logged.');
         }
 
-        return redirect()->to(base_url('settings/backup'))
-            ->with('success', 'Backup deleted: ' . $filename);
+        return $this->respond(true, 'Backup deleted: ' . $filename);
     }
 
     public function storePassword()
@@ -135,16 +131,14 @@ class SettingsBackup extends BaseController
                 (string) $this->request->getPost('backup_password_confirm')
             );
         } catch (\InvalidArgumentException | \RuntimeException $e) {
-            return redirect()->to(base_url('settings/backup'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsBackup::storePassword] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/backup'))
-                ->with('error', 'The backup password could not be saved. The issue has been logged.');
+            return $this->respond(false, 'The backup password could not be saved. The issue has been logged.');
         }
 
-        return redirect()->to(base_url('settings/backup'))
-            ->with('success', 'Backup password saved. Keep it safe -- backup files cannot be opened without it.');
+        return $this->respond(true, 'Backup password saved. Keep it safe -- backup files cannot be opened without it.');
     }
 
     public function storeRetention()
@@ -152,10 +146,53 @@ class SettingsBackup extends BaseController
         try {
             $this->backupPasswordService->saveRetentionCount((int) $this->request->getPost('backup_retention_count'));
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/backup'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('settings/backup'))->with('success', 'Backup retention updated.');
+        return $this->respond(true, 'Backup retention updated.');
+    }
+
+    /**
+     * One reply shape for every POST on this screen.
+     *
+     * An AJAX caller gets JSON carrying the message AND the freshly-rendered
+     * history rows, so the page updates in place without a reload -- one round
+     * trip rather than "act, then fetch the table again".
+     *
+     * Anything else still gets the original redirect-with-flash. That is not
+     * dead code: it keeps the screen working if JavaScript fails to load, and
+     * it means the AJAX layer is an enhancement rather than a dependency.
+     *
+     * The panel state (password configured, retention) travels with it too,
+     * because saving a password flips a badge and a setup banner that would
+     * otherwise stay stale until the next full load.
+     */
+    private function respond(bool $ok, string $message)
+    {
+        if (! $this->request->isAJAX()) {
+            return redirect()->to(base_url('settings/backup'))
+                ->with($ok ? 'success' : 'error', $message);
+        }
+
+        $passwordConfigured = $this->backupPasswordService->isConfigured();
+
+        return $this->response
+            ->setStatusCode($ok ? 200 : 422)
+            ->setJSON([
+                'status'  => $ok ? 'success' : 'error',
+                'message' => $message,
+                'html'    => view('settings/_backup_history_rows', [
+                    'history' => $this->backupService->history(50),
+                ]),
+                'state'   => [
+                    'password_configured' => $passwordConfigured,
+                    'retention_count'     => $this->backupPasswordService->getRetentionCount(),
+                    // Both of these disable the "Backup now" button, and both
+                    // can change from this screen, so the client re-evaluates
+                    // rather than caching what the page was rendered with.
+                    'can_run_sql'         => $passwordConfigured && $this->backupPasswordService->isEncryptionAvailable(),
+                ],
+            ]);
     }
 
     private function formatBytes(int $bytes): string
