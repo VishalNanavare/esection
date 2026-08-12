@@ -93,16 +93,6 @@ body {
 .border-amber   { --bs-border-opacity: 1; border-color: rgba(var(--es-amber-rgb),   var(--bs-border-opacity)) !important; }
 .border-cyan    { --bs-border-opacity: 1; border-color: rgba(var(--es-cyan-rgb),    var(--bs-border-opacity)) !important; }
 
-/* Backfill of Bootstrap 5.2's border-opacity utilities into 5.1.2.
-   border-opacity-25 is used 15 times in the views and silently does nothing
-   on this Bootstrap version, so those borders render at FULL strength --
-   that is the heavy grey rule on modal headers and login input addons. */
-.border-opacity-10  { --bs-border-opacity: 0.1; }
-.border-opacity-25  { --bs-border-opacity: 0.25; }
-.border-opacity-50  { --bs-border-opacity: 0.5; }
-.border-opacity-75  { --bs-border-opacity: 0.75; }
-.border-opacity-100 { --bs-border-opacity: 1; }
-
 /* ...and make Bootstrap's own border colours honour that variable. In 5.1.2
    they are flat literals, so opacity could never apply to them. */
 .border-primary   { --bs-border-opacity: 1; border-color: rgba(var(--bs-primary-rgb),   var(--bs-border-opacity)) !important; }
@@ -114,38 +104,53 @@ body {
 .border-dark      { --bs-border-opacity: 1; border-color: rgba(var(--bs-dark-rgb),      var(--bs-border-opacity)) !important; }
 .border-light     { --bs-border-opacity: 1; border-color: rgba(var(--bs-light-rgb),     var(--bs-border-opacity)) !important; }
 
-/* Re-declare Bootstrap's bg-opacity / text-opacity utilities AFTER the custom
-   colour classes above, for the same reason border-opacity is re-declared after
-   .border-indigo and friends.
+/* ALL opacity utilities live here, AFTER every colour class in this file.
+   That ordering is the whole point, not tidiness.
 
-   `--bs-bg-opacity` is a custom property, so when both `.bg-indigo` and
-   `.bg-opacity-10` sit on one element the winner is decided by specificity and
-   then SOURCE ORDER -- and both are a single class, i.e. identical specificity.
-   Bootstrap's own `.bg-warning` escapes this only because `.bg-opacity-*`
-   appears later inside bootstrap.min.css. This file loads afterwards, so
-   `.bg-indigo { --bs-bg-opacity: 1 }` was overriding the utility and every
-   custom-coloured chip rendered at FULL strength.
+   `--bs-*-opacity` are custom properties, so when `.bg-indigo` and
+   `.bg-opacity-10` both land on one element the winner is decided by
+   specificity and then SOURCE ORDER -- and both are a single class, i.e.
+   identical specificity. Bootstrap's own `.bg-warning` escapes this only
+   because `.bg-opacity-*` appears later inside bootstrap.min.css. This file
+   loads afterwards, so any colour class declared below an opacity utility
+   silently kills it.
 
    That is what made the dashboard stat-card icons look "missing": the chip is
    `bg-indigo bg-opacity-10 text-indigo`, so the background stayed solid indigo
    while the glyph was painted the same indigo. The icon was always there, at
    full width, in the right font -- drawn in exactly its own background colour.
-   Only the warning/info tiles looked right, because those use Bootstrap's own
-   palette.
 
-   Dropping `--bs-bg-opacity: 1` from the base classes instead would be shorter,
+   The border-opacity backfill used to sit ABOVE `.border-primary`...
+   `.border-light`, which meant `border-opacity-25` was dead for the entire
+   Bootstrap palette -- a full-strength rule wherever the markup asked for a
+   soft one (the warning/info dashboard tiles, and every auth alert box).
+   Keeping all three families together here makes the invariant checkable by
+   inspection: if it sets an opacity variable, it belongs in this block.
+
+   Dropping `--bs-*-opacity: 1` from the base classes instead would be shorter,
    but custom properties inherit: any such element nested inside a
    `.bg-opacity-25` ancestor would silently pick up the parent's value. */
-.bg-opacity-10    { --bs-bg-opacity: 0.1; }
-.bg-opacity-25    { --bs-bg-opacity: 0.25; }
-.bg-opacity-50    { --bs-bg-opacity: 0.5; }
-.bg-opacity-75    { --bs-bg-opacity: 0.75; }
-.bg-opacity-100   { --bs-bg-opacity: 1; }
+.bg-opacity-10      { --bs-bg-opacity: 0.1; }
+.bg-opacity-25      { --bs-bg-opacity: 0.25; }
+.bg-opacity-50      { --bs-bg-opacity: 0.5; }
+.bg-opacity-75      { --bs-bg-opacity: 0.75; }
+.bg-opacity-100     { --bs-bg-opacity: 1; }
 
-.text-opacity-25  { --bs-text-opacity: 0.25; }
-.text-opacity-50  { --bs-text-opacity: 0.5; }
-.text-opacity-75  { --bs-text-opacity: 0.75; }
-.text-opacity-100 { --bs-text-opacity: 1; }
+/* text-opacity-10 is not a Bootstrap utility at any version; it is defined here
+   so the `-10` step exists for all three families. Without it, copying the
+   dashboard's working `bg-<tone> bg-opacity-10` idiom into `text-opacity-10`
+   fails silently. */
+.text-opacity-10    { --bs-text-opacity: 0.1; }
+.text-opacity-25    { --bs-text-opacity: 0.25; }
+.text-opacity-50    { --bs-text-opacity: 0.5; }
+.text-opacity-75    { --bs-text-opacity: 0.75; }
+.text-opacity-100   { --bs-text-opacity: 1; }
+
+.border-opacity-10  { --bs-border-opacity: 0.1; }
+.border-opacity-25  { --bs-border-opacity: 0.25; }
+.border-opacity-50  { --bs-border-opacity: 0.5; }
+.border-opacity-75  { --bs-border-opacity: 0.75; }
+.border-opacity-100 { --bs-border-opacity: 1; }
 
 /* ==========================================================================
    Motion
