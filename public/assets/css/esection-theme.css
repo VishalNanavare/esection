@@ -114,6 +114,39 @@ body {
 .border-dark      { --bs-border-opacity: 1; border-color: rgba(var(--bs-dark-rgb),      var(--bs-border-opacity)) !important; }
 .border-light     { --bs-border-opacity: 1; border-color: rgba(var(--bs-light-rgb),     var(--bs-border-opacity)) !important; }
 
+/* Re-declare Bootstrap's bg-opacity / text-opacity utilities AFTER the custom
+   colour classes above, for the same reason border-opacity is re-declared after
+   .border-indigo and friends.
+
+   `--bs-bg-opacity` is a custom property, so when both `.bg-indigo` and
+   `.bg-opacity-10` sit on one element the winner is decided by specificity and
+   then SOURCE ORDER -- and both are a single class, i.e. identical specificity.
+   Bootstrap's own `.bg-warning` escapes this only because `.bg-opacity-*`
+   appears later inside bootstrap.min.css. This file loads afterwards, so
+   `.bg-indigo { --bs-bg-opacity: 1 }` was overriding the utility and every
+   custom-coloured chip rendered at FULL strength.
+
+   That is what made the dashboard stat-card icons look "missing": the chip is
+   `bg-indigo bg-opacity-10 text-indigo`, so the background stayed solid indigo
+   while the glyph was painted the same indigo. The icon was always there, at
+   full width, in the right font -- drawn in exactly its own background colour.
+   Only the warning/info tiles looked right, because those use Bootstrap's own
+   palette.
+
+   Dropping `--bs-bg-opacity: 1` from the base classes instead would be shorter,
+   but custom properties inherit: any such element nested inside a
+   `.bg-opacity-25` ancestor would silently pick up the parent's value. */
+.bg-opacity-10    { --bs-bg-opacity: 0.1; }
+.bg-opacity-25    { --bs-bg-opacity: 0.25; }
+.bg-opacity-50    { --bs-bg-opacity: 0.5; }
+.bg-opacity-75    { --bs-bg-opacity: 0.75; }
+.bg-opacity-100   { --bs-bg-opacity: 1; }
+
+.text-opacity-25  { --bs-text-opacity: 0.25; }
+.text-opacity-50  { --bs-text-opacity: 0.5; }
+.text-opacity-75  { --bs-text-opacity: 0.75; }
+.text-opacity-100 { --bs-text-opacity: 1; }
+
 /* ==========================================================================
    Motion
    ========================================================================== */
