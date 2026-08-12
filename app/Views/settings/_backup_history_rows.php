@@ -39,7 +39,7 @@
                     <i class="fa fa-download"></i> Download
                 </a>
                 <form action="<?= base_url('settings/backup/delete/' . $row['id']) ?>"
-                      method="post" class="d-inline js-delete-backup"
+                      method="post" class="d-inline js-delete-backup" data-es-own-handler="1"
                       data-filename="<?= esc($row['filename'], 'attr') ?>">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-sm btn-glass text-danger"

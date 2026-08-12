@@ -15,7 +15,7 @@
             <?php if (empty($users)): ?>
                 <p class="text-center text-muted py-4">No staff accounts yet.</p>
             <?php else: ?>
-                <form id="access_rights_form" action="<?= base_url('settings/access-rights/store') ?>" method="post">
+                <form id="access_rights_form" action="<?= base_url('settings/access-rights/store') ?>" method="post" data-es-own-handler="1">
                     <?= csrf_field() ?>
                     <div class="table-responsive">
                         <table class="table table-glass align-middle">

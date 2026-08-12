@@ -506,7 +506,11 @@
      * map of selector -> payload key, for screens whose POST changes several
      * regions that are not contiguous in the DOM.
      */
-    function esApplyFormResult($form, res) {
+    // Argument order matches how esSubmitForm invokes onResponse: (res, $form).
+    // It read ($form, res) at first, so every declarative screen threw
+    // "$form.attr is not a function" the moment a reply came back -- the POST
+    // succeeded server-side and the page silently never repainted.
+    function esApplyFormResult(res, $form) {
         var spec = $form.attr('data-refresh');
 
         if (spec) {

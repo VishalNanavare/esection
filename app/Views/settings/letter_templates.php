@@ -12,7 +12,7 @@
                 <a href="<?= base_url('settings') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Settings</a>
             </div>
 
-            <form id="footer_form" action="<?= base_url('settings/letter-templates/footer/store') ?>" method="post" class="row g-3 align-items-end">
+            <form id="footer_form" action="<?= base_url('settings/letter-templates/footer/store') ?>" method="post" class="row g-3 align-items-end" data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <div class="col-md-8">
                     <label class="form-label text-secondary small fw-semibold">Department Name (shown under the signature on every letter)</label>
@@ -38,7 +38,7 @@
                     <?php endforeach; ?>
                 </p>
 
-                <form id="letter_form_<?= esc($slug) ?>" action="<?= base_url('settings/letter-templates/' . $slug . '/store') ?>" method="post" data-slug="<?= esc($slug) ?>">
+                <form id="letter_form_<?= esc($slug) ?>" action="<?= base_url('settings/letter-templates/' . $slug . '/store') ?>" method="post" data-slug="<?= esc($slug) ?>" data-es-own-handler="1">
                     <?= csrf_field() ?>
                     <div class="row g-3">
                         <div class="col-12">

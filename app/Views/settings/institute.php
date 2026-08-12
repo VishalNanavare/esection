@@ -12,7 +12,7 @@
                 <a href="<?= base_url('settings') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Settings</a>
             </div>
 
-            <form id="institute_form" action="<?= base_url('settings/institute/store') ?>" method="post" enctype="multipart/form-data">
+            <form id="institute_form" action="<?= base_url('settings/institute/store') ?>" method="post" enctype="multipart/form-data" data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-8">

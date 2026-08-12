@@ -48,7 +48,7 @@
                     <div class="fw-semibold text-dark">Complete system backup (SQL)</div>
                     <p class="text-muted small mb-0">Every table and every row, for restoring the system if something goes wrong. Delivered as a <strong>password-protected</strong> file.</p>
                 </div>
-                <form action="<?= base_url('settings/backup/sql') ?>" method="post" class="flex-shrink-0 backup-run-form">
+                <form action="<?= base_url('settings/backup/sql') ?>" method="post" class="flex-shrink-0 backup-run-form" data-es-own-handler="1">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-indigo" id="btn_run_sql" <?= $blocked ? 'disabled' : '' ?>>
                         <i class="fa fa-database me-1"></i> Backup now
@@ -64,7 +64,7 @@
                         Excludes student records and passwords, and is <strong>not</strong> password-protected.
                     </p>
                 </div>
-                <form action="<?= base_url('settings/backup/excel') ?>" method="post" class="flex-shrink-0 backup-run-form">
+                <form action="<?= base_url('settings/backup/excel') ?>" method="post" class="flex-shrink-0 backup-run-form" data-es-own-handler="1">
                     <?= csrf_field() ?>
                     <button type="submit" class="btn btn-glass">
                         <i class="fa fa-file-excel-o me-1"></i> Export now
@@ -86,7 +86,7 @@
                 <?php endif; ?>
             </div>
 
-            <form action="<?= base_url('settings/backup/password/store') ?>" method="post" class="mb-4 backup-settings-form" data-clear-on-success="1">
+            <form action="<?= base_url('settings/backup/password/store') ?>" method="post" class="mb-4 backup-settings-form" data-clear-on-success="1" data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <div class="mb-2">
                     <label class="form-label text-secondary small fw-semibold">New password</label>
@@ -107,7 +107,7 @@
                 </button>
             </form>
 
-            <form action="<?= base_url('settings/backup/retention/store') ?>" method="post" class="backup-settings-form">
+            <form action="<?= base_url('settings/backup/retention/store') ?>" method="post" class="backup-settings-form" data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <label class="form-label text-secondary small fw-semibold">Backups to keep (per type)</label>
                 <div class="input-group">
