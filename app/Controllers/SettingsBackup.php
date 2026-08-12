@@ -102,6 +102,31 @@ class SettingsBackup extends BaseController
         return $this->response->download($file['path'], null)->setFileName($file['filename']);
     }
 
+    /**
+     * Remove one backup -- file and history row.
+     *
+     * POST, not GET: this destroys a recovery point, so it must not be
+     * reachable by a link, a prefetch or a crawler. The route sits in the
+     * adminFilter group and CSRF applies to POST, so the same guards the rest
+     * of this screen relies on cover it.
+     */
+    public function delete($id)
+    {
+        try {
+            $filename = $this->backupService->deleteBackup((int) $id);
+        } catch (\InvalidArgumentException | \RuntimeException $e) {
+            return redirect()->to(base_url('settings/backup'))->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            log_message('error', '[SettingsBackup::delete] {message}', ['message' => (string) $e]);
+
+            return redirect()->to(base_url('settings/backup'))
+                ->with('error', 'The backup could not be deleted. The issue has been logged.');
+        }
+
+        return redirect()->to(base_url('settings/backup'))
+            ->with('success', 'Backup deleted: ' . $filename);
+    }
+
     public function storePassword()
     {
         try {

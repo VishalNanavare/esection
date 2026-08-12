@@ -213,6 +213,9 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
         $routes->post('backup/password/store', 'SettingsBackup::storePassword');
         $routes->post('backup/retention/store', 'SettingsBackup::storeRetention');
         $routes->get('backup/download/(:num)', 'SettingsBackup::download/$1');
+        // POST, not GET: deleting a backup destroys a recovery point, so it
+        // must not be reachable by a link, a prefetch or a crawler.
+        $routes->post('backup/delete/(:num)', 'SettingsBackup::delete/$1');
     });
 
     // Bulk Email -- deliberately adminFilter, not one of the 6 operational

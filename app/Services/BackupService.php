@@ -235,6 +235,57 @@ class BackupService
     }
 
     /**
+     * Delete one backup: the file, then its history row.
+     *
+     * Route takes (:num) and the row is looked up by id, so a filename never
+     * comes from the request -- same shape as resolveDownload(). basename()
+     * and the realpath containment check below are belt-and-braces on top of
+     * that: they also defeat a value that reached the column some other way,
+     * and a symlink planted in the backup folder.
+     *
+     * The history row is removed even when the file is already gone, so the
+     * list self-heals instead of accumulating entries pointing at nothing --
+     * the same rule pruneOldBackups() follows.
+     *
+     * Irreversible by nature, so it is admin-only (the whole Backup screen is
+     * behind adminFilter), confirmed in the UI, and audit-logged below: a
+     * deleted backup is a destroyed recovery point, and "who removed it" is
+     * exactly the question that gets asked afterwards.
+     *
+     * @return string the filename that was deleted, for the flash message
+     * @throws \RuntimeException when the id is unknown
+     */
+    public function deleteBackup(int $id): string
+    {
+        $row = $this->backupHistoryModel->findOneById($id);
+
+        if ($row === null) {
+            throw new \RuntimeException('That backup no longer exists.');
+        }
+
+        $filename = basename((string) $row['filename']);
+        $real     = realpath($this->backupDirectory() . $filename);
+        $realDir  = realpath($this->backupDirectory());
+
+        if ($real !== false && $realDir !== false
+            && str_starts_with($real, $realDir . DIRECTORY_SEPARATOR)
+            && is_file($real)) {
+            @unlink($real);
+        }
+
+        $this->backupHistoryModel->deleteById($id);
+
+        $this->activityLogService->record(
+            'backup.delete',
+            'backup',
+            $id,
+            'Deleted backup ' . $filename . ' (' . strtoupper((string) $row['type']) . ')'
+        );
+
+        return $filename;
+    }
+
+    /**
      * Keep the newest N backups of one type; delete the rest.
      *
      * Count-based, not age-based: an age rule ("delete older than 30 days")

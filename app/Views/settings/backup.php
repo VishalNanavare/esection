@@ -165,6 +165,15 @@
                                            class="btn btn-sm btn-glass text-primary">
                                             <i class="fa fa-download"></i> Download
                                         </a>
+                                        <form action="<?= base_url('settings/backup/delete/' . $row['id']) ?>"
+                                              method="post" class="d-inline js-delete-backup"
+                                              data-filename="<?= esc($row['filename'], 'attr') ?>">
+                                            <?= csrf_field() ?>
+                                            <button type="submit" class="btn btn-sm btn-glass text-danger"
+                                                    title="Delete this backup">
+                                                <i class="fa fa-trash"></i> Delete
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
