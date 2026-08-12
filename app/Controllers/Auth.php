@@ -5,12 +5,15 @@ namespace App\Controllers;
 use App\Models\UserModel;
 use App\Services\AccessRightsService;
 use App\Services\ActivityLogService;
+use App\Services\LoginThrottleService;
 use App\Services\PasswordResetService;
+use App\Services\UserManagementService;
 
 class Auth extends BaseController
 {
-    /** Failed-or-successful login attempts allowed per IP per minute. */
-    private const LOGIN_ATTEMPTS_PER_MINUTE = 5;
+    // LOGIN_ATTEMPTS_PER_MINUTE removed with the cache-backed throttler it
+    // configured. The login thresholds now live on LoginThrottleService, next
+    // to the code that applies them.
 
     /** Password-reset requests allowed per IP per minute -- same DoS reasoning as login. */
     private const RESET_REQUESTS_PER_MINUTE = 3;
@@ -33,6 +36,57 @@ class Auth extends BaseController
         return view('auth/login', $data);
     }
 
+    /**
+     * Change your own password, from the account menu in the topbar.
+     *
+     * Distinct from processResetPassword(): that one proves identity with an
+     * emailed token for someone who is locked out, this one proves it with the
+     * current password for someone already signed in. Both end at the same
+     * policy check so neither can set a password the other would refuse.
+     *
+     * The route sits behind authFilter, so session()->get('id') is always
+     * present by the time this runs.
+     */
+    public function changePassword()
+    {
+        $userId = (int) (session()->get('id') ?? 0);
+
+        if ($userId <= 0) {
+            return $this->respondToPost(false, 'Your session has expired. Please sign in again.', base_url('auth/login'), [], 401);
+        }
+
+        try {
+            (new UserManagementService())->changeOwnPassword(
+                $userId,
+                (string) ($this->request->getPost('current_password') ?? ''),
+                (string) ($this->request->getPost('new_password') ?? ''),
+                (string) ($this->request->getPost('confirm_password') ?? '')
+            );
+        } catch (\InvalidArgumentException $e) {
+            // Wrong current password, mismatch, or outside the length policy --
+            // all of it is text written for the operator.
+            return $this->respondToPost(false, $e->getMessage(), base_url('dashboard'));
+        } catch (\Throwable $e) {
+            // Never let this one carry a trace: the submitted password is a
+            // frame argument, and CodeIgniter renders scalar frame arguments
+            // verbatim into writable/logs. Same reasoning as processLogin().
+            log_message('error', '[Auth::changePassword] {type}: {msg}', [
+                'type' => $e::class,
+                'msg'  => $e->getMessage(),
+            ]);
+
+            return $this->respondToPost(
+                false,
+                'The password could not be changed. The issue has been logged.',
+                base_url('dashboard'),
+                [],
+                500
+            );
+        }
+
+        return $this->respondToPost(true, 'Your password has been changed.', base_url('dashboard'));
+    }
+
     public function processLogin()
     {
         $username = sanitize_xss($this->request->getPost('username') ?? '');
@@ -42,20 +96,28 @@ class Auth extends BaseController
             return redirect()->to(base_url('auth/login'))->with('error', 'Username and password are required.');
         }
 
-        // Brute-force guard: 5 attempts per minute per client IP. Without this
-        // the login endpoint accepts unlimited password guesses -- bcrypt
-        // slows an attacker down but does not stop them.
+        // Brute-force guard, now backed by the login_attempts table rather than
+        // the cache. The cache-backed Throttler worked, but its counters were
+        // erased by any `cache:clear` and left nothing to review afterwards.
         //
-        // Keyed on IP rather than username on purpose: keying on username lets
-        // anyone lock a known account out of the system just by spamming its
-        // name (a denial-of-service against the real user). CI4's Throttler
-        // uses a token-bucket, so honest users who mistype once or twice are
-        // never affected.
-        $throttler = service('throttler');
+        // Counted per IP AND per username: an IP-only guard cannot see many
+        // machines guessing at one known account. Both windows expire on their
+        // own, so no account is ever permanently locked and nobody can lock a
+        // colleague out by failing their login on purpose.
+        $ip       = $this->request->getIPAddress();
+        $throttle = new LoginThrottleService();
 
-        if ($throttler->check(md5('login_' . $this->request->getIPAddress()), self::LOGIN_ATTEMPTS_PER_MINUTE, MINUTE) === false) {
-            return redirect()->to(base_url('auth/login'))
-                ->with('error', 'Too many login attempts. Please wait a minute and try again.');
+        if ($throttle->isBlocked($ip, $username)) {
+            // Recorded so the block itself is visible in the log, and checked
+            // BEFORE the password is verified -- the point is to stop the
+            // guessing, not to grade it.
+            $throttle->record($ip, $username, false);
+
+            return redirect()->to(base_url('auth/login'))->with(
+                'error',
+                'Too many failed sign-in attempts. Please wait about '
+                . $throttle->retryAfterMinutes() . ' minutes and try again.'
+            );
         }
 
         // Never let a throwable escape this call. CodeIgniter logs every
@@ -107,6 +169,11 @@ class Auth extends BaseController
                 ? []
                 : (new AccessRightsService())->getPagesForUser((int) $user['id']);
 
+            // Clears the failures that were counting against this sign-in, so
+            // someone who mistyped twice before getting it right is not left
+            // one attempt away from locking themselves out.
+            $throttle->record($ip, $username, true);
+
             // Login itself just read the DB, so start the periodic
             // re-validation window from here (see AuthFilter) instead of
             // immediately re-checking on the very next request.
@@ -128,6 +195,8 @@ class Auth extends BaseController
 
             return redirect()->to(base_url('dashboard'));
         }
+
+        $throttle->record($ip, $username, false);
 
         // Failed attempts matter more than successful ones for spotting a
         // brute-force run. There is no session here, so record() stores null

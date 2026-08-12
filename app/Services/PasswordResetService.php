@@ -105,12 +105,15 @@ class PasswordResetService
             throw new \InvalidArgumentException('This reset link is invalid or has expired. Request a new one.');
         }
 
-        if (mb_strlen($newPassword) < 8) {
-            throw new \InvalidArgumentException('The new password must be at least 8 characters long.');
-        }
         if ($newPassword !== $confirmPassword) {
             throw new \InvalidArgumentException('The two passwords do not match.');
         }
+
+        // One shared rule rather than a second copy of the bounds. The length
+        // used to be hardcoded here as well, which is exactly how this path and
+        // the admin one drift apart -- and a split rule would let one path set a
+        // password the other would refuse.
+        UserManagementService::assertPasswordPolicy($newPassword);
 
         $this->userModel->update((int) $user['id'], [
             'password_hash'    => password_hash($newPassword, PASSWORD_BCRYPT),

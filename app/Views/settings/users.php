@@ -59,7 +59,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">Password</label>
-                            <input type="password" name="password" class="form-control" required>
+                            <input type="password" name="password" class="form-control" minlength="8" maxlength="10" required>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">Full Name</label>
@@ -119,7 +119,7 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">New Password</label>
-                            <input type="password" name="password" id="edit_password" class="form-control" placeholder="Leave blank to keep current password">
+                            <input type="password" name="password" id="edit_password" class="form-control" minlength="8" maxlength="10" placeholder="Leave blank to keep current password">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-secondary small fw-semibold">Full Name</label>

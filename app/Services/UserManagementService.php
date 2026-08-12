@@ -13,6 +13,21 @@ class UserManagementService
      */
     public const MIN_PASSWORD_LENGTH = 8;
 
+    /**
+     * Maximum password length.
+     *
+     * Requested by the office. Worth recording plainly that an upper bound this
+     * low is the one password rule that reduces security rather than adding to
+     * it -- it rules out passphrases and leaves an 8-10 character window. It is
+     * applied here, in PasswordResetService and in the self-service change so
+     * that no path can set a password another path would refuse; a split rule
+     * would let an admin issue a password its owner could never re-enter.
+     *
+     * Existing stored passwords are untouched. This is checked only when a new
+     * password is being set, so nobody is locked out by the change.
+     */
+    public const MAX_PASSWORD_LENGTH = 10;
+
     protected UserModel $userModel;
     protected ActivityLogService $activityLogService;
     protected AccessRightsService $accessRightsService;
@@ -198,10 +213,84 @@ class UserManagementService
      */
     private function assertPasswordStrength(string $password): void
     {
-        if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
+        self::assertPasswordPolicy($password);
+    }
+
+    /**
+     * The single password rule for the whole application.
+     *
+     * Static and public so PasswordResetService and the self-service change can
+     * call the same code rather than restating the bounds -- the previous
+     * arrangement had the length hardcoded in two places and they had already
+     * been noted as at risk of drifting.
+     *
+     * mb_strlen(), not strlen(): a password containing any non-ASCII character
+     * would otherwise be measured in bytes and rejected for being "too long"
+     * while looking well inside the limit to the person typing it.
+     *
+     * @throws \InvalidArgumentException when the password is outside the policy
+     */
+    public static function assertPasswordPolicy(string $password): void
+    {
+        $length = mb_strlen($password);
+
+        if ($length < self::MIN_PASSWORD_LENGTH) {
             throw new \InvalidArgumentException(
                 'Password must be at least ' . self::MIN_PASSWORD_LENGTH . ' characters long.'
             );
         }
+
+        if ($length > self::MAX_PASSWORD_LENGTH) {
+            throw new \InvalidArgumentException(
+                'Password must be no more than ' . self::MAX_PASSWORD_LENGTH . ' characters long.'
+            );
+        }
+    }
+
+    /**
+     * Change your own password.
+     *
+     * Requires the current password: without it, anyone reaching an unattended
+     * logged-in browser could take the account over silently. That is also what
+     * separates this from the emailed reset link, where possession of the token
+     * is the proof.
+     *
+     * @throws \InvalidArgumentException on a wrong current password, a mismatch
+     *                                   or a password outside the policy
+     */
+    public function changeOwnPassword(int $userId, string $current, string $new, string $confirm): void
+    {
+        $user = $this->userModel->find($userId);
+
+        if (! $user) {
+            throw new \InvalidArgumentException('Your account could not be found. Please sign in again.');
+        }
+
+        if ($current === '' || ! password_verify($current, $user['password_hash'])) {
+            // Deliberately not "wrong password" vs "no password given": both are
+            // the same failure to anyone probing this endpoint.
+            throw new \InvalidArgumentException('Your current password is not correct.');
+        }
+
+        if ($new !== $confirm) {
+            throw new \InvalidArgumentException('The two new passwords do not match.');
+        }
+
+        if ($new === $current) {
+            throw new \InvalidArgumentException('The new password must be different from your current one.');
+        }
+
+        self::assertPasswordPolicy($new);
+
+        $this->userModel->update($userId, [
+            'password_hash' => password_hash($new, PASSWORD_DEFAULT),
+        ]);
+
+        $this->activityLogService->record(
+            'user.password_self_change',
+            'user',
+            $userId,
+            'Changed their own password'
+        );
     }
 }

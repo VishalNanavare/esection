@@ -40,6 +40,12 @@ $routes->post('auth/processResetPassword', 'Auth::processResetPassword');
 $routes->group('', ['filter' => 'authFilter'], function ($routes) {
     $routes->get('dashboard', 'Dashboard::index');
 
+    // Changing your own password. Deliberately inside authFilter and outside
+    // any accessFilter group: every signed-in account owns its own password,
+    // whatever pages it has been granted. It carries no page_key for the same
+    // reason -- an admin must not be able to revoke it.
+    $routes->post('auth/changePassword', 'Auth::changePassword');
+
     // Centralized Select2 API Endpoints.
     //
     // These were the only data-returning routes in the app (besides

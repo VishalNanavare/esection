@@ -141,17 +141,39 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                         <span class="text-muted font-monospace" id="live_clock"><?= date('H:i:s') ?></span>
                     </div>
 
-                    <div class="topbar-pill">
-                        <i class="fa fa-user-circle-o text-indigo"></i>
-                        <span class="font-monospace fw-bold text-dark mx-2 d-none d-sm-inline"><?= esc(session()->get('username') ?? 'Staff') ?></span>
-                        <span class="badge badge-glass-indigo text-uppercase ms-1 ms-sm-0" style="font-size: 0.65rem;"><?= esc(session()->get('role') ?? 'staff') ?></span>
+                    <?php // One account control instead of a separate pill and logout
+                          // button. The sidebar drawer keeps its own logout for the
+                          // mobile layout, so this menu is the only affordance here. ?>
+                    <div class="dropdown">
+                        <button class="topbar-pill border-0 bg-transparent d-flex align-items-center" type="button"
+                                id="account_menu_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-user-circle-o text-indigo"></i>
+                            <span class="font-monospace fw-bold text-dark mx-2 d-none d-sm-inline"><?= esc(session()->get('username') ?? 'Staff') ?></span>
+                            <span class="badge badge-glass-indigo text-uppercase ms-1 ms-sm-0" style="font-size: 0.65rem;"><?= esc(session()->get('role') ?? 'staff') ?></span>
+                            <i class="fa fa-caret-down text-muted ms-2"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-card border-secondary border-opacity-25 mt-2"
+                            aria-labelledby="account_menu_btn">
+                            <li class="px-3 py-2 d-sm-none">
+                                <div class="small text-muted">Signed in as</div>
+                                <div class="font-monospace fw-bold text-dark"><?= esc(session()->get('username') ?? 'Staff') ?></div>
+                            </li>
+                            <li class="d-sm-none"><hr class="dropdown-divider"></li>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center"
+                                        data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                    <i class="fa fa-key me-2 text-indigo"></i> Reset Password
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a href="<?= base_url('auth/logout') ?>"
+                                   class="dropdown-item d-flex align-items-center text-danger logout-btn">
+                                    <i class="fa fa-sign-out me-2"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
                     </div>
-
-                    <?php // Hidden below md: the sidebar drawer already carries a logout,
-                          // and two logout affordances overflow a 375px topbar. ?>
-                    <a href="<?= base_url('auth/logout') ?>" class="btn btn-sm btn-glass text-danger border-danger border-opacity-25 logout-btn d-none d-md-inline-flex">
-                        <i class="fa fa-sign-out me-1"></i> Logout
-                    </a>
                 </div>
             </header>
 
@@ -159,6 +181,71 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
             <main class="page-body">
                 <?= $this->renderSection('content') ?>
             </main>
+        </div>
+    </div>
+
+    <?php
+        // Lives in the layout because the menu that opens it does. Uses the
+        // shared js-ajax handler, so it saves without reloading and closes
+        // itself; data-clear-on-success wipes all three boxes so no password is
+        // left sitting in the DOM afterwards.
+        //
+        // The min/max attributes below are only the first line of defence --
+        // they stop an honest typo before a round trip. The same bounds are
+        // enforced in UserManagementService::assertPasswordPolicy(), which is
+        // what actually protects the record, since anything client-side can be
+        // edited away in devtools.
+    ?>
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-secondary border-opacity-25">
+                <div class="modal-header border-bottom border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa fa-key me-2 text-indigo"></i> Reset Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="<?= base_url('auth/changePassword') ?>" method="post" class="js-ajax"
+                      id="reset_password_form"
+                      data-title="Password"
+                      data-close-modal="#resetPasswordModal"
+                      data-clear-on-success="input[type=password]"
+                      data-busy-button="Saving...">
+                    <?= csrf_field() ?>
+                    <div class="modal-body">
+                        <div class="alert bg-info bg-opacity-10 text-info border-info border-opacity-25 rounded-3 small mb-3" role="note">
+                            <i class="fa fa-info-circle me-1"></i>
+                            Your new password must be between
+                            <strong><?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?></strong> and
+                            <strong><?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?></strong> characters,
+                            and must differ from your current one.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold" for="rp_current">Current password</label>
+                            <input type="password" name="current_password" id="rp_current" class="form-control"
+                                   autocomplete="current-password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold" for="rp_new">New password</label>
+                            <input type="password" name="new_password" id="rp_new" class="form-control"
+                                   minlength="<?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?>"
+                                   maxlength="<?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?>"
+                                   autocomplete="new-password" required>
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label text-secondary small fw-semibold" for="rp_confirm">Confirm new password</label>
+                            <input type="password" name="confirm_password" id="rp_confirm" class="form-control"
+                                   minlength="<?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?>"
+                                   maxlength="<?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?>"
+                                   autocomplete="new-password" required>
+                            <div class="invalid-feedback" id="rp_confirm_error">The two new passwords do not match.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-indigo"><i class="fa fa-check me-1"></i> Change password</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -303,6 +390,9 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
     <?php // Shared AJAX/Select2 helpers. Must load before any view's
           // scripts section, which is what consumes them. ?>
     <?= $this->include('common/ajax_common_js') ?>
+    <?php // The account menu and its Reset Password dialog live in this layout,
+          // so their script does too -- every page carries them. ?>
+    <?= $this->include('common/ajax_account_js') ?>
     <?= $this->renderSection('scripts') ?>
 </body>
 </html>
