@@ -46,9 +46,31 @@ class Regularization extends BaseController
         try {
             $newId = $this->regularizationService->create($this->request->getPost(), $username);
         } catch (\InvalidArgumentException $e) {
+            // JSON for an XHR caller, not a redirect. jQuery follows a 302
+            // transparently and would hand the client an HTML page where it
+            // expects JSON -- the operator would see a generic parse failure
+            // instead of "Student name is required.", and the flash would sit
+            // in the session waiting to surface on some later page load.
+            if ($this->request->isAJAX()) {
+                return $this->respondToPost(false, $e->getMessage(), base_url('regularization'));
+            }
+
             return redirect()->to(base_url('regularization'))->with('error', $e->getMessage());
         }
 
+        // An XHR cannot become a new tab, so it gets the address of the letter
+        // and points its already-open tab at it.
+        if ($this->request->isAJAX()) {
+            return $this->respondToPost(true, 'Regularization letter created.', base_url('regularization'), [
+                'pdf_url' => base_url('regularization/pdf/' . $newId),
+            ]);
+        }
+
+        // The non-AJAX response IS the document, and must stay that way: this
+        // form is target="_blank", so with JavaScript unavailable the browser
+        // posts into a new tab and expects the letter back. Routing this
+        // through respondToPost's redirect branch would save the record and
+        // show a green toast with no letter anywhere.
         $record = $this->regularizationService->getById($newId);
         $data   = $this->regularizationService->buildLetterData($record);
 

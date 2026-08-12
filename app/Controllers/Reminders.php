@@ -153,9 +153,21 @@ class Reminders extends BaseController
         try {
             $result = $this->universityReminderService->addReminderNotes($this->request->getPost(), $username);
         } catch (\InvalidArgumentException $e) {
+            // JSON for an XHR caller -- see Regularization::generateLetter().
+            if ($this->request->isAJAX()) {
+                return $this->respondToPost(false, $e->getMessage(), base_url('reminders/university'));
+            }
+
             return redirect()->to(base_url('reminders/university'))->with('error', $e->getMessage());
         }
 
+        if ($this->request->isAJAX()) {
+            return $this->respondToPost(true, 'University reminder recorded.', base_url('reminders/university'), [
+                'pdf_url' => base_url('reminders/university/pdf/' . (int) $result['batch_id']),
+            ]);
+        }
+
+        // Non-AJAX response IS the document -- the form is target="_blank".
         return $this->renderBatchPdf((int) $result['batch_id']);
     }
 
@@ -294,9 +306,21 @@ class Reminders extends BaseController
         try {
             $newId = $this->studentReminderService->create($this->request->getPost(), $username);
         } catch (\InvalidArgumentException $e) {
+            // JSON for an XHR caller -- see Regularization::generateLetter().
+            if ($this->request->isAJAX()) {
+                return $this->respondToPost(false, $e->getMessage(), base_url('reminders/student'));
+            }
+
             return redirect()->to(base_url('reminders/student'))->with('error', $e->getMessage());
         }
 
+        if ($this->request->isAJAX()) {
+            return $this->respondToPost(true, 'Candidate reminder created.', base_url('reminders/student'), [
+                'pdf_url' => base_url('reminders/student/pdf/' . $newId),
+            ]);
+        }
+
+        // Non-AJAX response IS the document -- the form is target="_blank".
         $record = $this->studentReminderService->getById($newId);
         $data   = $this->studentReminderService->buildLetterData($record);
 

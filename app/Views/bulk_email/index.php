@@ -119,8 +119,23 @@
                     </div>
                 <?php else: ?>
                     <!-- Step 2: nothing is sent until THIS form is explicitly submitted. -->
-                    <form action="<?= base_url('bulk-email/send') ?>" method="post" class="bulk-send-form"
-                          data-count="<?= count($preview['sendable']) ?>">
+                    <?php
+                        // Sending still ends on the send log. That navigation is
+                        // a safety property, not decoration: it destroys this
+                        // form, so a second click cannot re-mail the same batch
+                        // to external universities. What AJAX changes is only
+                        // that the POST never enters browser history, so a
+                        // refresh on the log no longer offers to resubmit it.
+                    ?>
+                    <form action="<?= base_url('bulk-email/send') ?>" method="post" class="bulk-send-form js-ajax"
+                          data-count="<?= count($preview['sendable']) ?>"
+                          data-title="Bulk email"
+                          data-busy-button="Sending, please wait..."
+                          data-busy-title="Sending <?= count($preview['sendable']) ?> email(s)..."
+                          data-busy-text="Each message is sent one at a time. Please do not close this page."
+                          data-confirm-title="Send <?= count($preview['sendable']) ?> email(s)?"
+                          data-confirm-text="This cannot be undone. Every recipient shown in the list above will receive this message."
+                          data-confirm-button="Yes, send now">
                         <?= csrf_field() ?>
                         <input type="hidden" name="audience" value="<?= esc($audience) ?>">
                         <input type="hidden" name="template_slug" value="<?= esc($slug) ?>">

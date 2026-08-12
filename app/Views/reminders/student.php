@@ -12,7 +12,15 @@
                 <a href="<?= base_url('reminders/student/history') ?>" class="btn btn-glass"><i class="fa fa-history me-1"></i> Reminder History</a>
             </div>
 
-            <form action="<?= base_url('reminders/generateStudentReminder') ?>" method="post" target="_blank">
+            <?php
+                // See regularization/index.php -- target="_blank" stays as the
+                // no-JavaScript path; the form is deliberately not reset.
+            ?>
+            <form action="<?= base_url('reminders/generateStudentReminder') ?>" method="post" target="_blank"
+                  class="js-ajax-pdf" data-title="Candidate reminder"
+                  data-busy-button="Generating..."
+                  data-busy-title="Generating the reminder..."
+                  data-busy-text="Saving the record and rendering the PDF.">
                 <?= csrf_field() ?>
                 <div class="row g-3 mb-4 filter-panel">
                     <div class="col-md-6">

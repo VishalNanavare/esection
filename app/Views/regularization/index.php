@@ -12,7 +12,21 @@
                 <a href="<?= base_url('regularization/history') ?>" class="btn btn-glass"><i class="fa fa-history me-1"></i> Letter History</a>
             </div>
 
-            <form action="<?= base_url('regularization/generateLetter') ?>" method="post" target="_blank">
+            <?php
+                // target="_blank" is kept deliberately: with JavaScript
+                // unavailable the browser posts into a new tab and the
+                // controller answers with the letter itself. The js-ajax-pdf
+                // handler intercepts before that, opening the tab at click time
+                // and pointing it at the saved letter -- so the form is never
+                // cleared, which matters here because clerks reuse these ten
+                // fields (four Select2 pickers and a date) across a run of
+                // letters for the same college.
+            ?>
+            <form action="<?= base_url('regularization/generateLetter') ?>" method="post" target="_blank"
+                  class="js-ajax-pdf" data-title="Regularization letter"
+                  data-busy-button="Generating..."
+                  data-busy-title="Generating the letter..."
+                  data-busy-text="Saving the record and rendering the PDF.">
                 <?= csrf_field() ?>
                 <div class="row g-3 mb-4 filter-panel">
                     <div class="col-md-6">

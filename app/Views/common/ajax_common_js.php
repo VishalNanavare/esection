@@ -625,6 +625,61 @@
         run();
     });
 
+    /**
+     * The three "save a record, then show its letter" forms.
+     *
+     * These are `target="_blank"` native submits today, which is a navigation:
+     * no pop-up blocker can suppress it however slow the server is. So the tab
+     * is opened HERE, inside the click, and only pointed at the letter once the
+     * save returns. Calling window.open() from the .done() continuation instead
+     * would depend on Chrome's ~5s transient-activation window, and Dompdf on a
+     * large batch -- queued behind whatever else is using the single php-cgi
+     * worker -- comfortably outlasts it.
+     *
+     * If the save fails there is no letter, so the blank tab is closed again.
+     */
+    $(document).on('submit', 'form.js-ajax-pdf', function (e) {
+        var form  = this;
+        var $form = $(form);
+
+        if (form.dataset.esOwnHandler) {
+            return;
+        }
+
+        var submitter = e.originalEvent && e.originalEvent.submitter;
+        if (submitter && (submitter.hasAttribute('formaction') || submitter.hasAttribute('formtarget'))) {
+            return;
+        }
+
+        e.preventDefault();
+
+        var d   = form.dataset;
+        var tab = window.open('', '_blank');
+
+        esSubmitForm($form, {
+            title: d.title || 'Letter',
+            busy: {
+                button: d.busyButton || 'Generating...',
+                title:  d.busyTitle,
+                text:   d.busyText
+            },
+            context: 'The letter could not be generated',
+            onSuccess: function (res) {
+                if (res.pdf_url && tab) {
+                    tab.location = res.pdf_url;
+                } else if (res.pdf_url) {
+                    // Tab creation itself was blocked -- give the operator a
+                    // real click to open it with rather than losing the letter.
+                    esBlockingError(d.title || 'Letter', 'The letter was saved but the new tab could not be opened. Use the history screen to print it.');
+                }
+            }
+        }).fail(function () {
+            if (tab) {
+                tab.close();
+            }
+        });
+    });
+
     window.esEscapeHtml  = esEscapeHtml;
     window.esNotify      = esNotify;
     window.esAjaxError   = esAjaxError;

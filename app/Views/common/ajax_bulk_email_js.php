@@ -10,42 +10,18 @@ $(document).ready(function () {
         context: 'Loading academic streams failed'
     });
 
-    // Sending is a real, sometimes slow, irreversible action -- confirm once
-    // more (the count is right there on the button) and disable it so a
-    // second click cannot queue the same batch twice.
-    $('.bulk-send-form').on('submit', function (e) {
-        var form = this;
-        var count = form.dataset.count || '0';
-
-        if (form.dataset.esConfirmed === '1') {
-            $(form).find('button[type="submit"]')
-                .prop('disabled', true)
-                .html('<i class="fa fa-spinner fa-spin me-1"></i> Sending, please wait...');
-            return true;
-        }
-
-        e.preventDefault();
-
-        if (!window.Swal) {
-            form.dataset.esConfirmed = '1';
-            form.submit();
-            return;
-        }
-
-        Swal.fire({
-            title: 'Send ' + count + ' email(s)?',
-            text: 'This cannot be undone. Every recipient shown in the list above will receive this message.',
-            icon: 'warning',
-            showCancelButton: true,
-            focusCancel: true,
-            confirmButtonText: 'Yes, send now',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result && result.isConfirmed) {
-                form.dataset.esConfirmed = '1';
-                form.submit();
-            }
-        });
-    });
+    // --- Send ---------------------------------------------------------------
+    // The confirmation, the busy state and the send itself are all declared on
+    // the form now (bulk_email/index.php) and driven by the shared handler.
+    //
+    // Worth recording why the old code had to go rather than be adapted. It
+    // ended in `form.submit()`, which dispatches no submit event -- so its own
+    // re-entrant guard could never fire either. The consequence was a
+    // pre-existing dead branch: the "Sending, please wait..." spinner at the top
+    // of that handler was unreachable whenever SweetAlert2 was present, which is
+    // always. The Send button therefore stayed enabled and unlabelled for the
+    // whole send, on the one screen in the app where a second click re-mails up
+    // to 500 external recipients. It is now disabled for the duration by
+    // esSubmitForm, behind a non-dismissible dialog.
 });
 </script>

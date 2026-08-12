@@ -67,7 +67,16 @@
             </form>
 
             <?php if (!empty($students)): ?>
-                <form action="<?= base_url('reminders/generateUniversityReminder') ?>" method="post" target="_blank">
+                <?php
+                    // See regularization/index.php. The candidate list itself is
+                    // unchanged by this POST -- the source query never touches
+                    // the reminder tables -- so there is no refresh region.
+                ?>
+                <form action="<?= base_url('reminders/generateUniversityReminder') ?>" method="post" target="_blank"
+                      class="js-ajax-pdf" data-title="University reminder"
+                      data-busy-button="Generating..."
+                      data-busy-title="Generating the reminder..."
+                      data-busy-text="Recording the notes and rendering the PDF. A large batch can take a few moments.">
                     <?= csrf_field() ?>
                     
                     <div class="row g-3 mb-4 entry-panel">
