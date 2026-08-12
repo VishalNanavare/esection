@@ -27,6 +27,6 @@ class SettingsFeatures extends BaseController
     {
         $this->featureToggleService->save($this->request->getPost());
 
-        return redirect()->to(base_url('settings/features'))->with('success', 'Feature toggles updated.');
+        return $this->respondToPost(true, 'Feature toggles updated.', base_url('settings/features'));
     }
 }

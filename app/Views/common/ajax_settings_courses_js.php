@@ -1,7 +1,9 @@
 <script>
 $(document).ready(function () {
     // --- Edit modal ---------------------------------------------------------
-    $('.edit-course-btn').on('click', function () {
+    // Delegated: these buttons live inside #course_rows, which is replaced
+    // wholesale on every AJAX refresh.
+    $(document).on('click', '.edit-course-btn', function () {
         var id = $(this).data('id');
 
         $.ajax({

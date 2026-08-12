@@ -9,8 +9,12 @@ $(document).ready(function () {
     // The forms keep their real action/method attributes. If this script fails
     // to load, every one of them still submits normally and the controller
     // still answers with a redirect and a flash message.
-
-    var CSRF = '<?= csrf_hash() ?>';
+    //
+    // The submit/dialog plumbing itself now lives in ajax_common_js.php and is
+    // shared with every other screen. What stays here is the part that is
+    // genuinely specific to Backup: applyResponse(). It is passed in as
+    // onResponse rather than being closed over by the shared helper, because
+    // the shared helper has no business knowing about a password badge.
 
     /** Repaint the table and the bits of the panel that a POST can change. */
     function applyResponse(res) {
@@ -42,49 +46,14 @@ $(document).ready(function () {
         }
     }
 
-    /**
-     * @param {jQuery} $form
-     * @param {string} busyLabel  shown on the button while the request runs
-     */
-    function submitViaAjax($form, busyLabel) {
-        var $btn     = $form.find('button[type="submit"]');
-        var original = $btn.html();
-
-        $btn.prop('disabled', true).html('<i class="fa fa-spinner fa-spin me-1"></i> ' + busyLabel);
-
-        $.ajax({
-            url: $form.attr('action'),
-            type: 'POST',
-            data: $form.serialize(),
-            dataType: 'json',
-            // Marks the request as AJAX for CodeIgniter's isAJAX(), which is
-            // what makes the controller answer with JSON instead of a redirect.
-            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': CSRF }
-        }).done(function (res) {
-            applyResponse(res);
-            esNotify('success', 'Backup', res.message || 'Done.');
-
-            // Clear the password fields on success so the values are not left
-            // sitting in the DOM after the save.
-            if ($form.data('clear-on-success')) {
-                $form.find('input[type="password"]').val('');
-            }
-        }).fail(function (xhr) {
-            var res = xhr.responseJSON;
-
-            if (res && res.message) {
-                // A 422 is a real, expected outcome here (no password set, a
-                // backup already running, validation) and its text is written
-                // for the operator -- so show it, and still repaint, because
-                // the table may have changed even on a failure.
-                applyResponse(res);
-                esNotify('warning', 'Backup', res.message);
-            } else {
-                esAjaxError(xhr, 'The backup action could not be completed');
-            }
-        }).always(function () {
-            $btn.prop('disabled', false).html(original);
-        });
+    /** Local wrapper so every call site on this screen repaints and is titled alike. */
+    function submitBackupForm($form, busy, extra) {
+        return esSubmitForm($form, $.extend({
+            title: 'Backup',
+            busy: busy,
+            context: 'The backup action could not be completed',
+            onResponse: applyResponse
+        }, extra || {}));
     }
 
     // --- Run a backup ---------------------------------------------------
@@ -93,13 +62,33 @@ $(document).ready(function () {
     // lock -- so it is disabled and labelled for the duration.
     $('.backup-run-form').on('submit', function (e) {
         e.preventDefault();
-        submitViaAjax($(this), 'Working, please wait...');
+
+        var isSql = $(this).attr('action').indexOf('/sql') !== -1;
+
+        submitBackupForm($(this), {
+            button: 'Working...',
+            title:  isSql ? 'Creating the system backup...' : 'Exporting reference data...',
+            text:   isSql
+                ? 'Dumping every table and packaging it into a password-protected file. This can take a few moments -- please do not close this page.'
+                : 'Writing one sheet per table. This can take a few moments.'
+        });
     });
 
     // --- Password / retention -------------------------------------------
     $('.backup-settings-form').on('submit', function (e) {
         e.preventDefault();
-        submitViaAjax($(this), 'Saving...');
+
+        var $form = $(this);
+
+        submitBackupForm($form, { button: 'Saving...', title: 'Saving...', text: '' }, {
+            onSuccess: function () {
+                // Clear the password fields on success so the values are not
+                // left sitting in the DOM after the save.
+                if ($form.data('clear-on-success')) {
+                    $form.find('input[type="password"]').val('');
+                }
+            }
+        });
     });
 
     // --- Delete ----------------------------------------------------------
@@ -113,7 +102,11 @@ $(document).ready(function () {
         var filename = $form.data('filename') || 'This backup';
 
         var doDelete = function () {
-            submitViaAjax($form, '');
+            submitBackupForm($form, {
+                button: 'Deleting...',
+                title:  'Deleting backup...',
+                text:   'Removing the file from the server.'
+            });
         };
 
         if (!window.Swal) {

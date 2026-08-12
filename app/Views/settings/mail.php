@@ -20,7 +20,14 @@
     <div class="col-lg-7">
         <div class="glass-card p-4 h-100">
             <h5 class="fw-bold text-dark mb-3"><i class="fa fa-plug me-2 text-indigo"></i> Mail account (SMTP)</h5>
-            <form action="<?= base_url('settings/mail/store') ?>" method="post">
+            <?php
+                // Own handler: the reply repaints the Status block AND flips
+                // the "saved" password badge, which the declarative binding has
+                // no vocabulary for. data-es-own-handler keeps the shared
+                // handler from also firing if js-ajax is ever added here.
+            ?>
+            <form action="<?= base_url('settings/mail/store') ?>" method="post"
+                  id="mail_smtp_form" data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-8">
@@ -44,11 +51,13 @@
                     <div class="col-md-6">
                         <label class="form-label text-secondary small fw-semibold">
                             Password
-                            <?php if ($settings['password_configured']): ?>
-                                <span class="badge badge-glass-emerald ms-1">saved</span>
-                            <?php endif; ?>
+                            <span id="mail_password_badge">
+                                <?php if ($settings['password_configured']): ?>
+                                    <span class="badge badge-glass-emerald ms-1">saved</span>
+                                <?php endif; ?>
+                            </span>
                         </label>
-                        <input type="password" name="mail_smtp_password" class="form-control" autocomplete="new-password"
+                        <input type="password" name="mail_smtp_password" id="mail_smtp_password" class="form-control" autocomplete="new-password"
                                placeholder="<?= $settings['password_configured'] ? 'Leave blank to keep current' : '' ?>">
                         <small class="text-muted">Most providers require an app-specific password rather than the
                             account's normal one &mdash; Gmail and Google Workspace both do. Any spaces are removed
@@ -100,7 +109,8 @@
         <div class="glass-card p-4 h-100">
             <h5 class="fw-bold text-dark mb-3"><i class="fa fa-paper-plane me-2 text-indigo"></i> Send a test email</h5>
             <p class="text-muted small">Check the connection works before any student or university is contacted.</p>
-            <form action="<?= base_url('settings/mail/test') ?>" method="post" class="mail-test-form">
+            <form action="<?= base_url('settings/mail/test') ?>" method="post" class="mail-test-form"
+                  data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <div class="input-group">
                     <input type="email" name="test_email" class="form-control" placeholder="your.address@example.com" required>
@@ -108,11 +118,8 @@
                 </div>
             </form>
             <hr>
-            <p class="text-muted small mb-0">
-                <strong class="text-dark d-block mb-1">Status</strong>
-                SMTP server: <?= $settings['mail_smtp_host'] !== '' ? '<span class="text-emerald">set</span>' : '<span class="text-amber">not set</span>' ?><br>
-                From address: <?= $settings['mail_from_email'] !== '' ? '<span class="text-emerald">set</span>' : '<span class="text-amber">not set</span>' ?><br>
-                Password: <?= $settings['password_configured'] ? '<span class="text-emerald">saved (encrypted)</span>' : '<span class="text-amber">not set</span>' ?>
+            <p class="text-muted small mb-0" id="mail_status_block">
+                <?= $this->include('settings/_mail_status') ?>
             </p>
         </div>
     </div>
@@ -139,7 +146,12 @@
                         </h2>
                         <div id="tpl<?= $i ?>" class="accordion-collapse collapse" data-bs-parent="#emailTemplates">
                             <div class="accordion-body">
-                                <form action="<?= base_url('settings/mail/template/' . $slug . '/store') ?>" method="post">
+                                <?php
+                                    // Nothing to repaint: the subject/body inputs
+                                    // already hold exactly what was submitted.
+                                ?>
+                                <form action="<?= base_url('settings/mail/template/' . $slug . '/store') ?>" method="post"
+                                      class="js-ajax" data-title="Email wording" data-busy-button="Saving...">
                                     <?= csrf_field() ?>
                                     <div class="mb-2">
                                         <label class="form-label text-secondary small fw-semibold">Subject</label>

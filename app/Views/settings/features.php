@@ -12,7 +12,13 @@
                 <a href="<?= base_url('settings') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Settings</a>
             </div>
 
-            <form action="<?= base_url('settings/features/store') ?>" method="post">
+            <?php
+                // No refresh region: the checkboxes ARE the state, and they
+                // already show what was just submitted. Nothing else on this
+                // screen derives from the saved values.
+            ?>
+            <form action="<?= base_url('settings/features/store') ?>" method="post" class="js-ajax"
+                  data-title="Feature Toggles" data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="list-group">
                     <?php foreach ($flags as $key => $flag): ?>

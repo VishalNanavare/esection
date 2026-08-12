@@ -29,14 +29,27 @@ class SettingsNumbering extends BaseController
         try {
             $this->documentNumberingService->save($this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/numbering'))->with('error', $e->getMessage());
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/numbering'));
         } catch (\Throwable $e) {
             log_message('error', '[SettingsNumbering::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/numbering'))
-                ->with('error', 'The numbering format could not be saved. The issue has been logged.');
+            return $this->respondToPost(
+                false,
+                'The numbering format could not be saved. The issue has been logged.',
+                base_url('settings/numbering'),
+                [],
+                500
+            );
         }
 
-        return redirect()->to(base_url('settings/numbering'))->with('success', 'Document numbering updated.');
+        // Both values travel back. save() uppercases the prefix, and
+        // previewNext() re-rolls its random suffix on every call, so neither
+        // can be inferred on the client from what was typed.
+        return $this->respondToPost(true, 'Document numbering updated.', base_url('settings/numbering'), [
+            'state' => [
+                'prefix'  => $this->documentNumberingService->getPrefix(),
+                'preview' => $this->documentNumberingService->previewNext(),
+            ],
+        ]);
     }
 }

@@ -1,7 +1,10 @@
 <script>
 $(document).ready(function () {
     // --- Edit modal ---------------------------------------------------------
-    $('.edit-user-btn').on('click', function () {
+    // Delegated on document: these buttons live inside #user_rows, which is
+    // replaced wholesale on every AJAX refresh. A direct binding would stop
+    // firing after the first save and the Edit buttons would silently die.
+    $(document).on('click', '.edit-user-btn', function () {
         var id = $(this).data('id');
 
         $.ajax({

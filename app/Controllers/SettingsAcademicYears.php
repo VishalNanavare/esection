@@ -28,15 +28,14 @@ class SettingsAcademicYears extends BaseController
         try {
             $this->academicYearService->save($this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/academic-years'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsAcademicYears::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/academic-years'))
-                ->with('error', 'The academic year could not be created. The issue has been logged.');
+            return $this->respond(false, 'The academic year could not be created. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/academic-years'))->with('success', 'Academic year created successfully.');
+        return $this->respond(true, 'Academic year created successfully.');
     }
 
     public function getJson($id)
@@ -53,15 +52,14 @@ class SettingsAcademicYears extends BaseController
         try {
             $this->academicYearService->update((int) $id, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/academic-years'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsAcademicYears::update] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/academic-years'))
-                ->with('error', 'The academic year could not be updated. The issue has been logged.');
+            return $this->respond(false, 'The academic year could not be updated. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/academic-years'))->with('success', 'Academic year updated successfully.');
+        return $this->respond(true, 'Academic year updated successfully.');
     }
 
     public function setCurrent($id)
@@ -73,15 +71,14 @@ class SettingsAcademicYears extends BaseController
         try {
             $this->academicYearService->setCurrent((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/academic-years'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsAcademicYears::setCurrent] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/academic-years'))
-                ->with('error', 'Could not set the current academic year. The issue has been logged.');
+            return $this->respond(false, 'Could not set the current academic year. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/academic-years'))->with('success', 'Current academic year updated.');
+        return $this->respond(true, 'Current academic year updated.');
     }
 
     public function delete($id)
@@ -93,9 +90,21 @@ class SettingsAcademicYears extends BaseController
         try {
             $this->academicYearService->delete((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/academic-years'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('settings/academic-years'))->with('success', 'Academic year deleted.');
+        return $this->respond(true, 'Academic year deleted.');
+    }
+
+    /** One reply for every POST on this screen -- see SettingsUsers::respond(). */
+    private function respond(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $extra['html'] = view('settings/_academic_years_rows', ['years' => $this->academicYearService->getAll()]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('settings/academic-years'), $extra, $failStatus);
     }
 }

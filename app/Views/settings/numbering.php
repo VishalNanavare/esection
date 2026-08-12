@@ -12,7 +12,15 @@
                 <a href="<?= base_url('settings') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Settings</a>
             </div>
 
-            <form action="<?= base_url('settings/numbering/store') ?>" method="post">
+            <?php
+                // Own handler rather than the shared js-ajax class: the reply
+                // carries two field values to write back, which the declarative
+                // binding has no vocabulary for. data-es-own-handler is the
+                // structural guard -- if anyone later adds js-ajax here, the
+                // shared handler bails out instead of double-submitting.
+            ?>
+            <form action="<?= base_url('settings/numbering/store') ?>" method="post"
+                  id="numbering_form" data-es-own-handler="1">
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-6">

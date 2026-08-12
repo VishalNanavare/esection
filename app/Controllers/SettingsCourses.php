@@ -28,15 +28,14 @@ class SettingsCourses extends BaseController
         try {
             $this->courseService->save($this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/courses'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsCourses::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/courses'))
-                ->with('error', 'The course could not be created. The issue has been logged.');
+            return $this->respond(false, 'The course could not be created. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/courses'))->with('success', 'Course created successfully.');
+        return $this->respond(true, 'Course created successfully.');
     }
 
     public function getJson($id)
@@ -53,15 +52,14 @@ class SettingsCourses extends BaseController
         try {
             $this->courseService->update((int) $id, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/courses'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsCourses::update] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/courses'))
-                ->with('error', 'The course could not be updated. The issue has been logged.');
+            return $this->respond(false, 'The course could not be updated. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/courses'))->with('success', 'Course updated successfully.');
+        return $this->respond(true, 'Course updated successfully.');
     }
 
     public function toggleActive($id)
@@ -73,9 +71,21 @@ class SettingsCourses extends BaseController
         try {
             $this->courseService->toggleActive((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/courses'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('settings/courses'))->with('success', 'Course status updated.');
+        return $this->respond(true, 'Course status updated.');
+    }
+
+    /** One reply for every POST on this screen -- see SettingsUsers::respond(). */
+    private function respond(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $extra['html'] = view('settings/_courses_rows', ['courses' => $this->courseService->getAll()]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('settings/courses'), $extra, $failStatus);
     }
 }

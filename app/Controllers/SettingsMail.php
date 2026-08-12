@@ -42,15 +42,31 @@ class SettingsMail extends BaseController
         try {
             $this->mailSettingsService->save($this->request->getPost());
         } catch (\InvalidArgumentException | \RuntimeException $e) {
-            return redirect()->to(base_url('settings/mail'))->with('error', $e->getMessage());
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/mail'));
         } catch (\Throwable $e) {
             log_message('error', '[SettingsMail::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/mail'))
-                ->with('error', 'The email settings could not be saved. The issue has been logged.');
+            return $this->respondToPost(
+                false,
+                'The email settings could not be saved. The issue has been logged.',
+                base_url('settings/mail'),
+                [],
+                500
+            );
         }
 
-        return redirect()->to(base_url('settings/mail'))->with('success', 'Email settings saved.');
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $settings = $this->mailSettingsService->getAll();
+
+            $extra = [
+                'html'  => view('settings/_mail_status', ['settings' => $settings]),
+                'state' => ['password_configured' => (bool) $settings['password_configured']],
+            ];
+        }
+
+        return $this->respondToPost(true, 'Email settings saved.', base_url('settings/mail'), $extra);
     }
 
     public function storeTemplate($slug)
@@ -58,10 +74,10 @@ class SettingsMail extends BaseController
         try {
             $this->emailTemplateService->save((string) $slug, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/mail'))->with('error', $e->getMessage());
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/mail'));
         }
 
-        return redirect()->to(base_url('settings/mail'))->with('success', 'Email template saved.');
+        return $this->respondToPost(true, 'Email template saved.', base_url('settings/mail'));
     }
 
     /** Proves the SMTP settings work before any real recipient is contacted. */
@@ -72,15 +88,23 @@ class SettingsMail extends BaseController
         try {
             $this->bulkEmailService->sendTest((string) $this->request->getPost('test_email'));
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/mail'))->with('error', $e->getMessage());
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/mail'));
         } catch (\Throwable $e) {
             log_message('error', '[SettingsMail::sendTest] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/mail'))
-                ->with('error', 'The test email could not be sent. The issue has been logged.');
+            return $this->respondToPost(
+                false,
+                'The test email could not be sent. The issue has been logged.',
+                base_url('settings/mail'),
+                [],
+                500
+            );
         }
 
-        return redirect()->to(base_url('settings/mail'))
-            ->with('success', 'Test email sent. Check the inbox to confirm it arrived.');
+        return $this->respondToPost(
+            true,
+            'Test email sent. Check the inbox to confirm it arrived.',
+            base_url('settings/mail')
+        );
     }
 }

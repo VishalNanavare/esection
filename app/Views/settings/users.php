@@ -30,47 +30,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($users)): ?>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No users recorded yet.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php $sr = 1; foreach ($users as $u): ?>
-                                <?php $isSelf = ((int) $u['id'] === (int) $currentUserId); ?>
-                                <tr class="user-row" data-id="<?= esc($u['id']) ?>" data-username="<?= esc($u['username']) ?>"
-                                    data-email="<?= esc($u['email']) ?>" data-full-name="<?= esc($u['full_name']) ?>" data-role="<?= esc($u['role']) ?>">
-                                    <td class="fw-semibold text-muted"><?= $sr++ ?></td>
-                                    <td class="fw-bold text-dark">
-                                        <?= esc($u['username']) ?>
-                                        <?php if ($isSelf): ?><span class="badge badge-glass-indigo ms-1">You</span><?php endif; ?>
-                                    </td>
-                                    <td class="small text-muted"><?= esc($u['full_name'] ?: '-') ?></td>
-                                    <td class="small text-muted"><?= esc($u['email'] ?: '-') ?></td>
-                                    <td><span class="badge badge-glass-indigo text-uppercase"><?= esc($u['role']) ?></span></td>
-                                    <td><?= render_status_badge((int) $u['is_active'] === 1 ? 'active' : 'inactive') ?></td>
-                                    <td class="text-end">
-                                        <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-user-btn" data-id="<?= $u['id'] ?>">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </button>
-                                        <?php if (! $isSelf): ?>
-                                            <form action="<?= base_url('settings/users/toggleActive/' . $u['id']) ?>" method="post" class="d-inline">
-                                                <?= csrf_field() ?>
-                                                <?php if ((int) $u['is_active'] === 1): ?>
-                                                    <button type="submit" class="btn btn-sm btn-glass text-danger" title="Deactivate user">
-                                                        <i class="fa fa-ban"></i> Deactivate
-                                                    </button>
-                                                <?php else: ?>
-                                                    <button type="submit" class="btn btn-sm btn-glass text-emerald" title="Reactivate user">
-                                                        <i class="fa fa-check"></i> Reactivate
-                                                    </button>
-                                                <?php endif; ?>
-                                            </form>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="user_rows">
+                        <?= $this->include('settings/_users_rows') ?>
                     </tbody>
                 </table>
             </div>
@@ -86,7 +47,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-users me-2 text-indigo"></i> Add User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= base_url('settings/users/store') ?>" method="post">
+            <form action="<?= base_url('settings/users/store') ?>" method="post" class="js-ajax"
+                  data-title="Users" data-refresh="#user_rows" data-close-modal="#addUserModal"
+                  data-reset-on-success="1" data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -144,7 +107,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-edit me-2 text-indigo"></i> Edit User</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="edit_user_form" method="post">
+            <form id="edit_user_form" method="post" class="js-ajax"
+                  data-title="Users" data-refresh="#user_rows" data-close-modal="#editUserModal"
+                  data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">

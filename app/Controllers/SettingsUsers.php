@@ -33,15 +33,14 @@ class SettingsUsers extends BaseController
         try {
             $this->userManagementService->create($this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/users'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsUsers::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/users'))
-                ->with('error', 'The user could not be created. The issue has been logged.');
+            return $this->respond(false, 'The user could not be created. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/users'))->with('success', 'User created successfully.');
+        return $this->respond(true, 'User created successfully.');
     }
 
     public function getJson($id)
@@ -78,15 +77,14 @@ class SettingsUsers extends BaseController
         try {
             $this->userManagementService->update((int) $id, $this->request->getPost(), (int) session()->get('id'));
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/users'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[SettingsUsers::update] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('settings/users'))
-                ->with('error', 'The user could not be updated. The issue has been logged.');
+            return $this->respond(false, 'The user could not be updated. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('settings/users'))->with('success', 'User updated successfully.');
+        return $this->respond(true, 'User updated successfully.');
     }
 
     public function toggleActive($id)
@@ -98,9 +96,30 @@ class SettingsUsers extends BaseController
         try {
             $this->userManagementService->toggleActive((int) $id, (int) session()->get('id'));
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('settings/users'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('settings/users'))->with('success', 'User status updated.');
+        return $this->respond(true, 'User status updated.');
+    }
+
+    /**
+     * One reply for every POST on this screen.
+     *
+     * The rows travel with the reply so the table refreshes from the SAME
+     * partial the page was built with -- rendered only for an AJAX caller,
+     * since the redirect path is about to re-render the whole page anyway.
+     */
+    private function respond(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $extra['html'] = view('settings/_users_rows', [
+                'users'         => $this->userManagementService->getAll(),
+                'currentUserId' => (int) session()->get('id'),
+            ]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('settings/users'), $extra, $failStatus);
     }
 }

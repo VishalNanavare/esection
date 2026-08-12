@@ -41,34 +41,26 @@ class SettingsInstitute extends BaseController
                 ]
             );
         } catch (\InvalidArgumentException $e) {
-            return $this->failResponse($e->getMessage(), 422);
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/institute'));
         } catch (\Throwable $e) {
             log_message('error', '[SettingsInstitute::store] {message}', ['message' => (string) $e]);
 
-            return $this->failResponse('Institute details could not be saved. The issue has been logged.', 500);
+            // 500, not 422: this one is a fault we have logged a trace for, not
+            // something the operator can correct by editing the form.
+            return $this->respondToPost(
+                false,
+                'Institute details could not be saved. The issue has been logged.',
+                base_url('settings/institute'),
+                [],
+                500
+            );
         }
 
-        if ($this->request->isAJAX()) {
-            return $this->response->setJSON([
-                'status'  => 'success',
-                'message' => 'Institute details updated successfully.',
-                'data'    => $this->instituteDetailsService->getAll(),
-            ]);
-        }
-
-        return redirect()->to(base_url('settings/institute'))->with('success', 'Institute details updated successfully.');
-    }
-
-    /**
-     * Same failure, shaped for whichever caller sent the request -- a JSON
-     * error for the AJAX submit, or the usual flash+redirect otherwise.
-     */
-    private function failResponse(string $message, int $statusCode)
-    {
-        if ($this->request->isAJAX()) {
-            return $this->response->setStatusCode($statusCode)->setJSON(['status' => 'error', 'message' => $message]);
-        }
-
-        return redirect()->to(base_url('settings/institute'))->with('error', $message);
+        return $this->respondToPost(
+            true,
+            'Institute details updated successfully.',
+            base_url('settings/institute'),
+            ['data' => $this->instituteDetailsService->getAll()]
+        );
     }
 }

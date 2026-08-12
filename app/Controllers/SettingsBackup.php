@@ -169,30 +169,27 @@ class SettingsBackup extends BaseController
      */
     private function respond(bool $ok, string $message)
     {
+        // Only the payload is screen-specific now; the AJAX-vs-redirect
+        // decision itself lives on BaseController and is shared app-wide.
         if (! $this->request->isAJAX()) {
-            return redirect()->to(base_url('settings/backup'))
-                ->with($ok ? 'success' : 'error', $message);
+            return $this->respondToPost($ok, $message, base_url('settings/backup'));
         }
 
         $passwordConfigured = $this->backupPasswordService->isConfigured();
 
-        return $this->response
-            ->setStatusCode($ok ? 200 : 422)
-            ->setJSON([
-                'status'  => $ok ? 'success' : 'error',
-                'message' => $message,
-                'html'    => view('settings/_backup_history_rows', [
-                    'history' => $this->backupService->history(50),
-                ]),
-                'state'   => [
-                    'password_configured' => $passwordConfigured,
-                    'retention_count'     => $this->backupPasswordService->getRetentionCount(),
-                    // Both of these disable the "Backup now" button, and both
-                    // can change from this screen, so the client re-evaluates
-                    // rather than caching what the page was rendered with.
-                    'can_run_sql'         => $passwordConfigured && $this->backupPasswordService->isEncryptionAvailable(),
-                ],
-            ]);
+        return $this->respondToPost($ok, $message, base_url('settings/backup'), [
+            'html'  => view('settings/_backup_history_rows', [
+                'history' => $this->backupService->history(50),
+            ]),
+            'state' => [
+                'password_configured' => $passwordConfigured,
+                'retention_count'     => $this->backupPasswordService->getRetentionCount(),
+                // Both of these disable the "Backup now" button, and both
+                // can change from this screen, so the client re-evaluates
+                // rather than caching what the page was rendered with.
+                'can_run_sql'         => $passwordConfigured && $this->backupPasswordService->isEncryptionAvailable(),
+            ],
+        ]);
     }
 
     private function formatBytes(int $bytes): string

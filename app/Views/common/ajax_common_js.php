@@ -163,22 +163,43 @@
     }
 
     /**
-     * Keep a "select all" checkbox in sync with its rows, including the
-     * indeterminate state when only some rows are ticked.
+     * Refresh a "select all" checkbox from its rows, including the
+     * indeterminate state when only some are ticked.
+     *
+     * Split out of esBindCheckAll so it can be re-run after a table body is
+     * replaced by AJAX. Re-running esBindCheckAll itself would double-bind:
+     * it attaches to the master AND to document with no guard.
      */
-    function esBindCheckAll(masterSelector, rowSelector) {
+    function esSyncCheckAll(masterSelector, rowSelector) {
         var $master = $(masterSelector);
         if ($master.length === 0) {
             return;
         }
 
-        function sync() {
-            var $rows   = $(rowSelector);
-            var total   = $rows.length;
-            var checked = $rows.filter(':checked').length;
+        var $rows   = $(rowSelector);
+        var total   = $rows.length;
+        var checked = $rows.filter(':checked').length;
 
-            $master.prop('checked', total > 0 && checked === total);
-            $master.prop('indeterminate', checked > 0 && checked < total);
+        $master.prop('checked', total > 0 && checked === total);
+        $master.prop('indeterminate', checked > 0 && checked < total);
+    }
+
+    /**
+     * Keep a "select all" checkbox in sync with its rows.
+     *
+     * Safe to call twice: the binding is stamped on the master element, because
+     * the document-level row listener below would otherwise accumulate one
+     * duplicate per call.
+     */
+    function esBindCheckAll(masterSelector, rowSelector) {
+        var $master = $(masterSelector);
+        if ($master.length === 0 || $master.data('esCheckAllBound')) {
+            return;
+        }
+        $master.data('esCheckAllBound', true);
+
+        function sync() {
+            esSyncCheckAll(masterSelector, rowSelector);
         }
 
         $master.on('change', function () {
@@ -186,6 +207,7 @@
             sync();
         });
 
+        // Delegated, so rows that arrive from an AJAX refresh are covered too.
         $(document).on('change', rowSelector, sync);
         sync();
     }
@@ -227,12 +249,389 @@
         });
     }
 
+    // ------------------------------------------------------------------
+    // POST plumbing
+    //
+    // Every write in the app goes through esSubmitForm. The forms keep their
+    // real action/method, and every controller keeps a redirect-with-flash
+    // branch, so if this file fails to load the whole app still works -- it
+    // just reloads on each save, exactly as it used to.
+    // ------------------------------------------------------------------
+
+    var CSRF_HASH = <?= json_encode(csrf_hash(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+
+    // nginx closes a FastCGI read at 600s. Sitting just past that means a
+    // stalled request surfaces as our own "outcome unknown" message rather
+    // than hanging on a spinner forever.
+    var REQUEST_TIMEOUT_MS = 620000;
+
+    // How long before the blocking dialog offers a way out. Twelve vhosts share
+    // one php-cgi worker here, so a trivial save CAN sit behind someone else's
+    // bulk send; without this the operator is stuck behind a modal with no Esc,
+    // no outside-click and no cancel, and closing the tab is their only exit.
+    var PROCESSING_ESCAPE_MS = 8000;
+
+    // Whether the dialog on screen is OURS. Tracked with a flag rather than
+    // asking SweetAlert, so this never depends on which of its introspection
+    // helpers are public in a given release -- and so a toast that has already
+    // replaced the dialog is never mistaken for it.
+    var processingOpen  = false;
+    var processingTimer = null;
+
+    /** Blocking "working on it" dialog, for actions slow enough to look frozen. */
+    function showProcessing(title, text) {
+        if (!window.Swal) {
+            return;
+        }
+
+        processingOpen = true;
+
+        window.Swal.fire({
+            title: title,
+            text: text,
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: function () {
+                window.Swal.showLoading();
+            }
+        });
+
+        // allowEscapeKey/allowOutsideClick are not updatable in SweetAlert2, so
+        // the escape hatch has to be a fresh dialog rather than an update. The
+        // spinner moves into the body because showLoading() occupies the very
+        // button we now need.
+        processingTimer = window.setTimeout(function () {
+            if (!processingOpen) {
+                return;
+            }
+
+            window.Swal.fire({
+                title: title,
+                html: '<div class="mb-3"><i class="fa fa-spinner fa-spin fa-2x text-muted"></i></div>'
+                    + '<div>' + esEscapeHtml(text || '') + '</div>'
+                    + '<p class="small text-muted mt-3 mb-0">This is taking longer than usual, most likely because the server is busy. '
+                    + 'You can close this message &mdash; the action will still finish.</p>',
+                allowOutsideClick: true,
+                allowEscapeKey: true,
+                showConfirmButton: true,
+                confirmButtonText: 'Close'
+            }).then(function () {
+                // Dismissed by the operator: stop claiming the dialog is ours,
+                // so a later closeProcessing() cannot dismiss something else.
+                processingOpen = false;
+            });
+        }, PROCESSING_ESCAPE_MS);
+    }
+
+    /** Dismiss the processing dialog, but only if it is still what is on screen. */
+    function closeProcessing() {
+        if (processingTimer) {
+            window.clearTimeout(processingTimer);
+            processingTimer = null;
+        }
+
+        if (window.Swal && processingOpen) {
+            window.Swal.close();
+        }
+
+        processingOpen = false;
+    }
+
+    /**
+     * Blocking error, mirroring the flash renderer in layouts/app.php.
+     *
+     * Deliberately NOT esNotify: a server-rendered error flash has an OK button
+     * and no timer, while esNotify is a three-second corner toast. Routing
+     * business rules ("You cannot demote your own account while logged in.")
+     * through a toast puts the explanation in the corner while the operator is
+     * looking at the modal they submitted from, and it is gone before they
+     * turn their head.
+     */
+    function esBlockingError(title, text) {
+        if (!window.Swal) {
+            (window.console || {}).log && console.log('[error] ' + title + ' ' + (text || ''));
+            return;
+        }
+
+        window.Swal.fire({
+            icon: 'error',
+            title: title || 'Error',
+            text: text,
+            confirmButtonText: 'OK'
+        });
+    }
+
+    /**
+     * The outcome genuinely is not known.
+     *
+     * Past 600s nginx returns a 504 while PHP keeps running to completion --
+     * the app never emits output mid-request, so it never notices the aborted
+     * connection. Reporting that as a failure is how an operator ends up
+     * re-sending a batch of emails that were in fact still going out.
+     */
+    function esUnknownOutcome(opts) {
+        opts = opts || {};
+
+        if (!window.Swal) {
+            return;
+        }
+
+        window.Swal.fire({
+            icon: 'warning',
+            title: opts.title || 'Outcome unknown',
+            text: opts.text || 'The server took longer than it allows for one request. The action may still be running -- please check before trying again.',
+            confirmButtonText: opts.linkUrl ? (opts.linkText || 'Check now') : 'OK'
+        }).then(function (result) {
+            if (opts.linkUrl && result && result.isConfirmed) {
+                window.location.href = opts.linkUrl;
+            }
+        });
+    }
+
+    /**
+     * POST a form over AJAX.
+     *
+     * @param {jQuery} $form
+     * @param {object=} opts
+     *   title          heading for the success toast / error dialog
+     *   busy           { button, title, text } -- a `title` opts IN to the blocking dialog
+     *   data           overrides $form.serialize()
+     *   keepQuery      append window.location.search to the action
+     *   onResponse     fn(res, $form) run on success AND on a message-bearing 4xx,
+     *                  because a failure can still have changed the table
+     *   onSuccess      fn(res, $form) success only
+     *   unknownOutcome { title, text, linkUrl, linkText } for the 502/503/504 path
+     */
+    function esSubmitForm($form, opts) {
+        opts = opts || {};
+
+        var busy         = opts.busy || {};
+        var $btn         = $form.find('[type="submit"]').first();
+        var originalHtml = $btn.html();
+        var context      = opts.context || 'The action could not be completed';
+
+        $btn.prop('disabled', true);
+        if (busy.button) {
+            $btn.html('<i class="fa fa-spinner fa-spin me-1"></i> ' + esEscapeHtml(busy.button));
+        }
+
+        // Both indicators where the dialog is used, deliberately: the dialog is
+        // what the operator actually notices, and the button state is what
+        // remains correct if SweetAlert failed to load.
+        if (busy.title) {
+            showProcessing(busy.title, busy.text);
+        }
+
+        var url = opts.url || $form.attr('action');
+        if (opts.keepQuery && window.location.search) {
+            url += (url.indexOf('?') === -1 ? '?' : '&') + window.location.search.replace(/^\?/, '');
+        }
+
+        function restore() {
+            closeProcessing();
+            $btn.prop('disabled', false);
+            if (busy.button) {
+                $btn.html(originalHtml);
+            }
+        }
+
+        return $.ajax({
+            url: url,
+            type: 'POST',
+            data: opts.data !== undefined ? opts.data : $form.serialize(),
+            dataType: 'json',
+            timeout: REQUEST_TIMEOUT_MS,
+            // Marks the request as AJAX for CodeIgniter's isAJAX(), which is
+            // what makes the controller answer with JSON instead of a redirect.
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': CSRF_HASH }
+        }).done(function (res) {
+            // Close BEFORE esNotify. esNotify is itself a SweetAlert (a toast),
+            // so closing afterwards would dismiss the very message it is meant
+            // to show. This is why the close does not live in .always(), which
+            // jQuery runs after done/fail.
+            restore();
+
+            if (typeof opts.onResponse === 'function') {
+                opts.onResponse(res, $form);
+            }
+
+            esNotify('success', opts.title || 'Saved', res.message || 'Done.');
+
+            if (typeof opts.onSuccess === 'function') {
+                opts.onSuccess(res, $form);
+            }
+        }).fail(function (xhr, textStatus) {
+            // Gateway and timeout FIRST, and the button is deliberately left
+            // disabled afterwards: we do not know whether the work happened, so
+            // re-arming the control invites a duplicate.
+            if (textStatus === 'timeout' || xhr.status === 502 || xhr.status === 503 || xhr.status === 504) {
+                closeProcessing();
+                esUnknownOutcome(opts.unknownOutcome);
+                return;
+            }
+
+            restore();
+
+            // Status BEFORE body. AuthFilter's 401 envelope carries a `message`
+            // key of its own, so testing the body first would show "session
+            // expired" as a warning toast and never send the operator to login.
+            if (xhr.status === 0 || xhr.status === 401 || xhr.status === 403) {
+                esAjaxError(xhr, context);
+                return;
+            }
+
+            var res = xhr.responseJSON;
+
+            if (res && res.message) {
+                // A 422 is a real, expected outcome and its text is written for
+                // the operator -- so show it, and still repaint, because the
+                // table may have changed even on a failure.
+                if (typeof opts.onResponse === 'function') {
+                    opts.onResponse(res, $form);
+                }
+
+                esBlockingError(opts.title || 'Error', res.message);
+                return;
+            }
+
+            esAjaxError(xhr, context);
+        });
+    }
+
+    /**
+     * Apply the standard data-* reactions to a response.
+     *
+     * data-refresh is either a plain selector (swapped with res.html) or a JSON
+     * map of selector -> payload key, for screens whose POST changes several
+     * regions that are not contiguous in the DOM.
+     */
+    function esApplyFormResult($form, res) {
+        var spec = $form.attr('data-refresh');
+
+        if (spec) {
+            if (spec.charAt(0) === '{') {
+                var map = JSON.parse(spec);
+                Object.keys(map).forEach(function (selector) {
+                    if (res[map[selector]] !== undefined) {
+                        $(selector).html(res[map[selector]]);
+                    }
+                });
+            } else if (res.html !== undefined) {
+                $(spec).html(res.html);
+            }
+
+            // Rows can arrive carrying date fields; this is guarded per input,
+            // so re-running it is free.
+            esInitDatePickers();
+        }
+    }
+
+    /**
+     * Declarative binding, delegated on document so it survives the table body
+     * being replaced.
+     */
+    $(document).on('submit', 'form.js-ajax', function (e) {
+        var form  = this;
+        var $form = $(form);
+
+        // A form that still carries its own direct submit binding must never
+        // also be driven from here. preventDefault() in that handler does not
+        // stop propagation, so both would run: the direct one opens "Are you
+        // sure?" while this one has already sent the request.
+        if (form.dataset.esOwnHandler) {
+            return;
+        }
+
+        // A native target="_blank" submit is a navigation the browser cannot
+        // block; an XHR here would receive a document where it expects JSON.
+        if (form.target && form.target !== '_self') {
+            return;
+        }
+
+        // The exclusion can live on the submitter rather than the form --
+        // settings/letter_templates' Preview button carries formaction +
+        // formtarget while the form itself has no target at all.
+        var submitter = e.originalEvent && e.originalEvent.submitter;
+        if (submitter && (submitter.hasAttribute('formaction') || submitter.hasAttribute('formtarget'))) {
+            return;
+        }
+
+        e.preventDefault();
+
+        var d = form.dataset;
+
+        var run = function () {
+            esSubmitForm($form, {
+                title: d.title || 'Saved',
+                busy: {
+                    button: d.busyButton || 'Working...',
+                    title:  d.busyTitle,
+                    text:   d.busyText
+                },
+                keepQuery: d.keepQuery === '1',
+                onResponse: esApplyFormResult,
+                onSuccess: function (res) {
+                    if (d.closeModal && window.bootstrap) {
+                        var el = document.querySelector(d.closeModal);
+                        if (el) {
+                            var modal = window.bootstrap.Modal.getInstance(el);
+                            if (modal) { modal.hide(); }
+                        }
+                    }
+
+                    if (d.clearOnSuccess) {
+                        $form.find(d.clearOnSuccess).val('');
+                    }
+
+                    // "Add" forms live in a modal and are cleared today only by
+                    // the page reload. reset() restores the markup defaults --
+                    // which for a checkbox list means its `checked` attributes,
+                    // not "everything off".
+                    if (d.resetOnSuccess) {
+                        form.reset();
+                    }
+
+                    if (res.redirect_url) {
+                        window.location.href = res.redirect_url;
+                    }
+                }
+            });
+        };
+
+        if (d.confirmTitle && window.Swal) {
+            window.Swal.fire({
+                title: d.confirmTitle,
+                text: d.confirmText,
+                icon: d.confirmIcon || 'warning',
+                showCancelButton: true,
+                focusCancel: true,
+                confirmButtonText: d.confirmButton || 'Yes, continue',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (result && result.isConfirmed) {
+                    run();
+                }
+            });
+            return;
+        }
+
+        run();
+    });
+
     window.esEscapeHtml  = esEscapeHtml;
     window.esNotify      = esNotify;
     window.esAjaxError   = esAjaxError;
     window.esAjaxSelect  = esAjaxSelect;
     window.esBindCheckAll = esBindCheckAll;
+    window.esSyncCheckAll = esSyncCheckAll;
     window.esInitDatePickers = esInitDatePickers;
+    window.esSubmitForm  = esSubmitForm;
+    window.esApplyFormResult = esApplyFormResult;
+    window.esBlockingError = esBlockingError;
+    window.esUnknownOutcome = esUnknownOutcome;
+    window.esShowProcessing = showProcessing;
+    window.esCloseProcessing = closeProcessing;
 
     $(function () { esInitDatePickers(); });
 })(window, jQuery);

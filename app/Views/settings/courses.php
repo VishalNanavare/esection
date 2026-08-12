@@ -28,44 +28,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($courses)): ?>
-                            <tr>
-                                <td colspan="5" class="text-center text-muted py-4">No courses recorded yet.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php $sr = 1; foreach ($courses as $c): ?>
-                                <tr class="course-row" data-id="<?= esc($c['id']) ?>" data-name="<?= esc($c['name']) ?>" data-code="<?= esc($c['code']) ?>">
-                                    <td class="fw-semibold text-muted"><?= $sr++ ?></td>
-                                    <td class="fw-bold text-dark"><?= esc($c['name']) ?></td>
-                                    <td class="small text-muted"><?= esc($c['code'] ?: '-') ?></td>
-                                    <td>
-                                        <?php if ((int) $c['is_active'] === 1): ?>
-                                            <span class="badge badge-glass-emerald"><i class="fa fa-check-circle me-1"></i> Active</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-glass-amber">Inactive</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-end">
-                                        <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-course-btn" data-id="<?= $c['id'] ?>">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </button>
-                                        <form action="<?= base_url('settings/courses/toggleActive/' . $c['id']) ?>" method="post" class="d-inline">
-                                            <?= csrf_field() ?>
-                                            <?php if ((int) $c['is_active'] === 1): ?>
-                                                <button type="submit" class="btn btn-sm btn-glass text-danger" title="Deactivate course">
-                                                    <i class="fa fa-ban"></i> Deactivate
-                                                </button>
-                                            <?php else: ?>
-                                                <button type="submit" class="btn btn-sm btn-glass text-emerald" title="Reactivate course">
-                                                    <i class="fa fa-check"></i> Reactivate
-                                                </button>
-                                            <?php endif; ?>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="course_rows">
+                        <?= $this->include('settings/_courses_rows') ?>
                     </tbody>
                 </table>
             </div>
@@ -81,7 +45,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-graduation-cap me-2 text-indigo"></i> Add Course</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= base_url('settings/courses/store') ?>" method="post">
+            <form action="<?= base_url('settings/courses/store') ?>" method="post" class="js-ajax"
+                  data-title="Courses" data-refresh="#course_rows" data-close-modal="#addCourseModal"
+                  data-reset-on-success="1" data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -112,7 +78,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-edit me-2 text-indigo"></i> Edit Course</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="edit_course_form" method="post">
+            <form id="edit_course_form" method="post" class="js-ajax"
+                  data-title="Courses" data-refresh="#course_rows" data-close-modal="#editCourseModal"
+                  data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">

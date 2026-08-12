@@ -32,29 +32,19 @@ class SettingsAccessRights extends BaseController
                 (int) session()->get('id')
             );
         } catch (\InvalidArgumentException $e) {
-            return $this->failResponse($e->getMessage(), 422);
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/access-rights'));
         } catch (\Throwable $e) {
             log_message('error', '[SettingsAccessRights::store] {message}', ['message' => (string) $e]);
 
-            return $this->failResponse('Access rights could not be saved. The issue has been logged.', 500);
+            return $this->respondToPost(
+                false,
+                'Access rights could not be saved. The issue has been logged.',
+                base_url('settings/access-rights'),
+                [],
+                500
+            );
         }
 
-        if ($this->request->isAJAX()) {
-            return $this->response->setJSON([
-                'status'  => 'success',
-                'message' => 'Access rights updated successfully.',
-            ]);
-        }
-
-        return redirect()->to(base_url('settings/access-rights'))->with('success', 'Access rights updated successfully.');
-    }
-
-    private function failResponse(string $message, int $statusCode)
-    {
-        if ($this->request->isAJAX()) {
-            return $this->response->setStatusCode($statusCode)->setJSON(['status' => 'error', 'message' => $message]);
-        }
-
-        return redirect()->to(base_url('settings/access-rights'))->with('error', $message);
+        return $this->respondToPost(true, 'Access rights updated successfully.', base_url('settings/access-rights'));
     }
 }

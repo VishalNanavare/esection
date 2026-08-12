@@ -41,22 +41,25 @@ class SettingsLetterTemplates extends BaseController
         try {
             $this->letterTemplateService->save($slug, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return $this->failResponse($e->getMessage(), 422);
+            return $this->respondToPost(false, $e->getMessage(), base_url('settings/letter-templates'));
         } catch (\Throwable $e) {
             log_message('error', '[SettingsLetterTemplates::store] {message}', ['message' => (string) $e]);
 
-            return $this->failResponse('The template could not be saved. The issue has been logged.', 500);
+            return $this->respondToPost(
+                false,
+                'The template could not be saved. The issue has been logged.',
+                base_url('settings/letter-templates'),
+                [],
+                500
+            );
         }
 
-        if ($this->request->isAJAX()) {
-            return $this->response->setJSON([
-                'status'  => 'success',
-                'message' => 'Letter template updated successfully.',
-                'data'    => $this->letterTemplateService->getFields($slug),
-            ]);
-        }
-
-        return redirect()->to(base_url('settings/letter-templates'))->with('success', 'Letter template updated successfully.');
+        return $this->respondToPost(
+            true,
+            'Letter template updated successfully.',
+            base_url('settings/letter-templates'),
+            ['data' => $this->letterTemplateService->getFields($slug)]
+        );
     }
 
     public function storeFooter()
@@ -66,18 +69,21 @@ class SettingsLetterTemplates extends BaseController
         } catch (\Throwable $e) {
             log_message('error', '[SettingsLetterTemplates::storeFooter] {message}', ['message' => (string) $e]);
 
-            return $this->failResponse('The footer could not be saved. The issue has been logged.', 500);
+            return $this->respondToPost(
+                false,
+                'The footer could not be saved. The issue has been logged.',
+                base_url('settings/letter-templates'),
+                [],
+                500
+            );
         }
 
-        if ($this->request->isAJAX()) {
-            return $this->response->setJSON([
-                'status'  => 'success',
-                'message' => 'Footer updated successfully.',
-                'data'    => ['footer_department' => $this->letterTemplateService->getFooterDepartment()],
-            ]);
-        }
-
-        return redirect()->to(base_url('settings/letter-templates'))->with('success', 'Footer updated successfully.');
+        return $this->respondToPost(
+            true,
+            'Footer updated successfully.',
+            base_url('settings/letter-templates'),
+            ['data' => ['footer_department' => $this->letterTemplateService->getFooterDepartment()]]
+        );
     }
 
     /**
@@ -222,12 +228,4 @@ class SettingsLetterTemplates extends BaseController
         };
     }
 
-    private function failResponse(string $message, int $statusCode)
-    {
-        if ($this->request->isAJAX()) {
-            return $this->response->setStatusCode($statusCode)->setJSON(['status' => 'error', 'message' => $message]);
-        }
-
-        return redirect()->to(base_url('settings/letter-templates'))->with('error', $message);
-    }
 }

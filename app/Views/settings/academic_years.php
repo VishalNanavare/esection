@@ -29,51 +29,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($years)): ?>
-                            <tr>
-                                <td colspan="6" class="text-center text-muted py-4">No academic years recorded yet.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php $sr = 1; foreach ($years as $y): ?>
-                                <tr class="year-row" data-id="<?= esc($y['id']) ?>" data-label="<?= esc($y['year_label']) ?>"
-                                    data-start="<?= esc($y['start_date']) ?>" data-end="<?= esc($y['end_date']) ?>"
-                                    data-current="<?= (int) $y['is_current'] ?>">
-                                    <td class="fw-semibold text-muted"><?= $sr++ ?></td>
-                                    <td class="fw-bold text-dark"><?= esc($y['year_label']) ?></td>
-                                    <td class="small text-muted"><?= esc($y['start_date'] ?: '-') ?></td>
-                                    <td class="small text-muted"><?= esc($y['end_date'] ?: '-') ?></td>
-                                    <td>
-                                        <?php if ((int) $y['is_current'] === 1): ?>
-                                            <span class="badge badge-glass-emerald"><i class="fa fa-check-circle me-1"></i> Current</span>
-                                        <?php else: ?>
-                                            <span class="badge badge-glass-indigo">Archived</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-end">
-                                        <?php if ((int) $y['is_current'] !== 1): ?>
-                                            <form action="<?= base_url('settings/academic-years/setCurrent/' . $y['id']) ?>" method="post" class="d-inline">
-                                                <?= csrf_field() ?>
-                                                <button type="submit" class="btn btn-sm btn-glass text-emerald me-1" title="Mark as current year">
-                                                    <i class="fa fa-check"></i> Set Current
-                                                </button>
-                                            </form>
-                                        <?php endif; ?>
-                                        <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-year-btn" data-id="<?= $y['id'] ?>">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </button>
-                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
-                                        <form action="<?= base_url('settings/academic-years/delete/' . $y['id']) ?>" method="post" class="d-inline delete-year-form" data-name="<?= esc($y['year_label']) ?>">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete academic year">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </form>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="academic_year_rows">
+                        <?= $this->include('settings/_academic_years_rows') ?>
                     </tbody>
                 </table>
             </div>
@@ -89,7 +46,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-calendar me-2 text-indigo"></i> Add Academic Year</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= base_url('settings/academic-years/store') ?>" method="post">
+            <form action="<?= base_url('settings/academic-years/store') ?>" method="post" class="js-ajax"
+                  data-title="Academic Years" data-refresh="#academic_year_rows" data-close-modal="#addYearModal"
+                  data-reset-on-success="1" data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -128,7 +87,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-edit me-2 text-indigo"></i> Edit Academic Year</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="edit_year_form" method="post">
+            <form id="edit_year_form" method="post" class="js-ajax"
+                  data-title="Academic Years" data-refresh="#academic_year_rows" data-close-modal="#editYearModal"
+                  data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">
