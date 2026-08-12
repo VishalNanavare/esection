@@ -67,41 +67,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($colleges)): ?>
-                            <tr>
-                                <td colspan="8" class="text-center text-muted py-4">No universities recorded in database.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php $sr = 1; foreach ($colleges as $c): ?>
-                                <tr class="uni-row" data-id="<?= esc($c['id']) ?>" data-state="<?= esc($c['States']) ?>" data-name="<?= esc($c['Name']) ?>">
-                                    <td class="fw-semibold text-muted"><?= $sr++ ?></td>
-                                    <td class="fw-bold text-dark fs-6"><?= esc($c['Name']) ?></td>
-                                    <td><span class="badge badge-glass-indigo"><?= esc($c['States']) ?></span></td>
-                                    <td><?= esc($c['head_name'] ?: 'The Controller of Examinations') ?></td>
-                                    <td class="fw-semibold text-emerald"><?= format_currency($c['fees']) ?></td>
-                                    <td class="small text-muted"><?= esc($c['in_favour_of'] ?: '-') ?></td>
-                                    <td><?= render_status_badge((int) ($c['is_active'] ?? 1) === 1 ? 'active' : 'inactive') ?></td>
-                                    <td class="text-end">
-                                        <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-uni-btn" data-id="<?= $c['id'] ?>">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </button>
-                                        <form action="<?= base_url('universities/toggleActive/' . $c['id']) ?>" method="post" class="d-inline">
-                                            <?= csrf_field() ?>
-                                            <?php if ((int) ($c['is_active'] ?? 1) === 1): ?>
-                                                <button type="submit" class="btn btn-sm btn-glass text-danger" title="Deactivate university">
-                                                    <i class="fa fa-ban"></i> Deactivate
-                                                </button>
-                                            <?php else: ?>
-                                                <button type="submit" class="btn btn-sm btn-glass text-emerald" title="Reactivate university">
-                                                    <i class="fa fa-check"></i> Reactivate
-                                                </button>
-                                            <?php endif; ?>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="university_rows">
+                        <?= $this->include('universities/_rows') ?>
                     </tbody>
                 </table>
             </div>
@@ -117,7 +84,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-university me-2 text-indigo"></i> Add Target University Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="<?= base_url('universities/store') ?>" method="post">
+            <form action="<?= base_url('universities/store') ?>" method="post" class="js-ajax"
+                  data-title="Universities" data-refresh="#university_rows" data-close-modal="#addUniversityModal"
+                  data-reset-on-success="1" data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">
@@ -175,7 +144,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-edit me-2 text-indigo"></i> Edit University Details</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="edit_university_form" method="post">
+            <form id="edit_university_form" method="post" class="js-ajax"
+                  data-title="Universities" data-refresh="#university_rows" data-close-modal="#editUniversityModal"
+                  data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">

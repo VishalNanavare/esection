@@ -524,6 +524,12 @@
             // Rows can arrive carrying date fields; this is guarded per input,
             // so re-running it is free.
             esInitDatePickers();
+
+            // Anything that derives from the rows themselves -- a client-side
+            // filter, a "showing N of M" counter, a select-all checkbox -- has
+            // just been invalidated. Screens with such state listen for this
+            // rather than each one re-implementing a post-swap hook.
+            $(document).trigger('es:refreshed', [$form, res]);
         }
     }
 

@@ -20,10 +20,15 @@ $(document).ready(function () {
     // exactly what /api/colleges returns as results[].id, so the brittle
     // "strip the (State) suffix" regex is gone too -- that regex also
     // mangled any university with parentheses in its own name.
-    var $rows      = $('.uni-row');
+    // Looked up live on every call, NOT cached at ready time. #university_rows
+    // is replaced wholesale by every AJAX save, so a snapshot taken here would
+    // point at detached nodes from then on: the filter would toggle rows that
+    // are no longer in the document and the counter would report against the
+    // old row count ("Showing 0 of 47").
     var $countNote = $('#filter_count');
 
     function applyFilter() {
+        var $rows = $('.uni-row');
         var state = $('#state_filter').val() || '';
         var uniId = $('#university_name_filter').val() || '';
         var shown = 0;
@@ -61,8 +66,14 @@ $(document).ready(function () {
 
     applyFilter();
 
+    // The counter and the "no matches" note are computed from the DOM, not
+    // rendered server-side, so they stay stale after a row swap unless the
+    // filter is re-run against the new rows.
+    $(document).on('es:refreshed', applyFilter);
+
     // --- Edit modal --------------------------------------------------------
-    $('.edit-uni-btn').on('click', function () {
+    // Delegated: these buttons live inside #university_rows.
+    $(document).on('click', '.edit-uni-btn', function () {
         var id = $(this).data('id');
 
         $.ajax({

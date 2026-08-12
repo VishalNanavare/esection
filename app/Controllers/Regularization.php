@@ -118,10 +118,10 @@ class Regularization extends BaseController
         try {
             $this->regularizationService->update((int) $id, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('regularization/history'))->with('error', $e->getMessage());
+            return $this->respondForHistory(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('regularization/history'))->with('success', 'Regularization letter updated.');
+        return $this->respondForHistory(true, 'Regularization letter updated.');
     }
 
     /** Reprint an existing letter -- mirrors esection_basic's config/reg_pdf.php. */
@@ -146,9 +146,23 @@ class Regularization extends BaseController
         try {
             $this->regularizationService->delete((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('regularization/history'))->with('error', $e->getMessage());
+            return $this->respondForHistory(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('regularization/history'))->with('success', 'Regularization letter deleted.');
+        return $this->respondForHistory(true, 'Regularization letter deleted.');
+    }
+
+    /** One reply for the two history POSTs -- see SettingsUsers::respond(). */
+    private function respondForHistory(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $extra['html'] = view('regularization/_history_rows', [
+                'records' => $this->regularizationService->getAll(),
+            ]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('regularization/history'), $extra, $failStatus);
     }
 }

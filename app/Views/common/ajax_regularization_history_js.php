@@ -1,7 +1,8 @@
 <script>
 $(document).ready(function () {
     // --- Edit modal ---------------------------------------------------------
-    $('.edit-reg-btn').on('click', function () {
+    // Delegated: these buttons live inside #regularization_rows.
+    $(document).on('click', '.edit-reg-btn', function () {
         var id = $(this).data('id');
 
         $.ajax({
@@ -32,29 +33,12 @@ $(document).ready(function () {
     });
 
     // --- Delete confirm -------------------------------------------------------
-    $('.delete-reg-form').on('submit', function (e) {
-        var form = this;
-
-        if (form.dataset.esConfirmed === '1' || !window.Swal) {
-            return true;
-        }
-
-        e.preventDefault();
-
-        Swal.fire({
-            title: 'Delete this letter permanently?',
-            text: (form.dataset.name || 'This record') + ' will be permanently removed. This cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            focusCancel: true,
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result && result.isConfirmed) {
-                form.dataset.esConfirmed = '1';
-                form.submit();
-            }
-        });
-    });
+    // Declared on the form itself now, handled by the shared delegated handler
+    // in ajax_common_js.php. The binding that used to live here ended in
+    // `form.submit()`, which dispatches NO submit event (jQuery has no
+    // special-event hook for submit and does not patch
+    // HTMLFormElement.prototype.submit) -- so a delegated AJAX handler could
+    // never have observed it, and keeping both would have sent the delete while
+    // the "Are you sure?" dialog was still on screen.
 });
 </script>

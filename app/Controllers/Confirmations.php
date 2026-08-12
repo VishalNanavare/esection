@@ -115,18 +115,60 @@ class Confirmations extends BaseController
                 $message .= " {$res['skipped']} already had a confirmation and were skipped.";
             }
 
-            return redirect()->to(base_url('confirmations'))->with('success', $message);
+            return $this->respondForPending(true, $message);
         } catch (\InvalidArgumentException $e) {
             // Our own validation text -- safe and useful to show the operator.
-            return redirect()->to(base_url('confirmations'))->with('error', $e->getMessage());
+            return $this->respondForPending(false, $e->getMessage());
         } catch (\Throwable $e) {
             // Anything else (DatabaseException, etc.) may carry SQL fragments,
             // column names or file paths. Log it; show the user a fixed string.
             log_message('error', '[Confirmations::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('confirmations'))
-                ->with('error', 'The confirmation could not be saved. The issue has been logged.');
+            return $this->respondForPending(
+                false,
+                'The confirmation could not be saved. The issue has been logged.',
+                500
+            );
         }
+    }
+
+    /**
+     * Reply for the pending-list POST.
+     *
+     * Re-renders the SAME slice the operator was looking at, from the filters
+     * their form carried on the query string. Note the deliberate difference
+     * from the old behaviour: this used to redirect to the bare /confirmations
+     * URL, which threw the filters away and returned them to page 1 of the full
+     * backlog. Keeping their place is the point of the change and is recorded
+     * as an accepted divergence.
+     *
+     * setPath() is not optional. The Pager builds its hrefs from the CURRENT
+     * request URI, so on a POST to /confirmations/store?year=X&page=2 every page
+     * link would come back pointing at /confirmations/store -- a POST-only route
+     * that 404s the moment the operator clicks "3".
+     */
+    private function respondForPending(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $selectedYear   = trim((string) ($this->request->getGet('year') ?? ''));
+            $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
+
+            $students = $this->studentModel->getStudentsForConfirmation($selectedYear, $selectedStream);
+            $pager    = $this->studentModel->pager;
+
+            if ($pager !== null) {
+                $pager->setPath('confirmations');
+            }
+
+            $extra['html'] = view('confirmations/_pending_region', [
+                'students' => $students,
+                'pager'    => $pager,
+            ]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('confirmations'), $extra, $failStatus);
     }
 
     /**
@@ -270,12 +312,49 @@ class Confirmations extends BaseController
     /** Mirrors esection_basic's config/stud-delete.php `?r=` branch. */
     public function delete($id)
     {
+        // Read the batch before the row disappears -- afterwards there is
+        // nothing left to derive it from, and the reply has to carry that
+        // batch's remaining rows.
+        $existing   = $this->confirmationService->getConfirmationById((int) $id);
+        $arraySpace = isset($existing['array_space']) ? (int) $existing['array_space'] : null;
+
         try {
             $this->confirmationService->deleteConfirmation((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->respondForBatch(false, $e->getMessage(), $arraySpace);
         }
 
-        return redirect()->back()->with('success', 'Confirmation record deleted.');
+        return $this->respondForBatch(true, 'Confirmation record deleted.', $arraySpace);
+    }
+
+    /**
+     * Reply for the batch-detail delete.
+     *
+     * Fallback stays redirect()->back() (null) so a no-JavaScript operator
+     * returns to the batch they were in, query string intact.
+     *
+     * `remaining` lets the client leave a batch it has just emptied:
+     * batchDetail() has no emptiness guard, so the page would otherwise keep
+     * rendering for a batch that no longer exists.
+     */
+    private function respondForBatch(bool $ok, string $message, ?int $arraySpace)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX() && $arraySpace !== null) {
+            $records = $this->confirmationService->getBatchDetail($arraySpace);
+
+            $extra = [
+                'html' => view('confirmations/_batch_rows', [
+                    'records' => $records,
+                    // Deliberately 0: the deep-link highlight belongs to the
+                    // arrival from confirmations/index, not to a later refresh.
+                    'highlightId' => 0,
+                ]),
+                'remaining' => count($records),
+            ];
+        }
+
+        return $this->respondToPost($ok, $message, null, $extra);
     }
 }

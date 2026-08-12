@@ -29,36 +29,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($students)): ?>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No candidates in this batch.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php $i = 1; foreach ($students as $s): ?>
-                                <tr>
-                                    <td class="fw-semibold text-muted"><?= $i++ ?></td>
-                                    <td class="fw-bold text-dark"><?= esc($s['student_name']) ?></td>
-                                    <td><?= esc($s['student_nee_name']) ?></td>
-                                    <td><span class="badge badge-glass-indigo"><?= esc($s['eligibility_case_no']) ?></span></td>
-                                    <td class="small text-muted"><?= esc($s['verification_of_marksheet_done_by_you']) ?></td>
-                                    <td class="small text-muted"><?= esc($s['email'] ?: '-') ?></td>
-                                    <td class="text-end">
-                                        <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-student-btn" data-id="<?= $s['id'] ?>">
-                                            <i class="fa fa-edit"></i> Edit
-                                        </button>
-                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
-                                        <form action="<?= base_url('students/delete/' . $s['id']) ?>" method="post" class="d-inline delete-student-form" data-name="<?= esc($s['student_name']) ?>">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete permanently">
-                                                <i class="fa fa-trash"></i> Delete
-                                            </button>
-                                        </form>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="batch_student_rows">
+                        <?= $this->include('students/_batch_rows') ?>
                     </tbody>
                 </table>
             </div>
@@ -74,7 +46,9 @@
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-edit me-2 text-indigo"></i> Edit Candidate</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form id="edit_student_form" method="post">
+            <form id="edit_student_form" method="post" class="js-ajax"
+                  data-title="Candidates" data-refresh="#batch_student_rows" data-close-modal="#editStudentModal"
+                  data-busy-button="Saving...">
                 <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row g-3">

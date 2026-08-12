@@ -288,24 +288,61 @@ class Students extends BaseController
     /** Mirrors esection_basic's update_new_form.php -> config/stud_update_data.php (only 4 fields are editable there too). */
     public function update($id)
     {
+        // Read before the write so the batch is known even if the update throws.
+        $existing = $this->studentService->getStudentById((int) $id);
+
         try {
             $this->studentService->updateStudent((int) $id, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->respondForBatch(false, $e->getMessage(), $existing['array_space'] ?? null);
         }
 
-        return redirect()->back()->with('success', 'Candidate updated.');
+        return $this->respondForBatch(true, 'Candidate updated.', $existing['array_space'] ?? null);
     }
 
     /** Hard delete -- mirrors esection_basic's config/stud-delete.php `?q=` branch. */
     public function delete($id)
     {
+        // The row is about to disappear, so its batch has to be read first --
+        // afterwards there is nothing left to derive it from.
+        $existing   = $this->studentService->getStudentById((int) $id);
+        $arraySpace = $existing['array_space'] ?? null;
+
         try {
             $this->studentService->deleteStudent((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->back()->with('error', $e->getMessage());
+            return $this->respondForBatch(false, $e->getMessage(), $arraySpace);
         }
 
-        return redirect()->back()->with('success', 'Candidate deleted.');
+        return $this->respondForBatch(true, 'Candidate deleted.', $arraySpace);
+    }
+
+    /**
+     * Reply for the two batch-detail POSTs.
+     *
+     * The fallback stays redirect()->back() (null): this page is reached from
+     * the history list and CodeIgniter stores _ci_previous_url with its query
+     * string, so a fixed URL would strand a no-JavaScript operator away from
+     * the batch they were working in.
+     *
+     * `remaining` is what lets the client leave a batch it has just emptied.
+     * batchDetail() has no emptiness guard, so a page for a deleted batch still
+     * renders -- with PDF buttons that return a bare text string rather than a
+     * document. A full reload used to make that invisible.
+     */
+    private function respondForBatch(bool $ok, string $message, ?string $arraySpace)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX() && $arraySpace !== null) {
+            $students = $this->studentService->getStudentsByArraySpace($arraySpace);
+
+            $extra = [
+                'html'      => view('students/_batch_rows', ['students' => $students]),
+                'remaining' => count($students),
+            ];
+        }
+
+        return $this->respondToPost($ok, $message, null, $extra);
     }
 }

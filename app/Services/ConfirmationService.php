@@ -230,6 +230,18 @@ class ConfirmationService
     }
 
     /**
+     * One confirmation row by id.
+     *
+     * Needed because deleting a record has to know which batch it belonged to
+     * BEFORE the row goes -- afterwards there is nothing left to derive it from,
+     * and the reply has to carry that batch's re-rendered rows.
+     */
+    public function getConfirmationById(int $id): ?array
+    {
+        return $this->confirmationModel->find($id) ?: null;
+    }
+
+    /**
      * @throws \InvalidArgumentException when the record doesn't exist
      */
     public function deleteConfirmation(int $id): void

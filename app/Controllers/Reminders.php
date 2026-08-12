@@ -368,9 +368,23 @@ class Reminders extends BaseController
         try {
             $this->studentReminderService->delete((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('reminders/student/history'))->with('error', $e->getMessage());
+            return $this->respondForStudentHistory(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('reminders/student/history'))->with('success', 'Candidate reminder deleted.');
+        return $this->respondForStudentHistory(true, 'Candidate reminder deleted.');
+    }
+
+    /** Reply for the candidate-reminder history POST -- see SettingsUsers::respond(). */
+    private function respondForStudentHistory(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $extra['html'] = view('reminders/_student_history_rows', [
+                'records' => $this->studentReminderService->getAll(),
+            ]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('reminders/student/history'), $extra, $failStatus);
     }
 }

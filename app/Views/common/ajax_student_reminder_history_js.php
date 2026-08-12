@@ -1,28 +1,13 @@
 <script>
 $(document).ready(function () {
-    $('.delete-student-rem-form').on('submit', function (e) {
-        var form = this;
-
-        if (form.dataset.esConfirmed === '1' || !window.Swal) {
-            return true;
-        }
-
-        e.preventDefault();
-
-        Swal.fire({
-            title: 'Delete this reminder?',
-            text: (form.dataset.name || 'This record') + ' will be permanently removed.',
-            icon: 'warning',
-            showCancelButton: true,
-            focusCancel: true,
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result && result.isConfirmed) {
-                form.dataset.esConfirmed = '1';
-                form.submit();
-            }
-        });
-    });
+    // --- Delete confirm -------------------------------------------------------
+    // Declared on the form itself (reminders/_student_history_rows.php) and
+    // handled by the shared delegated handler in ajax_common_js.php.
+    //
+    // The binding that used to live here ended in `form.submit()`, which
+    // dispatches NO submit event, so a delegated AJAX handler could never have
+    // seen it. Running both would have been worse than either: preventDefault()
+    // does not stop propagation, so the reminder would have been deleted while
+    // the confirmation dialog was still waiting for an answer.
 });
 </script>

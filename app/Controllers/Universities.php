@@ -31,15 +31,14 @@ class Universities extends BaseController
         try {
             $this->universityService->saveUniversity($this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[Universities::store] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('universities'))
-                ->with('error', 'The university could not be created. The issue has been logged.');
+            return $this->respond(false, 'The university could not be created. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('universities'))->with('success', 'New university created successfully.');
+        return $this->respond(true, 'New university created successfully.');
     }
 
     public function getJson($id)
@@ -56,15 +55,14 @@ class Universities extends BaseController
         try {
             $this->universityService->updateUniversity((int) $id, $this->request->getPost());
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
             log_message('error', '[Universities::update] {message}', ['message' => (string) $e]);
 
-            return redirect()->to(base_url('universities'))
-                ->with('error', 'The university could not be updated. The issue has been logged.');
+            return $this->respond(false, 'The university could not be updated. The issue has been logged.', 500);
         }
 
-        return redirect()->to(base_url('universities'))->with('success', 'University details updated successfully.');
+        return $this->respond(true, 'University details updated successfully.');
     }
 
     public function toggleActive($id)
@@ -77,10 +75,30 @@ class Universities extends BaseController
         try {
             $this->universityService->toggleActive((int) $id);
         } catch (\InvalidArgumentException $e) {
-            return redirect()->to(base_url('universities'))->with('error', $e->getMessage());
+            return $this->respond(false, $e->getMessage());
         }
 
-        return redirect()->to(base_url('universities'))->with('success', 'University status updated.');
+        return $this->respond(true, 'University status updated.');
+    }
+
+    /**
+     * One reply for every POST on this screen.
+     *
+     * The rows carry the data-state / data-id attributes the client-side filter
+     * matches on, so they must come from the same partial the page used --
+     * ajax_universities_js.php re-runs its filter against them afterwards.
+     */
+    private function respond(bool $ok, string $message, int $failStatus = 422)
+    {
+        $extra = [];
+
+        if ($this->request->isAJAX()) {
+            $extra['html'] = view('universities/_rows', [
+                'colleges' => $this->universityService->getAllColleges(),
+            ]);
+        }
+
+        return $this->respondToPost($ok, $message, base_url('universities'), $extra, $failStatus);
     }
 
     /** No server-side filters on this page -- every university, always. */

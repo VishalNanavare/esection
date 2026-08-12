@@ -1,7 +1,9 @@
 <script>
 $(document).ready(function () {
     // --- Edit modal ---------------------------------------------------------
-    $('.edit-student-btn').on('click', function () {
+    // Delegated: these buttons live inside #batch_student_rows, which is
+    // replaced wholesale on every AJAX refresh.
+    $(document).on('click', '.edit-student-btn', function () {
         var id = $(this).data('id');
 
         $.ajax({
@@ -28,29 +30,25 @@ $(document).ready(function () {
     });
 
     // --- Delete confirm -------------------------------------------------------
-    $('.delete-student-form').on('submit', function (e) {
-        var form = this;
+    // Declared on the form itself now (students/_batch_rows.php), handled by the
+    // shared delegated handler. The binding that used to live here ended in
+    // `form.submit()`, which dispatches NO submit event -- so a delegated AJAX
+    // handler could never have seen it, and running both would have deleted the
+    // candidate while "Are you sure?" was still on screen.
 
-        if (form.dataset.esConfirmed === '1' || !window.Swal) {
-            return true;
+    // --- Leaving an emptied batch --------------------------------------------
+    // Deleting the last candidate leaves this page describing a batch that no
+    // longer exists: batchDetail() has no emptiness guard, and from that point
+    // the Uni View / AC View buttons return a bare text string instead of a PDF.
+    // A full reload used to hide this; without one it would be plainly visible,
+    // so leave for the history list instead.
+    $(document).on('es:refreshed', function (e, $form, res) {
+        if (res && res.remaining === 0) {
+            esNotify('info', 'Batch empty', 'That was the last candidate -- returning to history.');
+            window.setTimeout(function () {
+                window.location.href = '<?= base_url("students/history") ?>';
+            }, 1200);
         }
-
-        e.preventDefault();
-
-        Swal.fire({
-            title: 'Delete this candidate permanently?',
-            text: (form.dataset.name || 'This record') + ' will be permanently removed. This cannot be undone.',
-            icon: 'warning',
-            showCancelButton: true,
-            focusCancel: true,
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result && result.isConfirmed) {
-                form.dataset.esConfirmed = '1';
-                form.submit();
-            }
-        });
     });
 });
 </script>

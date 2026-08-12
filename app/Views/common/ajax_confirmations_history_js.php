@@ -27,29 +27,26 @@ $(document).ready(function () {
         }
     });
 
-    $('.delete-confirmation-form').on('submit', function (e) {
-        var form = this;
+    // --- Delete confirm -------------------------------------------------------
+    // Declared on the form itself (confirmations/_batch_rows.php) and handled by
+    // the shared delegated handler in ajax_common_js.php.
+    //
+    // The binding that used to live here ended in `form.submit()`, which
+    // dispatches NO submit event, so a delegated AJAX handler could never have
+    // observed it -- and running both would have deleted the record while the
+    // confirmation dialog was still waiting for an answer.
 
-        if (form.dataset.esConfirmed === '1' || !window.Swal) {
-            return true;
+    // --- Leaving an emptied batch --------------------------------------------
+    // batchDetail() has no emptiness guard, so once the last record goes the
+    // page describes a batch that no longer exists. A full reload used to hide
+    // that; without one, go back to the history list.
+    $(document).on('es:refreshed', function (e, $form, res) {
+        if (res && res.remaining === 0) {
+            esNotify('info', 'Batch empty', 'That was the last record -- returning to history.');
+            window.setTimeout(function () {
+                window.location.href = '<?= base_url("confirmations/history") ?>';
+            }, 1200);
         }
-
-        e.preventDefault();
-
-        Swal.fire({
-            title: 'Delete this confirmation record?',
-            text: (form.dataset.name || 'This record') + ' will be permanently removed.',
-            icon: 'warning',
-            showCancelButton: true,
-            focusCancel: true,
-            confirmButtonText: 'Yes, delete it',
-            cancelButtonText: 'Cancel'
-        }).then(function (result) {
-            if (result && result.isConfirmed) {
-                form.dataset.esConfirmed = '1';
-                form.submit();
-            }
-        });
     });
 });
 </script>

@@ -32,36 +32,8 @@
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($records)): ?>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No candidate reminders recorded yet.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php $sr = 1; foreach ($records as $r): ?>
-                                <tr>
-                                    <td class="fw-semibold text-muted"><?= $sr++ ?></td>
-                                    <td class="fw-bold text-dark"><?= esc($r['student_name']) ?></td>
-                                    <td><span class="badge badge-glass-indigo"><?= esc($r['eligibility_case_no']) ?></span></td>
-                                    <td><?= esc($r['course_name']) ?></td>
-                                    <td class="small text-muted"><?= esc($r['missing_doc']) ?></td>
-                                    <td class="small text-muted"><?= esc($r['created_at']) ?></td>
-                                    <td class="text-end">
-                                        <a href="<?= base_url('reminders/student/pdf/' . $r['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-primary me-1" title="View / reprint PDF">
-                                            <i class="fa fa-file-pdf-o"></i> PDF
-                                        </a>
-                                        <?php if (feature_enabled('feature_delete_enabled')): ?>
-                                        <form action="<?= base_url('reminders/student/delete/' . $r['id']) ?>" method="post" class="d-inline delete-student-rem-form" data-name="<?= esc($r['student_name']) ?>">
-                                            <?= csrf_field() ?>
-                                            <button type="submit" class="btn btn-sm btn-glass text-danger" title="Delete">
-                                                <i class="fa fa-trash"></i> Delete
-                                            </button>
-                                        </form>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="student_reminder_rows">
+                        <?= $this->include('reminders/_student_history_rows') ?>
                     </tbody>
                 </table>
             </div>
