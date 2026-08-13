@@ -66,13 +66,28 @@ class LoginAttemptModel extends Model
      */
     public function clearFailures(string $ip, ?string $username): void
     {
-        $builder = $this->table()->where('successful', 0)->groupStart()->where('ip_address', $ip);
-
-        if ($username !== null && $username !== '') {
-            $builder->orWhere('username', $username);
+        // Scoped to the username that just authenticated, and nothing else.
+        //
+        // This used to be `(ip_address = ? OR username = ?)`, which meant one
+        // successful sign-in erased every failure logged from that IP against
+        // OTHER accounts. Anyone holding a single valid login could therefore
+        // guess at a colleague's password indefinitely: fail nine times, log
+        // into their own account to wipe the IP's history, repeat. The per-IP
+        // counter could never accumulate.
+        //
+        // Proving you own account A says nothing about the failures recorded
+        // against account B, even from the same machine, so only A's are
+        // cleared. Those rows carry this IP's failures for A too, so an honest
+        // user who mistypes a few times and then succeeds still walks away with
+        // a clean slate.
+        if ($username === null || $username === '') {
+            return;
         }
 
-        $builder->groupEnd()->delete();
+        $this->table()
+            ->where('successful', 0)
+            ->where('username', $username)
+            ->delete();
     }
 
     /** Housekeeping: drop rows older than the audit horizon. */

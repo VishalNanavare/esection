@@ -416,6 +416,23 @@ h1, h2, h3, h4, h5, h6 {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Validation state has to be re-asserted with !important, because the base
+   .form-control rule above sets `border` with !important and would otherwise
+   win on source order -- Bootstrap's own .is-invalid border is not !important.
+   Without this the invalid field looks completely untouched: no red border and
+   the normal indigo focus ring, which reads as "accepted". */
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #dc3545 !important;
+}
+
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15) !important;
+}
+
+
 .form-control:focus, .form-select:focus {
     background: #ffffff !important;
     border-color: var(--accent-indigo) !important;

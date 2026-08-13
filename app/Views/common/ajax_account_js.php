@@ -37,12 +37,41 @@ $(document).ready(function () {
     // without firing `input`, which would otherwise leave a stale verdict.
     $form.on('submit', checkMatch);
 
-    // Reopening the dialog after a failure would otherwise still show the red
-    // outline from the previous attempt.
-    $('#resetPasswordModal').on('hidden.bs.modal', function () {
-        $form[0].reset();
-        $confirm[0].setCustomValidity('');
-        $confirm.removeClass('is-invalid');
-    });
+    // Clear only when the operator actually dismissed the dialog themselves --
+    // never as a side effect of an error being shown.
+    //
+    // SweetAlert and a Bootstrap modal both trap focus. When the server rejects
+    // a change ("Your current password is not correct.") the alert opens over
+    // the still-open modal, and dismissing it hands focus back in a way that
+    // can close the modal underneath. This handler then wiped all three boxes,
+    // so the operator lost their typed current password too and had to start
+    // over -- punishing them for a single mistyped character.
+    //
+    // A reset is still wanted when they close the dialog deliberately, so the
+    // next open is clean. The two are told apart by a flag set on the paths
+    // that legitimately close it.
+    var closingAfterSuccess = false;
+
+    $form.on('es:reset-clean', function () { closingAfterSuccess = true; });
+
+    $('#resetPasswordModal')
+        .on('hide.bs.modal', function () {
+            // A dismiss while our own error dialog is on screen is the focus-trap
+            // bounce described above, not an intentional close.
+            if (document.querySelector('.swal2-container')) {
+                closingAfterSuccess = false;
+            }
+        })
+        .on('hidden.bs.modal', function () {
+            if (closingAfterSuccess || !document.querySelector('.swal2-container')) {
+                $form[0].reset();
+            }
+            closingAfterSuccess = false;
+
+            // The validity flag is always safe to clear: it is recomputed from
+            // the field values on the next keystroke.
+            $confirm[0].setCustomValidity('');
+            $confirm.removeClass('is-invalid');
+        });
 });
 </script>

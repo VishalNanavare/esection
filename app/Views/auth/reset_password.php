@@ -9,7 +9,11 @@
                     <i class="fa fa-lock fa-2x text-gradient-indigo"></i>
                 </div>
                 <h3 class="fw-bold mb-1 text-dark">Choose a New Password</h3>
-                <p class="text-muted small">At least 8 characters.</p>
+                <?php // Read from the constants, not restated -- this line said
+                      // "At least 8 characters" while the fields had already
+                      // gained maxlength="10", so a pasted longer password was
+                      // silently truncated with nothing on the page explaining why. ?>
+                <p class="text-muted small">Between <?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?> and <?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?> characters.</p>
             </div>
 
             <?php if (session()->getFlashdata('error')): ?>

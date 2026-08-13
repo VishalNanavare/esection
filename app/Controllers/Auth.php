@@ -108,11 +108,20 @@ class Auth extends BaseController
         $throttle = new LoginThrottleService();
 
         if ($throttle->isBlocked($ip, $username)) {
-            // Recorded so the block itself is visible in the log, and checked
-            // BEFORE the password is verified -- the point is to stop the
-            // guessing, not to grade it.
-            $throttle->record($ip, $username, false);
-
+            // Deliberately NOT recorded.
+            //
+            // Recording here made the block feed itself: every rejected retry
+            // wrote another failure for that username, refreshing the window it
+            // was already blocked by. Ten guesses against a known name, then a
+            // request every few minutes, and that account stayed locked from
+            // EVERY machine indefinitely -- with no operator unlock, because
+            // the design deliberately has none. That is a denial of service
+            // against a real user, and it is precisely what the comment above
+            // claimed the design prevented.
+            //
+            // A refused request is not a guess. The counter now only ever
+            // reflects attempts that actually reached password_verify(), so a
+            // block always ages out WINDOW_SECONDS after the last real attempt.
             return redirect()->to(base_url('auth/login'))->with(
                 'error',
                 'Too many failed sign-in attempts. Please wait about '

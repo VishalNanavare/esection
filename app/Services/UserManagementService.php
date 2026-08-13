@@ -284,6 +284,17 @@ class UserManagementService
 
         $this->userModel->update($userId, [
             'password_hash' => password_hash($new, PASSWORD_DEFAULT),
+            // Any outstanding emailed reset link dies with the old password.
+            //
+            // Without this, someone who requested a reset link and then changed
+            // their password another way -- the usual "I think my account is
+            // compromised" reaction -- left that link live for the rest of its
+            // hour. Whoever held the email could still walk in and set a new
+            // password, which is the exact scenario the change was made to
+            // prevent. PasswordResetService::resetWithToken() clears both on
+            // its own path; this one has to as well.
+            'reset_token_hash' => null,
+            'reset_expires_at' => null,
         ]);
 
         $this->activityLogService->record(
