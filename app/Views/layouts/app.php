@@ -136,17 +136,52 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                 </div>
 
                 <div class="d-flex align-items-center gap-2 gap-md-3">
+                    <?php
+                        // Day, date and a 12-hour clock, filled entirely by the
+                        // browser -- deliberately NOT seeded from PHP.
+                        //
+                        // Config\App::$appTimezone is 'UTC' while this machine
+                        // (and MySQL) run IST, so date() here is 5h30m behind the
+                        // clock on the operator's wall. Seeding from PHP would
+                        // print that wrong time until the first tick corrected
+                        // it, and between 18:30 and midnight IST it would print
+                        // the wrong DAY as well. esRenderClock() runs immediately
+                        // on ready, so the fields are populated before the pill is
+                        // ever noticed.
+                        //
+                        // The date is a separate span from the time because only
+                        // the time changes each second.
+                    ?>
                     <div class="topbar-pill d-none d-md-inline-flex">
+                        <i class="fa fa-calendar-o me-2 text-indigo"></i>
+                        <span class="text-muted" id="live_date"></span>
+                        <span class="text-secondary opacity-50 mx-2">|</span>
                         <i class="fa fa-clock-o me-2 text-indigo"></i>
-                        <span class="text-muted font-monospace" id="live_clock"><?= date('H:i:s') ?></span>
+                        <span class="text-muted font-monospace" id="live_clock"></span>
                     </div>
 
                     <?php // One account control instead of a separate pill and logout
                           // button. The sidebar drawer keeps its own logout for the
                           // mobile layout, so this menu is the only affordance here. ?>
+                    <?php
+                        // data-bs-display="static" takes Popper out of the
+                        // positioning entirely and lets the menu sit where the
+                        // stylesheet puts it: directly under the toggle, right
+                        // edges aligned via .dropdown-menu-end.
+                        //
+                        // Left to Popper it was flipping upward and covering the
+                        // user pill. Popper decides that from the space it can
+                        // measure inside the nearest clipping ancestors, and
+                        // #topbar is a fixed-height, position:sticky flex row --
+                        // so the space it sees below the button is the few pixels
+                        // left inside the bar, not the whole page. In a header
+                        // pinned to the top of the viewport, "below" is always
+                        // the right answer, so there is nothing to compute.
+                    ?>
                     <div class="dropdown">
                         <button class="topbar-pill border-0 bg-transparent d-flex align-items-center" type="button"
-                                id="account_menu_btn" data-bs-toggle="dropdown" aria-expanded="false">
+                                id="account_menu_btn" data-bs-toggle="dropdown"
+                                data-bs-display="static" aria-expanded="false">
                             <i class="fa fa-user-circle-o text-indigo"></i>
                             <span class="font-monospace fw-bold text-dark mx-2 d-none d-sm-inline"><?= esc(session()->get('username') ?? 'Staff') ?></span>
                             <span class="badge badge-glass-indigo text-uppercase ms-1 ms-sm-0" style="font-size: 0.65rem;"><?= esc(session()->get('role') ?? 'staff') ?></span>
@@ -351,13 +386,34 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                 });
             });
 
-            // Live clock. 24h + 2-digit fields so the pill does not change
-            // width every second, and matches the server-rendered seed.
-            setInterval(function() {
-                $('#live_clock').text(new Date().toLocaleTimeString('en-GB', {
-                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+            // Live clock, 12-hour with AM/PM. 2-digit fields so the pill does
+            // not change width every second, and hourCycle 'h12' so midnight
+            // reads 12:00 AM rather than 00:00 AM -- 'hour12: true' alone maps
+            // midnight to hour 24 in some engines.
+            //
+            // en-GB is kept for the DATE only, because it gives day-month-year;
+            // the time is formatted with en-US, which is what actually produces
+            // an AM/PM suffix.
+            function esRenderClock() {
+                var now = new Date();
+
+                $('#live_clock').text(now.toLocaleTimeString('en-US', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h12'
                 }));
-            }, 1000);
+
+                // Cheap to recompute, but only written when it actually changes,
+                // so the DOM is not touched 86,399 times a day for nothing.
+                var dateText = now.toLocaleDateString('en-GB', {
+                    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+                });
+                var $date = $('#live_date');
+                if ($date.text() !== dateText) {
+                    $date.text(dateText);
+                }
+            }
+
+            esRenderClock();
+            setInterval(esRenderClock, 1000);
 
             // --- Flash messages ---------------------------------------------
             // Values are emitted as whole JSON literals, never hand-quoted: a
