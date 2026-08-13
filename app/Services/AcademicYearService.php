@@ -47,10 +47,17 @@ class AcademicYearService
             throw new \InvalidArgumentException('That academic year already exists.');
         }
 
+        // start_date / end_date are deliberately absent.
+        //
+        // The two columns remain in the table but are no longer collected or
+        // written by anything. Mapping them here would mean every save wrote
+        // NULL over them -- harmless while all 22 rows are already NULL, but it
+        // would silently erase any value that ever did exist, which is exactly
+        // the failure nobody notices until it matters. Not writing a column at
+        // all is the only version of "leave the data alone" that is actually
+        // true.
         return [
             'year_label' => $label,
-            'start_date' => trim((string) ($postData['start_date'] ?? '')) ?: null,
-            'end_date'   => trim((string) ($postData['end_date'] ?? '')) ?: null,
         ];
     }
 

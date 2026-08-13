@@ -10,7 +10,11 @@ class AcademicYearModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'array';
-    protected $allowedFields    = ['year_label', 'start_date', 'end_date', 'is_current', 'created_at', 'updated_at'];
+    // start_date / end_date are intentionally NOT allowed fields. The columns
+    // still exist in the table and are left untouched, but nothing in the app
+    // collects or writes them any more, and leaving them mass-assignable would
+    // let a stray posted field reach a column no screen shows.
+    protected $allowedFields    = ['year_label', 'is_current', 'created_at', 'updated_at'];
     protected $useTimestamps    = true;
     protected $createdField     = 'created_at';
     protected $updatedField     = 'updated_at';

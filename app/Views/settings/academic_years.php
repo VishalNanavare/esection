@@ -23,8 +23,6 @@
                         <tr>
                             <th class="col-sr">#</th>
                             <th>Academic Year</th>
-                            <th>Start Date</th>
-                            <th>End Date</th>
                             <th>Status</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -55,14 +53,6 @@
                         <div class="col-12">
                             <label class="form-label text-secondary small fw-semibold">Academic Year</label>
                             <input type="text" name="year_label" class="form-control" placeholder="e.g. 2025-2026" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Start Date</label>
-                            <input type="text" name="start_date" class="form-control es-datepicker" autocomplete="off" placeholder="YYYY-MM-DD">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">End Date</label>
-                            <input type="text" name="end_date" class="form-control es-datepicker" autocomplete="off" placeholder="YYYY-MM-DD">
                         </div>
                         <div class="col-12 form-check mt-2">
                             <input type="checkbox" name="is_current" value="1" class="form-check-input" id="add_is_current">
@@ -96,14 +86,6 @@
                         <div class="col-12">
                             <label class="form-label text-secondary small fw-semibold">Academic Year</label>
                             <input type="text" name="year_label" id="edit_year_label" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Start Date</label>
-                            <input type="text" name="start_date" id="edit_start_date" class="form-control es-datepicker" autocomplete="off" placeholder="YYYY-MM-DD">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">End Date</label>
-                            <input type="text" name="end_date" id="edit_end_date" class="form-control es-datepicker" autocomplete="off" placeholder="YYYY-MM-DD">
                         </div>
                         <div class="col-12 form-check mt-2">
                             <input type="checkbox" name="is_current" value="1" class="form-check-input" id="edit_is_current">

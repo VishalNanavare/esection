@@ -18,8 +18,6 @@ $(document).ready(function () {
 
             var data = res.data;
             $('#edit_year_label').val(data.year_label);
-            $('#edit_start_date').val(data.start_date);
-            $('#edit_end_date').val(data.end_date);
             $('#edit_is_current').prop('checked', String(data.is_current) === '1');
             $('#edit_year_form').attr('action', '<?= base_url("settings/academic-years/update/") ?>' + id);
             $('#editYearModal').modal('show');

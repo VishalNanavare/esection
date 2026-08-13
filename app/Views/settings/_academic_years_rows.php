@@ -13,17 +13,14 @@
 ?>
 <?php if (empty($years)): ?>
     <tr>
-        <td colspan="6" class="text-center text-muted py-4">No academic years recorded yet.</td>
+        <td colspan="4" class="text-center text-muted py-4">No academic years recorded yet.</td>
     </tr>
 <?php else: ?>
     <?php $sr = 1; foreach ($years as $y): ?>
         <tr class="year-row" data-id="<?= esc($y['id']) ?>" data-label="<?= esc($y['year_label']) ?>"
-            data-start="<?= esc($y['start_date']) ?>" data-end="<?= esc($y['end_date']) ?>"
             data-current="<?= (int) $y['is_current'] ?>">
             <td class="fw-semibold text-muted"><?= $sr++ ?></td>
             <td class="fw-bold text-dark"><?= esc($y['year_label']) ?></td>
-            <td class="small text-muted"><?= esc($y['start_date'] ?: '-') ?></td>
-            <td class="small text-muted"><?= esc($y['end_date'] ?: '-') ?></td>
             <td>
                 <?php if ((int) $y['is_current'] === 1): ?>
                     <span class="badge badge-glass-emerald"><i class="fa fa-check-circle me-1"></i> Current</span>
