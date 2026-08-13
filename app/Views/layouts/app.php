@@ -12,6 +12,11 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'E-Section Verification System') ?></title>
     <!-- Offline CSS Assets (asset_url appends a filemtime cache-buster) -->
+    <?php // Explicit, rather than relying on the browser probing /favicon.ico:
+          // that probe is skipped or cached as a miss often enough to look
+          // broken, and it never carries a cache-busting version. ?>
+    <link rel="icon" type="image/x-icon" href="<?= asset_url('favicon.ico') ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="<?= asset_url('favicon.ico') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/font-awesome.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/vendor/select2/select2.min.css') ?>">
@@ -36,7 +41,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                 <span class="brand-mark me-2">
                     <i class="fa fa-graduation-cap text-indigo"></i>
                 </span>
-                <span>ESection Portal</span>
+                <span class="brand-text">ESection Portal</span>
             </a>
 
             <ul class="sidebar-menu">
@@ -109,12 +114,11 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                 <?php endif; ?>
             </ul>
 
-            <div class="p-3 border-top border-secondary border-opacity-25 mt-auto">
-                <a href="<?= base_url('auth/logout') ?>" class="nav-link text-danger border-0 bg-transparent w-100 d-flex align-items-center logout-btn">
-                    <i class="fa fa-sign-out me-2"></i>
-                    <span class="link-text">Logout</span>
-                </a>
-            </div>
+            <?php // Logout lives in the topbar account menu only. Kept here as
+                  // well, it was a mt-auto block that pushed the column past the
+                  // viewport and put a scrollbar on the icon rail -- and the
+                  // account menu is present at every breakpoint, so nothing is
+                  // lost on mobile. ?>
         </aside>
 
         <?php // Dims and blocks the page while the mobile drawer is open. ?>

@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'E-Section Verification Portal') ?></title>
     <!-- Offline CSS Assets -->
+    <?php // Explicit, rather than relying on the browser probing /favicon.ico:
+          // that probe is skipped or cached as a miss often enough to look
+          // broken, and it never carries a cache-busting version. ?>
+    <link rel="icon" type="image/x-icon" href="<?= asset_url('favicon.ico') ?>">
+    <link rel="shortcut icon" type="image/x-icon" href="<?= asset_url('favicon.ico') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/bootstrap.min.css') ?>">
     <link rel="stylesheet" href="<?= asset_url('assets/css/font-awesome.min.css') ?>">
     <?php // Theme only -- the login page has no app chrome, so esection-shell.css

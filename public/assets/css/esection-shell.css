@@ -181,8 +181,16 @@
     html.es-rail #content-wrapper { margin-left: var(--sidebar-rail-width); }
 
     html.es-rail .sidebar-brand { padding: 0; justify-content: center; }
-    html.es-rail .sidebar-brand span,
+    /* Only the wordmark goes -- the brand MARK is the one thing that should
+       survive collapsing, since it is what identifies the rail as this app.
+       This used to read `.sidebar-brand span`, which matched the mark's own
+       wrapper too and left an empty 70px block above the first icon. */
+    html.es-rail .sidebar-brand .brand-text,
     html.es-rail .sidebar-menu .link-text { display: none; }
+
+    /* With no text beside it the mark no longer needs its right margin, and
+       centring it lines it up with the icon column below. */
+    html.es-rail .sidebar-brand .brand-mark { margin-right: 0 !important; }
 
     html.es-rail .sidebar-menu .nav-link {
         justify-content: center;
