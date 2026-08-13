@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\AccessPageModel;
 use App\Models\UserModel;
 use App\Models\UserPageAccessModel;
+use Config\Permissions;
 
 /**
  * Owns the page-level Access Rights system introduced 2026-07-30. Only ever
@@ -13,15 +14,12 @@ use App\Models\UserPageAccessModel;
  */
 class AccessRightsService
 {
-    /** Mirrors 2026-07-30-000001_CreateAccessRightsTables.php's seeded PAGES list. */
-    public const PAGE_DEFINITIONS = [
-        'students_new'         => 'Students - New Entry',
-        'universities'         => 'Universities',
-        'confirmations'        => 'Confirmations',
-        'regularization'       => 'Regularization',
-        'reminders_university' => 'Reminders - University',
-        'reminders_student'    => 'Reminders - Student',
-    ];
+    // PAGE_DEFINITIONS is gone. It was a second copy of the catalog that had to
+    // be kept in step with the access_pages table and with a hardcoded string in
+    // Config\Routes by hand -- and when they drifted, a key present in the table
+    // but missing here rendered UNCHECKED for users who actually held it, so the
+    // next save revoked it from everyone. Config\Permissions is now the only
+    // source of truth, and access_pages is seeded from it.
 
     protected AccessPageModel $accessPageModel;
     protected UserPageAccessModel $userPageAccessModel;
@@ -56,7 +54,7 @@ class AccessRightsService
     {
         $staff   = $this->userModel->getAllStaffOrdered();
         $grouped = $this->userPageAccessModel->getGrantsGroupedByUser();
-        $pageKeys = array_keys(self::PAGE_DEFINITIONS);
+        $pageKeys = Permissions::allKeys();
 
         $result = [];
         foreach ($staff as $user) {
@@ -78,47 +76,30 @@ class AccessRightsService
     }
 
     /**
-     * Bulk matrix save ONLY. Iterates every staff user (not just the keys
-     * present in $grants), since a fully-unchecked row is absent from POST
-     * entirely -- same "absent means grant nothing" contract as
-     * FeatureToggleService::save(). Deliberately NOT reused for a
-     * single-user save (see saveGrantsForUser): applying this same
-     * "iterate everyone" rule to a single-user payload would silently wipe
-     * every OTHER staff user's grants down to zero.
+     * Revokes every grant a user holds.
      *
-     * @param array<int, array<int, string>> $grants [user_id => [page_key, ...]]
-     * @throws \InvalidArgumentException on an unknown page_key
+     * Used when an account is promoted to admin. Admin bypasses AccessFilter by
+     * role and is meant to hold ZERO grant rows, but update() previously just
+     * skipped grant handling for admins -- so a staff user's rows survived the
+     * promotion, invisible to every screen (the modal hides the chips for
+     * admins) and silently reinstated in full if the account was ever demoted
+     * back to staff.
      */
-    public function saveGrants(array $grants, ?int $actingUserId): void
+    public function clearGrantsForUser(int $userId, ?int $actingUserId): void
     {
-        $staff   = $this->userModel->getAllStaffOrdered();
-        $changed = [];
-
-        foreach ($staff as $user) {
-            $userId       = (int) $user['id'];
-            $requested    = $this->validatePageKeys($grants[$userId] ?? []);
-            $before       = $this->userPageAccessModel->getPageKeysForUser($userId);
-
-            sort($before);
-            $sortedRequested = $requested;
-            sort($sortedRequested);
-
-            if ($before === $sortedRequested) {
-                continue;
-            }
-
-            $this->userPageAccessModel->replaceGrantsForUser($userId, $requested, $actingUserId);
-            $changed[] = $user['username'];
+        if ($this->userPageAccessModel->getPageKeysForUser($userId) === []) {
+            return;
         }
 
-        if ($changed !== []) {
-            $this->activityLogService->record(
-                'access_rights.update',
-                'user_page_access',
-                null,
-                'Updated page access for: ' . implode(', ', $changed)
-            );
-        }
+        $this->userPageAccessModel->replaceGrantsForUser($userId, [], $actingUserId);
+
+        $user = $this->userModel->find($userId);
+        $this->activityLogService->record(
+            'access_rights.update',
+            'user_page_access',
+            $userId,
+            'Cleared page access for: ' . ($user['username'] ?? "user #{$userId}") . ' (promoted to admin)'
+        );
     }
 
     /**
@@ -164,22 +145,76 @@ class AccessRightsService
             return;
         }
 
-        $this->userPageAccessModel->grantAllPages($userId, array_keys(self::PAGE_DEFINITIONS), null);
+        $this->userPageAccessModel->grantAllPages($userId, Permissions::allKeys(), null);
     }
 
     /**
-     * @throws \InvalidArgumentException if any key isn't one of the known pages
+     * Validate a requested permission set, and apply the view-implication rule.
+     *
+     * Public so controllers can reuse it rather than restating the rules.
+     *
+     * Holding any action of a module implies holding its `view`. Without this a
+     * grant of `students.delete` alone produces a user who may delete records
+     * but cannot open the page they live on -- a state the UI would never show
+     * and nobody could debug. The UI ticks `view` for you; enforcing it here as
+     * well means a hand-crafted POST cannot create that state either.
+     *
+     * @throws \InvalidArgumentException if any key is not in the catalog
      */
-    private function validatePageKeys(array $pageKeys): array
+    public function validatePageKeys(array $pageKeys): array
     {
-        $known = array_keys(self::PAGE_DEFINITIONS);
-
         foreach ($pageKeys as $pageKey) {
-            if (! in_array($pageKey, $known, true)) {
-                throw new \InvalidArgumentException('Unknown page: ' . $pageKey);
+            if (! is_string($pageKey) || ! Permissions::isValidKey($pageKey)) {
+                throw new \InvalidArgumentException(
+                    'Unknown permission: ' . (is_string($pageKey) ? $pageKey : gettype($pageKey))
+                );
             }
         }
 
-        return array_values(array_unique($pageKeys));
+        $keys = array_values(array_unique($pageKeys));
+
+        foreach ($keys as $key) {
+            $module = Permissions::moduleOf($key);
+
+            if ($module !== null && ! in_array($module . '.view', $keys, true)) {
+                $keys[] = $module . '.view';
+            }
+        }
+
+        return array_values($keys);
+    }
+
+    /**
+     * The catalog grouped for the permission cards, carrying each user's state.
+     *
+     * One shape used by both the Access Rights screen and the Add/Edit User
+     * modals, so the two can never disagree about what exists.
+     */
+    public function getGroupedPermissions(array $grantedKeys = []): array
+    {
+        $groups = [];
+
+        foreach (Permissions::MODULES as $module => $definition) {
+            $actions = [];
+
+            foreach ($definition['actions'] as $action) {
+                $key = $module . '.' . $action;
+
+                $actions[] = [
+                    'key'     => $key,
+                    'action'  => $action,
+                    'label'   => Permissions::ACTION_LABELS[$action],
+                    'granted' => in_array($key, $grantedKeys, true),
+                ];
+            }
+
+            $groups[$module] = [
+                'label'       => $definition['label'],
+                'group_label' => $definition['group_label'],
+                'actions'     => $actions,
+            ];
+        }
+
+        return $groups;
     }
 }

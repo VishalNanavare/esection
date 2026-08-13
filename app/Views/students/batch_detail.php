@@ -10,8 +10,10 @@
                     <p class="text-muted small mb-0">Edit or remove a candidate from this verification batch.</p>
                 </div>
                 <div>
-                    <a href="<?= base_url('pdf/dispatch/' . urlencode($arraySpace)) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> Uni View</a>
-                    <a href="<?= base_url('pdf/dispatchAccounts/' . urlencode($arraySpace)) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> AC View</a>
+                    <?php if (can('students.print')): ?>
+                        <a href="<?= base_url('pdf/dispatch/' . urlencode($arraySpace)) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> Uni View</a>
+                        <a href="<?= base_url('pdf/dispatchAccounts/' . urlencode($arraySpace)) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> AC View</a>
+                    <?php endif; ?>
                     <a href="<?= base_url('students/history') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to History</a>
                 </div>
             </div>

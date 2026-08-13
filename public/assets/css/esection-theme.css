@@ -742,3 +742,226 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: inset 3px 0 0 0 var(--accent-amber);
     transition: background-color 0.3s ease;
 }
+
+/* ==========================================================================
+   Access Rights - grouped permission cards
+   --------------------------------------------------------------------------
+   Permissions render as selectable chips, not bare checkboxes. With 32 of them
+   a `.form-check` row put each checkbox flush against the previous label
+   ("View[]Create[]Edit") and the checked state came down to a 13px tick, which
+   is unreadable when scanning a whole module at once.
+   ========================================================================== */
+
+.permission-card {
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 0.75rem;
+    background: #ffffff;
+    padding: 0.9rem 1rem 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.permission-card:last-child { margin-bottom: 0; }
+
+.permission-card__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.permission-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+/* Hidden, not removed: it still carries name="pages[]", still receives focus
+   and still drives :checked below, so keyboard and screen-reader behaviour is
+   exactly a checkbox's. */
+.permission-chip__input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.permission-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-radius: 2rem;
+    background: #ffffff;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.permission-chip:hover {
+    border-color: rgba(var(--es-indigo-rgb), 0.55);
+    color: rgb(var(--es-indigo-rgb));
+}
+
+.permission-chip__tick {
+    font-size: 0.7rem;
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.permission-chip__input:checked + .permission-chip {
+    background: rgba(var(--es-indigo-rgb), 0.1);
+    border-color: rgba(var(--es-indigo-rgb), 0.65);
+    color: rgb(var(--es-indigo-rgb));
+    font-weight: 600;
+}
+
+.permission-chip__input:checked + .permission-chip .permission-chip__tick {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Keyboard users get the same ring a real checkbox would show. */
+.permission-chip__input:focus-visible + .permission-chip {
+    outline: 2px solid rgba(var(--es-indigo-rgb), 0.6);
+    outline-offset: 2px;
+}
+
+/* `view` locks on once any other action in its card is ticked. Kept at full
+   contrast -- a greyed-out chip reads as "broken", not "implied". */
+.permission-chip__input:disabled + .permission-chip {
+    cursor: not-allowed;
+    border-style: dashed;
+}
+
+/* ---- Staff picker on the Access Rights screen -------------------------- */
+/* Bootstrap's own .active is unusable here: it sets color:#fff, so against the
+   transparent list this screen needs, the selected name rendered white on
+   white and vanished entirely. */
+.js-staff-pick {
+    background: transparent;
+    color: var(--text-main);
+}
+
+.js-staff-pick:hover { background: rgba(var(--es-indigo-rgb), 0.06); }
+
+.js-staff-pick.is-selected {
+    background: rgba(var(--es-indigo-rgb), 0.12);
+    color: var(--text-main);
+    box-shadow: inset 3px 0 0 rgb(var(--es-indigo-rgb));
+}
+
+.js-staff-pick.is-selected .fw-semibold { color: rgb(var(--es-indigo-rgb)); }
+
+/* ---- Full-screen user modal ------------------------------------------- */
+/* ONE scroll region, not two.
+   The body previously scrolled AND the permission column scrolled inside it,
+   so the modal showed two stacked scrollbars on the right and the outer one
+   moved the whole layout including the fixed header. The body is now pinned
+   and only the two columns scroll, independently. */
+/* The <form> wraps the body AND the footer, so IT is the flex child of
+   .modal-content -- not .modal-body. Left as display:block with the default
+   min-height:auto it grew to its content height (897px in a 950px viewport),
+   pushing the footer to bottom:956 where it was clipped off the screen. It has
+   to become the flex column itself. */
+.modal-fullscreen .modal-content > form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.modal-fullscreen .modal-body {
+    /* A flex column, so .row below can fill it by FLEXING rather than by
+       height:100%. See the note on .row -- the percentage was the fragile
+       link in this chain. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    flex: 1 1 auto;
+    /* min-height:0 is load-bearing, not tidiness. .modal-content is a flex
+       column and .modal-body is a flex child, whose default min-height:auto
+       refuses to shrink below its content. Without this the body grew to the
+       full height of six permission cards, the dialog grew with it, the FOOTER
+       was pushed off the bottom of the screen, and the page scrolled instead of
+       the column -- which is the same "two scrollbars" symptom by another
+       route. */
+    min-height: 0;
+}
+
+/* This was height:100%, and that is the one rule in the dialog that can fail
+   quietly. A percentage height only resolves while the PARENT's height is
+   "definite", and .modal-body has no stated height -- it gets one by flexing.
+   Where that is treated as indefinite the percentage falls back to auto, the
+   row collapses to less than the body, and a band of dead white space appears
+   between the bottom of the two columns and the footer, lasting until the
+   dialog is closed and re-laid-out. Filling by flex has no such fallback:
+   flex-grow resolves against the free space that is already there. */
+.modal-fullscreen .modal-body > .row {
+    flex: 1 1 auto;
+    min-height: 0;
+    /* nowrap is what makes the stretch above exact. Bootstrap's .row is
+       flex-wrap:wrap, and a WRAPPING flex container sizes its line from the
+       items' content -- so with six permission cards the line grew to 826px,
+       the columns stretched to that, overflowed the body and lost their own
+       scrollbars. With a single guaranteed line the line's cross size IS the
+       container's inner height, so the columns land on it exactly. */
+    flex-wrap: nowrap;
+    margin: 0;
+}
+
+/* Deliberately no height here. .row is a flex container and align-items
+   defaults to stretch, so each column already spans the row's full height.
+   Restating height:100% would reintroduce the very percentage dependency
+   this layout exists to avoid. min-height:0 lets them scroll instead of
+   pushing the row taller than the body. */
+.user-modal__aside,
+.user-modal__perms {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.user-modal__aside {
+    background: #f8fafc;
+    border-right: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.user-modal__perms {
+    background: #f1f5f9;
+}
+
+/* The footer carried Bootstrap's default 1rem padding plus the button's own,
+   which made it noticeably taller than the header on a full-screen dialog. */
+.modal-fullscreen .modal-footer {
+    padding: 0.6rem 1.25rem;
+    min-height: auto;
+}
+
+.modal-fullscreen .modal-header {
+    padding: 0.85rem 1.25rem;
+}
+
+@media (max-width: 991.98px) {
+    /* Stacked columns cannot each own a scrollbar -- let the body scroll again.
+       display:block undoes the flex column above, so the two columns lay out on
+       their natural heights instead of splitting one line's cross size. */
+    .modal-fullscreen .modal-body { display: block; overflow-y: auto; }
+    /* flex-wrap must go back to wrap or the two columns can never stack. */
+    .modal-fullscreen .modal-body > .row { height: auto; flex-wrap: wrap; }
+
+    .user-modal__aside,
+    .user-modal__perms { height: auto; overflow-y: visible; }
+
+    .user-modal__aside {
+        border-right: 0;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    }
+}

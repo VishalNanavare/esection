@@ -10,7 +10,7 @@
                     <p class="text-muted small mb-0">Browse previously confirmed eligibility batches.</p>
                 </div>
                 <div>
-                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                    <?php if (feature_enabled('feature_export_enabled') && can('confirmations.export')): ?>
                         <a href="<?= base_url('confirmations/history/export?year=' . urlencode($selected_year) . '&stream=' . urlencode($selected_stream) . '&clg_add=' . urlencode($selected_colg) . '&student_name=' . urlencode($selected_name)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
@@ -92,9 +92,11 @@
                                         <a href="<?= base_url('confirmations/batch/' . $b['array_space']) ?>" class="btn btn-sm btn-glass text-primary me-1">
                                             <i class="fa fa-eye"></i> View
                                         </a>
-                                        <a href="<?= base_url('confirmations/eligibilityPdf/' . $b['array_space']) ?>" target="_blank" class="btn btn-sm btn-glass text-emerald">
-                                            <i class="fa fa-file-pdf-o"></i> Eligibility Letter
-                                        </a>
+                                        <?php if (can('confirmations.print')): ?>
+                                            <a href="<?= base_url('confirmations/eligibilityPdf/' . $b['array_space']) ?>" target="_blank" class="btn btn-sm btn-glass text-emerald">
+                                                <i class="fa fa-file-pdf-o"></i> Eligibility Letter
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

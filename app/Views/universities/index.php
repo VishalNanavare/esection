@@ -10,14 +10,16 @@
                     <p class="text-muted small mb-0">Manage postal addresses, fees, favoring authority titles, and contact information for nationwide target universities.</p>
                 </div>
                 <div>
-                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                    <?php if (feature_enabled('feature_export_enabled') && can('universities.export')): ?>
                         <a href="<?= base_url('universities/export') ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
-                    <button type="button" class="btn btn-indigo" data-bs-toggle="modal" data-bs-target="#addUniversityModal">
-                        <i class="fa fa-plus me-1"></i> Add New University
-                    </button>
+                    <?php if (can('universities.create')): ?>
+                        <button type="button" class="btn btn-indigo" data-bs-toggle="modal" data-bs-target="#addUniversityModal">
+                            <i class="fa fa-plus me-1"></i> Add New University
+                        </button>
+                    <?php endif; ?>
                 </div>
             </div>
 

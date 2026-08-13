@@ -10,7 +10,7 @@
                     <p class="text-muted small mb-0">Browse and reprint previously generated candidate document reminder letters.</p>
                 </div>
                 <div>
-                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                    <?php if (feature_enabled('feature_export_enabled') && can('reminders_student.export')): ?>
                         <a href="<?= base_url('reminders/student/history/export') ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>

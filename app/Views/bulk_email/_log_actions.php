@@ -9,7 +9,10 @@
  * @var array $counts from EmailLogModel::statusCounts()
  */
 ?>
-<?php if (($counts['failed'] ?? 0) > 0): ?>
+<?php // The toggle is the master kill switch for every send path, retries
+      // included -- BulkEmailService::retry() refuses while it is off, so
+      // showing the button would only offer a guaranteed error. ?>
+<?php if (($counts['failed'] ?? 0) > 0 && feature_enabled('feature_bulk_email_enabled')): ?>
     <form action="<?= base_url('bulk-email/retryAllFailed') ?>" method="post" class="d-inline js-ajax"
           data-title="Sent emails"
           data-refresh='<?= esc(json_encode([

@@ -19,10 +19,12 @@
             <td class="small text-muted"><?= esc($r['missing_doc']) ?></td>
             <td class="small text-muted"><?= esc($r['created_at']) ?></td>
             <td class="text-end">
-                <a href="<?= base_url('reminders/student/pdf/' . $r['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-primary me-1" title="View / reprint PDF">
-                    <i class="fa fa-file-pdf-o"></i> PDF
-                </a>
-                <?php if (feature_enabled('feature_delete_enabled')): ?>
+                <?php if (can('reminders_student.print')): ?>
+                    <a href="<?= base_url('reminders/student/pdf/' . $r['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-primary me-1" title="View / reprint PDF">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
+                <?php endif; ?>
+                <?php if (feature_enabled('feature_delete_enabled') && can('reminders_student.delete')): ?>
                     <form action="<?= base_url('reminders/student/delete/' . $r['id']) ?>"
                           method="post" class="d-inline js-ajax delete-student-rem-form"
                           data-title="Candidate reminders" data-refresh="#student_reminder_rows"

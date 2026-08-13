@@ -600,6 +600,17 @@
                     // not "everything off".
                     if (d.resetOnSuccess) {
                         form.reset();
+
+                        // form.reset() restores the DOM defaults but fires no
+                        // change event, so anything derived from the controls
+                        // stays as the last save left it. On the Add User modal
+                        // that meant the "N selected" badge, the footer summary
+                        // and the admin/staff visibility of the whole permission
+                        // block all described the user who had just been created
+                        // -- until the modal was closed and reopened. Re-derive
+                        // them from the values reset() has actually restored.
+                        $(document).trigger('es:permissions-rendered');
+                        $form.find('.js-role-select').trigger('change');
                     }
 
                     if (res.redirect_url) {

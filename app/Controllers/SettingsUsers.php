@@ -22,7 +22,11 @@ class SettingsUsers extends BaseController
             'title'          => 'Settings — Users',
             'users'          => $this->userManagementService->getAll(),
             'currentUserId'  => (int) session()->get('id'),
-            'accessPages'    => $this->accessRightsService->getAllPages(),
+            // Nothing granted: the Add modal starts blank, and the Edit modal is
+            // hydrated client-side from settings/users/getJson once a row is
+            // picked. Rendering it empty keeps ONE partial serving both, rather
+            // than a second server-rendered variant that could drift.
+            'permissionGroups' => $this->accessRightsService->getGroupedPermissions([]),
         ];
 
         return view('settings/users', $data);

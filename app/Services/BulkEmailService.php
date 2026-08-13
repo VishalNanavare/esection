@@ -179,6 +179,16 @@ class BulkEmailService
      */
     public function retry(int $logId): bool
     {
+        // Same kill switch send() honours. Without it the toggle stopped new
+        // batches but not retries -- and retryAllFailed() loops through here up
+        // to MAX_RECIPIENTS times, so an admin who switched Bulk Email OFF
+        // *because* a bad batch had just gone out could still push 500 more real
+        // messages to external addresses from the log screen. The one control
+        // reached for during an incident has to fail closed.
+        if (! feature_enabled('feature_bulk_email_enabled')) {
+            throw new \InvalidArgumentException('Bulk email is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         $row = $this->emailLogModel->findOneById($logId);
 
         if ($row === null) {

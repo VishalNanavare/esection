@@ -19,13 +19,17 @@
             <td><?= esc($r['admission_taken_year']) ?></td>
             <td class="small text-muted"><?= esc($r['created_at']) ?></td>
             <td class="text-end">
-                <a href="<?= base_url('regularization/pdf/' . $r['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-primary me-1" title="View / reprint PDF">
-                    <i class="fa fa-file-pdf-o"></i> PDF
-                </a>
-                <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-reg-btn" data-id="<?= $r['id'] ?>" title="Edit">
-                    <i class="fa fa-edit"></i> Edit
-                </button>
-                <?php if (feature_enabled('feature_delete_enabled')): ?>
+                <?php if (can('regularization.print')): ?>
+                    <a href="<?= base_url('regularization/pdf/' . $r['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-primary me-1" title="View / reprint PDF">
+                        <i class="fa fa-file-pdf-o"></i> PDF
+                    </a>
+                <?php endif; ?>
+                <?php if (can('regularization.edit')): ?>
+                    <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-reg-btn" data-id="<?= $r['id'] ?>" title="Edit">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                <?php endif; ?>
+                <?php if (feature_enabled('feature_delete_enabled') && can('regularization.delete')): ?>
                     <form action="<?= base_url('regularization/delete/' . $r['id']) ?>"
                           method="post" class="d-inline js-ajax delete-reg-form"
                           data-title="Regularization" data-refresh="#regularization_rows"

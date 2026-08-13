@@ -10,12 +10,20 @@
                 <p class="text-muted mb-0">IDOL Eligibility &amp; Document Verification Analytics System</p>
             </div>
             <div class="d-grid d-sm-flex gap-2">
-                <a href="<?= base_url('students/new') ?>" class="btn btn-indigo">
-                    <i class="fa fa-plus me-1"></i> New Eligibility Form
-                </a>
-                <a href="<?= base_url('confirmations') ?>" class="btn btn-emerald">
-                    <i class="fa fa-check-square-o me-1"></i> DD Confirmation
-                </a>
+                <?php // The dashboard itself is behind authFilter only, so these
+                      // two shortcuts render for every signed-in account. Without
+                      // a gate, a user granted (say) only Universities lands on a
+                      // first screen whose only actions both refuse them. ?>
+                <?php if (can('students.create')): ?>
+                    <a href="<?= base_url('students/new') ?>" class="btn btn-indigo">
+                        <i class="fa fa-plus me-1"></i> New Eligibility Form
+                    </a>
+                <?php endif; ?>
+                <?php if (can('confirmations.view')): ?>
+                    <a href="<?= base_url('confirmations') ?>" class="btn btn-emerald">
+                        <i class="fa fa-check-square-o me-1"></i> DD Confirmation
+                    </a>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -122,9 +130,11 @@ $statCards = [
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-end">
-                                        <a href="<?= base_url('confirmations?stream=' . urlencode($m['stream'])) ?>" class="btn btn-sm btn-glass">
-                                            <i class="fa fa-search me-1"></i> Review
-                                        </a>
+                                        <?php if (can('confirmations.view')): ?>
+                                            <a href="<?= base_url('confirmations?stream=' . urlencode($m['stream'])) ?>" class="btn btn-sm btn-glass">
+                                                <i class="fa fa-search me-1"></i> Review
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

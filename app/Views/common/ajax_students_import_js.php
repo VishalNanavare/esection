@@ -269,9 +269,15 @@ $(document).ready(function () {
                         esEscapeHtml(batch.array_space) + '</a></td>' +
                     '<td>' + esEscapeHtml(batch.university) + '</td>' +
                     '<td class="text-center"><span class="badge badge-glass-indigo">' + batch.count + '</span></td>' +
+                    // Both open pdf/dispatch*, which require students.print. An
+                    // importer without it would get a new tab bounced to the
+                    // dashboard, so the row shows the batch link only. Emitted
+                    // from PHP because JS has no view of the session's grants.
                     '<td class="text-end">' +
+<?php if (can('students.print')): ?>
                         '<a class="btn btn-sm btn-glass text-primary" target="_blank" href="' + uni + '">Uni View</a> ' +
                         '<a class="btn btn-sm btn-glass text-emerald" target="_blank" href="' + acc + '">AC View</a>' +
+<?php endif; ?>
                     '</td>' +
                 '</tr>'
             );

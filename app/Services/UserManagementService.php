@@ -80,23 +80,38 @@ class UserManagementService
             'is_active'     => 1,
         ];
 
-        $this->userModel->insert($data);
-        $newId = $this->userModel->getInsertID();
+        // One transaction over the row AND its grants. saveGrantsForUser()
+        // throws on an unknown page key, and that happened AFTER the account
+        // already existed -- so a rejected permission payload left behind a
+        // real, usable login with default grants while the admin saw only an
+        // error. Either the whole account lands or none of it does.
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        // Access Rights only ever governs staff accounts (admin bypasses
-        // every check). pages_submitted is a hidden marker the Add User
-        // modal always sends alongside its 6 page checkboxes -- its PRESENCE
-        // (not the checkbox values themselves) is what distinguishes "an
-        // admin explicitly configured this user's pages" from "some other
-        // caller that doesn't know about this feature", since a fully
-        // unchecked checkbox group is otherwise indistinguishable from an
-        // absent field.
-        if ($role === 'staff') {
-            if (array_key_exists('pages_submitted', $postData)) {
-                $this->accessRightsService->saveGrantsForUser($newId, $postData['pages'] ?? [], (int) session()->get('id'));
-            } else {
-                $this->accessRightsService->ensureDefaultGrants($newId);
+        try {
+            $this->userModel->insert($data);
+            $newId = $this->userModel->getInsertID();
+
+            // Access Rights only ever governs staff accounts (admin bypasses
+            // every check). pages_submitted is a hidden marker the Add User
+            // modal always sends alongside its permission checkboxes -- its
+            // PRESENCE (not the checkbox values themselves) is what
+            // distinguishes "an admin explicitly configured this user's pages"
+            // from "some other caller that doesn't know about this feature",
+            // since a fully unchecked checkbox group is otherwise
+            // indistinguishable from an absent field.
+            if ($role === 'staff') {
+                if (array_key_exists('pages_submitted', $postData)) {
+                    $this->accessRightsService->saveGrantsForUser($newId, $postData['pages'] ?? [], (int) session()->get('id'));
+                } else {
+                    $this->accessRightsService->ensureDefaultGrants($newId);
+                }
             }
+
+            $db->transCommit();
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            throw $e;
         }
 
         $this->activityLogService->record('user.create', 'user', $newId, 'Created user ' . $username);
@@ -158,19 +173,40 @@ class UserManagementService
             $data['reset_expires_at'] = null;
         }
 
-        $this->userModel->update($id, $data);
+        // One transaction over the row and its grants, for the same reason as
+        // create(): a page key the validator rejects must not leave the account
+        // renamed, re-roled or re-passworded with its old permissions intact.
+        $db = \Config\Database::connect();
+        $db->transBegin();
 
-        // Same pages_submitted-gated logic as create() above. The "no
-        // marker" branch also covers an admin demoted to staff by a caller
-        // that predates this feature -- ensureDefaultGrants()'s "only if
-        // zero rows" guard means it never clobbers an existing curated set,
-        // it only ever fills in a genuinely ungranted account.
-        if ($role === 'staff') {
-            if (array_key_exists('pages_submitted', $postData)) {
-                $this->accessRightsService->saveGrantsForUser($id, $postData['pages'] ?? [], $actingUserId);
+        try {
+            $this->userModel->update($id, $data);
+
+            // Same pages_submitted-gated logic as create() above. The "no
+            // marker" branch also covers an admin demoted to staff by a caller
+            // that predates this feature -- ensureDefaultGrants()'s "only if
+            // zero rows" guard means it never clobbers an existing curated set,
+            // it only ever fills in a genuinely ungranted account.
+            if ($role === 'staff') {
+                if (array_key_exists('pages_submitted', $postData)) {
+                    $this->accessRightsService->saveGrantsForUser($id, $postData['pages'] ?? [], $actingUserId);
+                } else {
+                    $this->accessRightsService->ensureDefaultGrants($id);
+                }
             } else {
-                $this->accessRightsService->ensureDefaultGrants($id);
+                // Promotion to admin. This branch used to do nothing at all, so
+                // the staff grants survived: invisible (the modal hides the
+                // chips for admins), unclearable from any screen, and restored
+                // wholesale the moment the account was demoted back to staff --
+                // which reads as the demotion handing out permissions nobody
+                // ticked. Admin is defined as holding zero rows; make it true.
+                $this->accessRightsService->clearGrantsForUser($id, $actingUserId);
             }
+
+            $db->transCommit();
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            throw $e;
         }
 
         $this->activityLogService->record('user.update', 'user', $id, 'Updated user ' . $username);

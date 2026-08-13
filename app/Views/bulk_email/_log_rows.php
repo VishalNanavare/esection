@@ -37,7 +37,9 @@
                 <?php endif; ?>
             </td>
             <td class="text-end">
-                <?php if ($r['status'] === 'failed'): ?>
+                <?php // Matches the guard in BulkEmailService::retry(): while the
+                      // bulk-email toggle is off, every retry path refuses. ?>
+                <?php if ($r['status'] === 'failed' && feature_enabled('feature_bulk_email_enabled')): ?>
                     <form action="<?= base_url('bulk-email/retry/' . $r['id']) ?>" method="post" class="d-inline js-ajax"
                           data-title="Sent emails"
                           data-refresh='<?= esc(json_encode([

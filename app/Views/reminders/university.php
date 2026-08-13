@@ -10,7 +10,7 @@
                     <p class="text-muted small mb-0">Generate 1st and 2nd reminder notice PDF letters for pending eligibility verifications.</p>
                 </div>
                 <div>
-                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                    <?php if (feature_enabled('feature_export_enabled') && can('reminders_university.export')): ?>
                         <a href="<?= base_url('reminders/university/export?acd_year=' . urlencode($selected_year) . '&stream=' . urlencode($selected_stream) . '&clg_add=' . urlencode($selected_colg)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>

@@ -26,9 +26,12 @@
             <td class="small text-muted"><?= esc($c['in_favour_of'] ?: '-') ?></td>
             <td><?= render_status_badge((int) ($c['is_active'] ?? 1) === 1 ? 'active' : 'inactive') ?></td>
             <td class="text-end">
-                <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-uni-btn" data-id="<?= $c['id'] ?>">
-                    <i class="fa fa-edit"></i> Edit
-                </button>
+                <?php if (can('universities.edit')): ?>
+                    <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-uni-btn" data-id="<?= $c['id'] ?>">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                <?php endif; ?>
+                <?php if (can('universities.toggle')): ?>
                 <form action="<?= base_url('universities/toggleActive/' . $c['id']) ?>"
                       method="post" class="d-inline js-ajax"
                       data-title="Universities" data-refresh="#university_rows" data-busy-button="Working...">
@@ -43,6 +46,7 @@
                         </button>
                     <?php endif; ?>
                 </form>
+                <?php endif; ?>
             </td>
         </tr>
     <?php endforeach; ?>

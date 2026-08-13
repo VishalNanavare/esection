@@ -22,10 +22,12 @@
             <td class="small text-muted"><?= esc($s['verification_of_marksheet_done_by_you']) ?></td>
             <td class="small text-muted"><?= esc($s['email'] ?: '-') ?></td>
             <td class="text-end">
-                <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-student-btn" data-id="<?= $s['id'] ?>">
-                    <i class="fa fa-edit"></i> Edit
-                </button>
-                <?php if (feature_enabled('feature_delete_enabled')): ?>
+                <?php if (can('students.edit')): ?>
+                    <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-student-btn" data-id="<?= $s['id'] ?>">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                <?php endif; ?>
+                <?php if (feature_enabled('feature_delete_enabled') && can('students.delete')): ?>
                     <?php
                         // The confirmation is declared here, not bound in JS. The
                         // old handler ended in form.submit(), which fires no

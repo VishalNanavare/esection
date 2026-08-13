@@ -51,13 +51,21 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                         <span class="link-text">Dashboard</span>
                     </a>
                 </li>
-                <?php if (page_access_granted('students_new')): ?>
+                <?php
+                    // Per-action now. These used to share one students_new gate,
+                    // but Import has its own permission -- a clerk may be allowed
+                    // to key candidates in one at a time without being handed a
+                    // 2,000-row upload, and the nav has to reflect that.
+                ?>
+                <?php if (can('students.create')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('students/new') ?>" data-label="New Form" class="nav-link <?= (uri_string() === 'students/new') ? 'active' : '' ?>">
                         <i class="fa fa-plus-circle"></i>
                         <span class="link-text">New Form</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can('students.import')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('students/import') ?>" data-label="Import Excel" class="nav-link <?= str_starts_with(uri_string(), 'students/import') ? 'active' : '' ?>">
                         <i class="fa fa-file-excel-o"></i>
@@ -65,7 +73,15 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                     </a>
                 </li>
                 <?php endif; ?>
-                <?php if (page_access_granted('confirmations')): ?>
+                <?php if (can('students.view')): ?>
+                <li class="nav-item">
+                    <a href="<?= base_url('students/history') ?>" data-label="Batch History" class="nav-link <?= str_starts_with(uri_string(), 'students/history') || str_starts_with(uri_string(), 'students/batch') ? 'active' : '' ?>">
+                        <i class="fa fa-list-alt"></i>
+                        <span class="link-text">Batch History</span>
+                    </a>
+                </li>
+                <?php endif; ?>
+                <?php if (can('confirmations.view')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('confirmations') ?>" data-label="DD Confirmation" class="nav-link <?= (uri_string() === 'confirmations') ? 'active' : '' ?>">
                         <i class="fa fa-check-square-o"></i>
@@ -73,7 +89,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                     </a>
                 </li>
                 <?php endif; ?>
-                <?php if (page_access_granted('universities')): ?>
+                <?php if (can('universities.view')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('universities') ?>" data-label="University Directory" class="nav-link <?= (uri_string() === 'universities') ? 'active' : '' ?>">
                         <i class="fa fa-university"></i>
@@ -81,18 +97,22 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                     </a>
                 </li>
                 <?php endif; ?>
-                <?php if (page_access_granted('regularization')): ?>
+                <?php if (can('regularization.view')): ?>
                 <li class="nav-item">
-                    <a href="<?= base_url('regularization') ?>" data-label="Regularization" class="nav-link <?= (uri_string() === 'regularization') ? 'active' : '' ?>">
+                    <?php // /regularization IS the letter form and now requires
+                          // regularization.create. Someone holding only .view
+                          // still has history to read, so point them there
+                          // rather than at a page that would refuse them. ?>
+                    <a href="<?= base_url(can('regularization.create') ? 'regularization' : 'regularization/history') ?>" data-label="Regularization" class="nav-link <?= (str_starts_with(uri_string(), 'regularization')) ? 'active' : '' ?>">
                         <i class="fa fa-file-text-o"></i>
                         <span class="link-text">Regularization</span>
                     </a>
                 </li>
                 <?php endif; ?>
                 <?php // One nav link covers both reminder pages -- shown if either is granted, since it's just a display nicety, not the enforcement point. ?>
-                <?php if (page_access_granted('reminders_university') || page_access_granted('reminders_student')): ?>
+                <?php if (can_any(['reminders_university.view', 'reminders_student.view'])): ?>
                 <li class="nav-item">
-                    <a href="<?= base_url(page_access_granted('reminders_university') ? 'reminders/university' : 'reminders/student') ?>" data-label="Reminders" class="nav-link <?= (str_contains(uri_string(), 'reminders')) ? 'active' : '' ?>">
+                    <a href="<?= base_url(can('reminders_university.view') ? 'reminders/university' : 'reminders/student') ?>" data-label="Reminders" class="nav-link <?= (str_contains(uri_string(), 'reminders')) ? 'active' : '' ?>">
                         <i class="fa fa-clock-o"></i>
                         <span class="link-text">Reminders</span>
                     </a>

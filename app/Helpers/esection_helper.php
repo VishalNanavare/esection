@@ -216,14 +216,26 @@ if (!function_exists('feature_enabled')) {
     }
 }
 
-if (!function_exists('page_access_granted')) {
+if (!function_exists('can')) {
     /**
-     * Whether the logged-in user can reach a given Access Rights page_key.
-     * Display-only (hides a sidebar link the user can't use) -- NOT a
-     * security boundary, that's AccessFilter's job. Reads the session cache
-     * populated at login, never a DB hit per call.
+     * Whether the logged-in user holds a permission, e.g. can('students.delete').
+     *
+     * DISPLAY ONLY. This decides whether a button is rendered; it is not the
+     * security boundary. AccessFilter is, and it runs on every guarded route
+     * regardless of what the page chose to show -- so hiding a control here and
+     * forgetting the route filter would leave the action wide open to anyone
+     * who types the URL.
+     *
+     * Reads the session cache written at login and refreshed by AuthFilter
+     * every 60 seconds, so it never costs a query. A permission revoked in
+     * Settings therefore takes up to a minute to disappear from a live session.
+     *
+     * Admin short-circuits before the cache is consulted, exactly as
+     * AccessFilter does -- admin deliberately stores an EMPTY page_access
+     * array, so reaching the in_array() below would deny an administrator
+     * everything.
      */
-    function page_access_granted(string $pageKey): bool
+    function can(string $permission): bool
     {
         if (session()->get('role') === 'admin') {
             return true;
@@ -231,6 +243,34 @@ if (!function_exists('page_access_granted')) {
 
         $granted = session()->get('page_access');
 
-        return is_array($granted) && in_array($pageKey, $granted, true);
+        return is_array($granted) && in_array($permission, $granted, true);
+    }
+}
+
+if (!function_exists('can_any')) {
+    /** True if the user holds ANY of the given permissions. */
+    function can_any(array $permissions): bool
+    {
+        foreach ($permissions as $permission) {
+            if (can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('page_access_granted')) {
+    /**
+     * Legacy alias kept so nothing breaks mid-change.
+     *
+     * The old page keys are gone; callers should ask for a specific permission
+     * such as 'students.view'. Passing a bare module name still works because
+     * it is treated as that module's view right.
+     */
+    function page_access_granted(string $pageKey): bool
+    {
+        return can(str_contains($pageKey, '.') ? $pageKey : $pageKey . '.view');
     }
 }

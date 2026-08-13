@@ -56,8 +56,22 @@ class AccessFilter implements FilterInterface
 
         $granted = session()->get('page_access');
 
-        if (! is_array($granted)) {
+        // is_array() alone was not enough. A session established BEFORE the
+        // granular-permissions migration holds the six legacy page keys
+        // ('students_new', 'universities', ...) -- a perfectly good array, so
+        // the fallback never fired, and every intersect against a
+        // 'module.action' key came back empty. Those users were denied
+        // everything, on every page, until AuthFilter's 60-second refresh
+        // happened to come round. Detect the legacy shape and re-read now.
+        $isStale = ! is_array($granted)
+            || array_intersect($granted, array_keys(\Config\Permissions::LEGACY_KEY_TO_MODULE)) !== [];
+
+        if ($isStale) {
             $granted = (new AccessRightsService())->getPagesForUser((int) session()->get('id'));
+
+            // Write it back, or every request in the next 60 seconds repeats
+            // this query.
+            session()->set('page_access', $granted);
         }
 
         if (array_intersect($pageKeys, $granted) !== []) {

@@ -10,7 +10,7 @@
                     <p class="text-muted small mb-0">Confirm Migration/TC, Passing/Degree, and Statement of Marks status for verified candidates.</p>
                 </div>
                 <div>
-                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                    <?php if (feature_enabled('feature_export_enabled') && can('confirmations.export')): ?>
                         <a href="<?= base_url('confirmations/export?year=' . urlencode($selected_year) . '&stream=' . urlencode($selected_stream)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>

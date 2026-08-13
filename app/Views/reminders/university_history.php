@@ -10,7 +10,7 @@
                     <p class="text-muted small mb-0">Browse ongoing reminder batches, grouped by university and academic year.</p>
                 </div>
                 <div>
-                    <?php if (feature_enabled('feature_export_enabled')): ?>
+                    <?php if (feature_enabled('feature_export_enabled') && can('reminders_university.export')): ?>
                         <a href="<?= base_url('reminders/university/history/export') ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
@@ -48,9 +48,11 @@
                                         <a href="<?= base_url('reminders/university/batch/' . $b['id']) ?>" class="btn btn-sm btn-glass text-primary me-1">
                                             <i class="fa fa-eye"></i> View
                                         </a>
-                                        <a href="<?= base_url('reminders/university/pdf/' . $b['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-emerald">
-                                            <i class="fa fa-file-pdf-o"></i> PDF
-                                        </a>
+                                        <?php if (can('reminders_university.print')): ?>
+                                            <a href="<?= base_url('reminders/university/pdf/' . $b['id']) ?>" target="_blank" class="btn btn-sm btn-glass text-emerald">
+                                                <i class="fa fa-file-pdf-o"></i> PDF
+                                            </a>
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

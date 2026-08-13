@@ -10,7 +10,9 @@
                     <p class="text-muted small mb-0">Full eligibility confirmation detail for this batch.</p>
                 </div>
                 <div>
-                    <a href="<?= base_url('confirmations/eligibilityPdf/' . $arraySpace) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> Eligibility Letter</a>
+                    <?php if (can('confirmations.print')): ?>
+                        <a href="<?= base_url('confirmations/eligibilityPdf/' . $arraySpace) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> Eligibility Letter</a>
+                    <?php endif; ?>
                     <a href="<?= base_url('confirmations/history') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to History</a>
                 </div>
             </div>

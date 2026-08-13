@@ -13,9 +13,11 @@
                     <a href="<?= base_url('students/import/template') ?>" class="btn btn-glass me-2">
                         <i class="fa fa-download me-1"></i> Download Template
                     </a>
-                    <a href="<?= base_url('students/new') ?>" class="btn btn-glass">
-                        <i class="fa fa-plus-circle me-1"></i> Enter Manually
-                    </a>
+                    <?php if (can('students.create')): ?>
+                        <a href="<?= base_url('students/new') ?>" class="btn btn-glass">
+                            <i class="fa fa-plus-circle me-1"></i> Enter Manually
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
 

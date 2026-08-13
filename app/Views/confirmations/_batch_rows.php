@@ -46,7 +46,7 @@ $highlightId = $highlightId ?? 0;
                 <?php endif; ?>
             </td>
             <td class="text-end">
-                <?php if (feature_enabled('feature_delete_enabled')): ?>
+                <?php if (feature_enabled('feature_delete_enabled') && can('confirmations.delete')): ?>
                     <form action="<?= base_url('confirmations/delete/' . $r['id']) ?>"
                           method="post" class="d-inline js-ajax delete-confirmation-form"
                           data-title="Confirmations" data-refresh="#confirmation_batch_rows"

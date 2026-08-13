@@ -10,7 +10,9 @@
                     <p class="text-muted small mb-0">Academic Year <?= esc($batch['academic_year']) ?><?php if (!empty($batch['admission_taken_in'])): ?> &middot; <?= esc($batch['admission_taken_in']) ?><?php endif; ?></p>
                 </div>
                 <div>
-                    <a href="<?= base_url('reminders/university/pdf/' . $batch['id']) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> View / Reprint PDF</a>
+                    <?php if (can('reminders_university.print')): ?>
+                        <a href="<?= base_url('reminders/university/pdf/' . $batch['id']) ?>" target="_blank" class="btn btn-emerald me-1"><i class="fa fa-file-pdf-o me-1"></i> View / Reprint PDF</a>
+                    <?php endif; ?>
                     <a href="<?= base_url('reminders/university/history') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to History</a>
                 </div>
             </div>

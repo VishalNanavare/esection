@@ -41,7 +41,7 @@
 
 <!-- Modal Add User -->
 <div class="modal fade" id="addUserModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-fullscreen">
         <div class="modal-content glass-card border-secondary border-opacity-25">
             <div class="modal-header border-bottom border-secondary border-opacity-25">
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-users me-2 text-indigo"></i> Add User</h5>
@@ -51,48 +51,90 @@
                   data-title="Users" data-refresh="#user_rows" data-close-modal="#addUserModal"
                   data-reset-on-success="1" data-busy-button="Saving...">
                 <?= csrf_field() ?>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Username</label>
-                            <input type="text" name="username" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Password</label>
-                            <input type="password" name="password" class="form-control" minlength="8" maxlength="10" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Full Name</label>
-                            <input type="text" name="full_name" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Email</label>
-                            <input type="email" name="email" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label text-secondary small fw-semibold">Role</label>
-                            <select name="role" class="form-select">
-                                <option value="staff">Staff</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <div class="col-12 access-pages-block">
-                            <label class="form-label text-secondary small fw-semibold">Page Access (staff only &mdash; admin always has every page)</label>
-                            <input type="hidden" name="pages_submitted" value="1">
-                            <div class="d-flex flex-wrap gap-3">
-                                <?php foreach ($accessPages as $page): ?>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input" name="pages[]" value="<?= esc($page['page_key']) ?>" id="add_page_<?= esc($page['page_key']) ?>" checked>
-                                        <label class="form-check-label small" for="add_page_<?= esc($page['page_key']) ?>"><?= esc($page['page_label']) ?></label>
-                                    </div>
-                                <?php endforeach; ?>
+                <div class="modal-body p-0">
+                    <div class="row g-0">
+
+                        <!-- Account details -->
+                        <div class="col-lg-3 user-modal__aside p-4">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fa fa-user-circle-o me-2 text-indigo"></i> Account
+                            </h6>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Username</label>
+                                <input type="text" name="username" class="form-control" required>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Password</label>
+                                <input type="password" name="password" class="form-control" minlength="8" maxlength="10" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Full Name</label>
+                                <input type="text" name="full_name" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Email</label>
+                                <input type="email" name="email" class="form-control">
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label text-secondary small fw-semibold">Role</label>
+                                <select name="role" class="form-select js-role-select">
+                                    <option value="staff">Staff</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                                <?php
+                                    // Access Rights only ever governs staff.
+                                    // Admin bypasses AccessFilter by role, so the
+                                    // permission column is hidden for them rather
+                                    // than left on screen implying it does something.
+                                ?>
+                                <div class="form-text small text-muted js-admin-note d-none">
+                                    Administrators can reach every page by role, so no permissions are set here.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Permissions -->
+                        <div class="col-lg-9 user-modal__perms p-4 access-pages-block">
+                            <?php
+                                // pages_submitted is a marker whose PRESENCE (not its
+                                // value) says "an admin configured this user".
+                                // Without it a fully-unticked set is indistinguishable
+                                // from a caller that predates the feature, and
+                                // UserManagementService would silently apply defaults.
+                            ?>
+                            <input type="hidden" name="pages_submitted" value="1">
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="fa fa-lock me-2 text-indigo"></i> Permission
+                                </h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge badge-glass-indigo perm-count">0 selected</span>
+                                    <button type="button" class="btn btn-sm btn-glass js-perm-all">Select all</button>
+                                    <button type="button" class="btn btn-sm btn-glass js-perm-none">Clear all</button>
+                                </div>
+                            </div>
+
+                            <?php
+                                // view(), NOT $this->include(): include()'s second
+                                // argument is OPTIONS, not data, so idPrefix and
+                                // showHeader were silently dropped -- both modals
+                                // rendered the default prefix and produced DUPLICATE
+                                // element ids, which makes a label click toggle the
+                                // other modal's checkbox. saveData:false stops the
+                                // first call's vars leaking into the second.
+                            ?>
+                            <?= view('settings/_permission_groups', ['idPrefix' => 'add', 'showHeader' => false], ['saveData' => false]) ?>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top border-secondary border-opacity-25">
-                    <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-indigo">Save User</button>
+                <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-between">
+                    <span class="small text-muted perm-summary">No permissions selected</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-indigo">Save User</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -101,7 +143,7 @@
 
 <!-- Modal Edit User -->
 <div class="modal fade" id="editUserModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-fullscreen">
         <div class="modal-content glass-card border-secondary border-opacity-25">
             <div class="modal-header border-bottom border-secondary border-opacity-25">
                 <h5 class="modal-title fw-bold text-dark"><i class="fa fa-edit me-2 text-indigo"></i> Edit User</h5>
@@ -111,48 +153,81 @@
                   data-title="Users" data-refresh="#user_rows" data-close-modal="#editUserModal"
                   data-busy-button="Saving...">
                 <?= csrf_field() ?>
-                <div class="modal-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Username</label>
-                            <input type="text" name="username" id="edit_username" class="form-control" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">New Password</label>
-                            <input type="password" name="password" id="edit_password" class="form-control" minlength="8" maxlength="10" placeholder="Leave blank to keep current password">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Full Name</label>
-                            <input type="text" name="full_name" id="edit_full_name" class="form-control">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-secondary small fw-semibold">Email</label>
-                            <input type="email" name="email" id="edit_email" class="form-control">
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label text-secondary small fw-semibold">Role</label>
-                            <select name="role" id="edit_role" class="form-select">
-                                <option value="staff">Staff</option>
-                                <option value="admin">Admin</option>
-                            </select>
-                        </div>
-                        <div class="col-12 access-pages-block">
-                            <label class="form-label text-secondary small fw-semibold">Page Access (staff only &mdash; admin always has every page)</label>
-                            <input type="hidden" name="pages_submitted" value="1">
-                            <div class="d-flex flex-wrap gap-3">
-                                <?php foreach ($accessPages as $page): ?>
-                                    <div class="form-check">
-                                        <input type="checkbox" class="form-check-input edit-page-checkbox" name="pages[]" value="<?= esc($page['page_key']) ?>" id="edit_page_<?= esc($page['page_key']) ?>">
-                                        <label class="form-check-label small" for="edit_page_<?= esc($page['page_key']) ?>"><?= esc($page['page_label']) ?></label>
-                                    </div>
-                                <?php endforeach; ?>
+                <div class="modal-body p-0">
+                    <div class="row g-0">
+
+                        <!-- Account details -->
+                        <div class="col-lg-3 user-modal__aside p-4">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fa fa-user-circle-o me-2 text-indigo"></i> Account
+                            </h6>
+
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Username</label>
+                                <input type="text" name="username" id="edit_username" class="form-control" required>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">New Password</label>
+                                <input type="password" name="password" id="edit_password" class="form-control" minlength="8" maxlength="10" placeholder="Leave blank to keep current password">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Full Name</label>
+                                <input type="text" name="full_name" id="edit_full_name" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-secondary small fw-semibold">Email</label>
+                                <input type="email" name="email" id="edit_email" class="form-control">
+                            </div>
+                            <div class="mb-0">
+                                <label class="form-label text-secondary small fw-semibold">Role</label>
+                                <select name="role" id="edit_role" class="form-select js-role-select">
+                                    <option value="staff">Staff</option>
+                                    <option value="admin">Admin</option>
+                                </select>
+                                <?php
+                                    // Access Rights only ever governs staff.
+                                    // Admin bypasses AccessFilter by role, so the
+                                    // permission column is hidden for them rather
+                                    // than left on screen implying it does something.
+                                ?>
+                                <div class="form-text small text-muted js-admin-note d-none">
+                                    Administrators can reach every page by role, so no permissions are set here.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Permissions -->
+                        <div class="col-lg-9 user-modal__perms p-4 access-pages-block">
+                            <?php
+                                // pages_submitted is a marker whose PRESENCE (not its
+                                // value) says "an admin configured this user".
+                                // Without it a fully-unticked set is indistinguishable
+                                // from a caller that predates the feature, and
+                                // UserManagementService would silently apply defaults.
+                            ?>
+                            <input type="hidden" name="pages_submitted" value="1">
+
+                            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="fa fa-lock me-2 text-indigo"></i> Permission
+                                </h6>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge badge-glass-indigo perm-count">0 selected</span>
+                                    <button type="button" class="btn btn-sm btn-glass js-perm-all">Select all</button>
+                                    <button type="button" class="btn btn-sm btn-glass js-perm-none">Clear all</button>
+                                </div>
+                            </div>
+
+                            <?= view('settings/_permission_groups', ['idPrefix' => 'edit', 'showHeader' => false], ['saveData' => false]) ?>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top border-secondary border-opacity-25">
-                    <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-indigo">Update User</button>
+                <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-between">
+                    <span class="small text-muted perm-summary">No permissions selected</span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-indigo">Update User</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -161,5 +236,6 @@
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
+    <?= $this->include('common/ajax_permissions_js') ?>
     <?= $this->include('common/ajax_settings_users_js') ?>
 <?= $this->endSection() ?>
