@@ -144,6 +144,18 @@ class UserManagementService
         if ($password !== '') {
             $this->assertPasswordStrength($password);
             $data['password_hash'] = password_hash($password, PASSWORD_BCRYPT);
+
+            // Kill any outstanding emailed reset link, exactly as
+            // changeOwnPassword() and PasswordResetService::resetWithToken() do.
+            //
+            // This was the one password-writing path that still missed it, and
+            // it is the one an administrator actually uses during an incident:
+            // "someone may have my account" -> admin sets a new password here.
+            // Without this, a reset link the attacker had already triggered
+            // stayed valid for the rest of its hour, so they could simply set
+            // the password again and undo the remediation.
+            $data['reset_token_hash'] = null;
+            $data['reset_expires_at'] = null;
         }
 
         $this->userModel->update($id, $data);

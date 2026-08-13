@@ -42,6 +42,15 @@ class SettingsBackup extends BaseController
 
         try {
             $result = $this->backupService->createSqlBackup();
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // Ahead of the \RuntimeException arm below, which would otherwise
+            // catch this first and return getMessage() verbatim:
+            // DatabaseException extends CodeIgniter\Exceptions\RuntimeException,
+            // which extends \RuntimeException. Its message carries the driver's
+            // own text and can quote the failing SQL.
+            log_message('error', '[SettingsBackup] {message}', ['message' => (string) $e]);
+
+            return $this->respond(false, 'The action could not be completed. The issue has been logged.');
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
@@ -64,6 +73,15 @@ class SettingsBackup extends BaseController
 
         try {
             $result = $this->backupService->createExcelBackup();
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // Ahead of the \RuntimeException arm below, which would otherwise
+            // catch this first and return getMessage() verbatim:
+            // DatabaseException extends CodeIgniter\Exceptions\RuntimeException,
+            // which extends \RuntimeException. Its message carries the driver's
+            // own text and can quote the failing SQL.
+            log_message('error', '[SettingsBackup] {message}', ['message' => (string) $e]);
+
+            return $this->respond(false, 'The action could not be completed. The issue has been logged.');
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
@@ -112,6 +130,15 @@ class SettingsBackup extends BaseController
     {
         try {
             $filename = $this->backupService->deleteBackup((int) $id);
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // Ahead of the \RuntimeException arm below, which would otherwise
+            // catch this first and return getMessage() verbatim:
+            // DatabaseException extends CodeIgniter\Exceptions\RuntimeException,
+            // which extends \RuntimeException. Its message carries the driver's
+            // own text and can quote the failing SQL.
+            log_message('error', '[SettingsBackup] {message}', ['message' => (string) $e]);
+
+            return $this->respond(false, 'The action could not be completed. The issue has been logged.');
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {
@@ -130,6 +157,15 @@ class SettingsBackup extends BaseController
                 (string) $this->request->getPost('backup_password'),
                 (string) $this->request->getPost('backup_password_confirm')
             );
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // Ahead of the \RuntimeException arm below, which would otherwise
+            // catch this first and return getMessage() verbatim:
+            // DatabaseException extends CodeIgniter\Exceptions\RuntimeException,
+            // which extends \RuntimeException. Its message carries the driver's
+            // own text and can quote the failing SQL.
+            log_message('error', '[SettingsBackup] {message}', ['message' => (string) $e]);
+
+            return $this->respond(false, 'The action could not be completed. The issue has been logged.');
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             return $this->respond(false, $e->getMessage());
         } catch (\Throwable $e) {

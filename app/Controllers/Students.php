@@ -93,6 +93,19 @@ class Students extends BaseController
                 'array_space'  => $res['array_space'],
                 'redirect_url' => base_url('pdf/dispatch/' . urlencode($res['array_space']))
             ]);
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // MUST sit before the \RuntimeException arm below. DatabaseException
+            // extends CodeIgniter\Exceptions\RuntimeException, which extends
+            // \RuntimeException -- so that arm caught it first and returned
+            // getMessage() verbatim, which with DBDebug on carries the driver's
+            // own text and can quote the failing SQL. The \Throwable arm further
+            // down was written to stop exactly that and could never be reached.
+            log_message('error', '[Students::storeBatch] {message}', ['message' => (string) $e]);
+
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'The batch could not be saved. The issue has been logged.',
+            ]);
         } catch (\InvalidArgumentException|\RuntimeException $e) {
             // Our own validation/atomicity failures. These messages are
             // written for the operator, so they are safe to show verbatim.
@@ -162,6 +175,17 @@ class Students extends BaseController
             );
 
             return $this->response->setJSON(['status' => 'success', 'data' => $preview]);
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // MUST sit before the \RuntimeException arm below. DatabaseException
+            // extends CodeIgniter\Exceptions\RuntimeException, which extends
+            // \RuntimeException -- so that arm caught it first and returned
+            // getMessage() verbatim, which with DBDebug on carries the driver's
+            // own text and can quote the failing SQL. The \Throwable arm further
+            // down was written to stop exactly that and could never be reached.
+            log_message('error', '[Students::importPreview] {message}', ['message' => (string) $e]);
+
+            return $this->response->setStatusCode(500)
+                ->setJSON(['status' => 'error', 'message' => 'The file could not be read. The issue has been logged.']);
         } catch (\InvalidArgumentException|\RuntimeException $e) {
             // Written for the operator -- safe to show verbatim.
             return $this->response->setStatusCode(422)
@@ -203,6 +227,17 @@ class Students extends BaseController
             );
 
             return $this->response->setJSON(['status' => 'success', 'data' => $result]);
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // MUST sit before the \RuntimeException arm below. DatabaseException
+            // extends CodeIgniter\Exceptions\RuntimeException, which extends
+            // \RuntimeException -- so that arm caught it first and returned
+            // getMessage() verbatim, which with DBDebug on carries the driver's
+            // own text and can quote the failing SQL. The \Throwable arm further
+            // down was written to stop exactly that and could never be reached.
+            log_message('error', '[Students::importCommit] {message}', ['message' => (string) $e]);
+
+            return $this->response->setStatusCode(500)
+                ->setJSON(['status' => 'error', 'message' => 'The import could not be completed. The issue has been logged.']);
         } catch (\InvalidArgumentException|\RuntimeException $e) {
             return $this->response->setStatusCode(422)
                 ->setJSON(['status' => 'error', 'message' => $e->getMessage()]);

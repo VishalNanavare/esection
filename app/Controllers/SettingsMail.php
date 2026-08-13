@@ -41,6 +41,18 @@ class SettingsMail extends BaseController
     {
         try {
             $this->mailSettingsService->save($this->request->getPost());
+        } catch (\CodeIgniter\Database\Exceptions\DatabaseException $e) {
+            // Ahead of the \RuntimeException arm below -- DatabaseException
+            // extends it, so that arm would return the driver's own text.
+            log_message('error', '[SettingsMail::store] {message}', ['message' => (string) $e]);
+
+            return $this->respondToPost(
+                false,
+                'The email settings could not be saved. The issue has been logged.',
+                base_url('settings/mail'),
+                [],
+                500
+            );
         } catch (\InvalidArgumentException | \RuntimeException $e) {
             return $this->respondToPost(false, $e->getMessage(), base_url('settings/mail'));
         } catch (\Throwable $e) {
