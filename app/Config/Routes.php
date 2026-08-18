@@ -97,8 +97,16 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
         // whole batch, and only met the refusal at submit (storeBatch below
         // requires students.create), losing every field they had typed.
         $routes->get('students/new', 'Students::newForm', ['filter' => 'accessFilter:students.create']);
-        $routes->get('students/generateCaseNo', 'Students::generateCaseNo');
-        $routes->get('students/getCollegeInfo/(:num)', 'Students::getCollegeInfo/$1');
+        // Both of these are called from one place: ajax_students_new_js,
+        // which is included only by students/new_form -- a screen that already
+        // requires students.create. Inheriting the group's students.view left
+        // them reachable by a read-only clerk, and getCollegeInfo returns a
+        // university's address, fee and payee details one id at a time, so the
+        // whole register could be walked from an account with no right to see
+        // the Universities screen. Matching the guard to the only caller
+        // removes that without any real user losing access.
+        $routes->get('students/generateCaseNo', 'Students::generateCaseNo', ['filter' => 'accessFilter:students.create']);
+        $routes->get('students/getCollegeInfo/(:num)', 'Students::getCollegeInfo/$1', ['filter' => 'accessFilter:students.create']);
         $routes->post('students/storeBatch', 'Students::storeBatch', ['filter' => 'accessFilter:students.create']);
 
         // Excel import now has its own permission. Under the old page-level

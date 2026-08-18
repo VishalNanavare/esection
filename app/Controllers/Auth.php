@@ -18,6 +18,14 @@ class Auth extends BaseController
     /** Password-reset requests allowed per IP per minute -- same DoS reasoning as login. */
     private const RESET_REQUESTS_PER_MINUTE = 3;
 
+    // The change-password form verifies the CURRENT password, which makes it a
+    // password oracle -- and it was the only such endpoint in the app with no
+    // rate limit at all. Someone at an unlocked, already-signed-in desk could
+    // guess the account's password as fast as HTTP allows, entirely offline
+    // from the login throttle. Ten a minute is far above anyone typing their
+    // own password and low enough to make guessing pointless.
+    private const PASSWORD_CHANGE_ATTEMPTS_PER_MINUTE = 10;
+
     protected UserModel $userModel;
     protected PasswordResetService $passwordResetService;
 
@@ -53,6 +61,20 @@ class Auth extends BaseController
 
         if ($userId <= 0) {
             return $this->respondToPost(false, 'Your session has expired. Please sign in again.', base_url('auth/login'), [], 401);
+        }
+
+        // Keyed on the user id, not the IP: the point is to bound guesses
+        // against one account, and every attempt here already belongs to an
+        // authenticated session. Same service and window as the reset
+        // throttle above, so there is one mechanism to reason about.
+        if (service('throttler')->check('pwchange_' . $userId, self::PASSWORD_CHANGE_ATTEMPTS_PER_MINUTE, MINUTE) === false) {
+            log_message('warning', '[Auth::changePassword] throttled user {id}', ['id' => (string) $userId]);
+
+            return $this->respondToPost(
+                false,
+                'Too many password change attempts. Please wait a minute and try again.',
+                base_url('dashboard')
+            );
         }
 
         try {
