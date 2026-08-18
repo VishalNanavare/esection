@@ -58,18 +58,45 @@ class LoginThrottleService
      */
     public function isBlocked(string $ip, ?string $username): bool
     {
-        $since = $this->windowStart();
+        return $this->isIpBlocked($ip) || $this->isUsernameBlocked($username);
+    }
 
-        if ($this->loginAttemptModel->countRecentFailuresByIp($ip, $since) >= self::MAX_FAILURES_PER_IP) {
-            return true;
+    /**
+     * Has this SOURCE exhausted its attempts?
+     *
+     * A hard stop: the caller must refuse before reaching password_verify(),
+     * so one machine spraying accounts cannot make the server spend a bcrypt
+     * per guess.
+     */
+    public function isIpBlocked(string $ip): bool
+    {
+        return $this->loginAttemptModel->countRecentFailuresByIp($ip, $this->windowStart())
+            >= self::MAX_FAILURES_PER_IP;
+    }
+
+    /**
+     * Has this ACCOUNT NAME exhausted its attempts?
+     *
+     * Deliberately weaker than the IP counter, and the caller must not treat it
+     * as a hard stop. This counter is the one an attacker can aim at somebody
+     * else: fail a known username ten times every fifteen minutes from a couple
+     * of addresses and it stays tripped for as long as they care to keep going,
+     * while the person who owns the account -- typing the correct password from
+     * their own desk -- is turned away with it.
+     *
+     * So the caller checks the password anyway and only refuses if it is wrong.
+     * Someone who knows the password is not the attack this counter exists to
+     * stop, and the per-IP limit still bounds how much bcrypt work any one
+     * source can cause.
+     */
+    public function isUsernameBlocked(?string $username): bool
+    {
+        if ($username === null || $username === '') {
+            return false;
         }
 
-        if ($username !== null && $username !== ''
-            && $this->loginAttemptModel->countRecentFailuresByUsername($username, $since) >= self::MAX_FAILURES_PER_USERNAME) {
-            return true;
-        }
-
-        return false;
+        return $this->loginAttemptModel->countRecentFailuresByUsername($username, $this->windowStart())
+            >= self::MAX_FAILURES_PER_USERNAME;
     }
 
     /**

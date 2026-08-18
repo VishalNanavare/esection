@@ -124,12 +124,20 @@ class Auth extends BaseController
         //
         // Counted per IP AND per username: an IP-only guard cannot see many
         // machines guessing at one known account. Both windows expire on their
-        // own, so no account is ever permanently locked and nobody can lock a
-        // colleague out by failing their login on purpose.
+        // own, so no account is ever permanently locked.
+        //
+        // The two counters are NOT treated alike. The IP one is a hard stop.
+        // The username one is not, because it is the counter an attacker can
+        // point at somebody else -- and obeying it meant they could keep a real
+        // user out of their own account by failing that name ten times every
+        // fifteen minutes. It is now checked after the password instead, so
+        // knowing the password still gets you in.
         $ip       = $this->request->getIPAddress();
         $throttle = new LoginThrottleService();
 
-        if ($throttle->isBlocked($ip, $username)) {
+        // Only the per-IP counter is a hard stop. The per-username counter is
+        // consulted below, AFTER the password is checked -- see the note there.
+        if ($throttle->isIpBlocked($ip)) {
             // Deliberately NOT recorded.
             //
             // Recording here made the block feed itself: every rejected retry
@@ -150,6 +158,19 @@ class Auth extends BaseController
                 . $throttle->retryAfterMinutes() . ' minutes and try again.'
             );
         }
+
+        // Tripped by failures against this NAME, from anywhere. Not a refusal
+        // on its own: this is the counter someone can aim at a colleague, and
+        // refusing here handed them a working lockout of a real user's account
+        // for as long as they kept failing it -- the person who actually knows
+        // the password was turned away along with the guesser.
+        //
+        // So the password is checked either way. A correct one means this is
+        // the owner, and they are let in; the recorded success clears the
+        // counter. Only a wrong password is refused, and only then is the
+        // throttle message shown. The per-IP stop above still bounds how much
+        // bcrypt work any single source can cause.
+        $usernameThrottled = $throttle->isUsernameBlocked($username);
 
         // Never let a throwable escape this call. CodeIgniter logs every
         // uncaught exception at CRITICAL and renders the stack with
@@ -246,6 +267,17 @@ class Auth extends BaseController
             null,
             'Failed sign-in for "' . $username . '" from ' . $this->request->getIPAddress()
         );
+
+        // Wrong password AND the name is already over its limit: now it is a
+        // guess like the ten before it, so say so rather than inviting another.
+        // A correct password never reaches this line -- it was accepted above.
+        if ($usernameThrottled) {
+            return redirect()->to(base_url('auth/login'))->with(
+                'error',
+                'Too many failed sign-in attempts for this account. Please wait about '
+                . $throttle->retryAfterMinutes() . ' minutes and try again.'
+            );
+        }
 
         return redirect()->to(base_url('auth/login'))->with('error', 'Invalid login credentials. Please try again.');
     }
