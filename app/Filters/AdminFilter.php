@@ -13,6 +13,8 @@ use CodeIgniter\HTTP\ResponseInterface;
  */
 class AdminFilter implements FilterInterface
 {
+    use DetectsJsonRequests;
+
     public function before(RequestInterface $request, $arguments = null)
     {
         if (session()->get('role') === 'admin') {
@@ -43,18 +45,4 @@ class AdminFilter implements FilterInterface
      * Same detection AuthFilter::expectsJson() uses -- duplicated, not
      * inherited, since AuthFilter's version is private.
      */
-    private function expectsJson(RequestInterface $request): bool
-    {
-        $path = '/' . ltrim($request->getUri()->getPath(), '/');
-
-        if (str_starts_with($path, '/api/')) {
-            return true;
-        }
-
-        if (method_exists($request, 'isAJAX') && $request->isAJAX()) {
-            return true;
-        }
-
-        return str_contains((string) $request->getHeaderLine('Accept'), 'application/json');
-    }
 }

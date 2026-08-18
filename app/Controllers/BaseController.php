@@ -23,8 +23,10 @@ abstract class BaseController extends Controller
         // Do not edit this line
         parent::initController($request, $response, $logger);
 
-        // Preload helper globally
-        helper(['esection', 'url', 'form', 'html']);
+        // No helper() call here on purpose: parent::initController() already
+        // ran helper($this->helpers) with this exact list, so a second call
+        // only re-resolved the same four files on every request. The property
+        // is the single place to change the list.
     }
 
     /**

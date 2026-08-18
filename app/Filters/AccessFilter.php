@@ -24,6 +24,8 @@ use CodeIgniter\HTTP\ResponseInterface;
  */
 class AccessFilter implements FilterInterface
 {
+    use DetectsJsonRequests;
+
     public function before(RequestInterface $request, $arguments = null)
     {
         if (session()->get('role') === 'admin') {
@@ -78,6 +80,22 @@ class AccessFilter implements FilterInterface
             return null;
         }
 
+        // Nothing recorded a refusal anywhere before this, so an account
+        // probing pages it does not hold left no trace at all -- neither in
+        // the activity log nor on disk. Written at 'warning' because the
+        // production threshold (Config\Logger::$threshold = 5) keeps warnings
+        // and discards 'info'.
+        //
+        // log_message rather than ActivityLogService::record(): a misbehaving
+        // client retrying a forbidden endpoint would otherwise write one
+        // database row per request.
+        log_message('warning', '[AccessFilter] denied user {id} ({user}) -> {path}; needed one of: {needed}', [
+            'id'     => (string) (session()->get('id') ?? '-'),
+            'user'   => (string) (session()->get('username') ?? '-'),
+            'path'   => $request->getUri()->getPath(),
+            'needed' => implode(',', $pageKeys),
+        ]);
+
         return $this->denyResponse($request);
     }
 
@@ -107,18 +125,4 @@ class AccessFilter implements FilterInterface
      * Same detection AdminFilter::expectsJson() uses -- duplicated, not
      * inherited, since AuthFilter's own version is private.
      */
-    private function expectsJson(RequestInterface $request): bool
-    {
-        $path = '/' . ltrim($request->getUri()->getPath(), '/');
-
-        if (str_starts_with($path, '/api/')) {
-            return true;
-        }
-
-        if (method_exists($request, 'isAJAX') && $request->isAJAX()) {
-            return true;
-        }
-
-        return str_contains((string) $request->getHeaderLine('Accept'), 'application/json');
-    }
 }

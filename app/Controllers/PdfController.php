@@ -28,7 +28,14 @@ class PdfController extends BaseController
         $students     = $this->studentService->getStudentsByArraySpace($decodedSpace);
 
         if (empty($students)) {
-            return 'No verification dispatch records found for batch code: ' . esc($decodedSpace);
+            // Same shape as every other PDF action in this app
+            // (Confirmations::eligibilityPdf, Regularization::pdf, the four in
+            // Reminders): flash and send the operator back to a real screen.
+            // Returning a bare string made CodeIgniter emit it as the entire
+            // response -- a dead-end page with no navigation.
+            return redirect()
+                ->to(base_url('students/history'))
+                ->with('error', 'No verification dispatch records found for batch code: ' . $decodedSpace);
         }
 
         $firstRow = $students[0];
@@ -74,7 +81,9 @@ class PdfController extends BaseController
         $students     = $this->studentService->getStudentsByArraySpace($decodedSpace);
 
         if (empty($students)) {
-            return 'No verification dispatch records found for batch code: ' . esc($decodedSpace);
+            return redirect()
+                ->to(base_url('students/history'))
+                ->with('error', 'No verification dispatch records found for batch code: ' . $decodedSpace);
         }
 
         $firstRow = $students[0];

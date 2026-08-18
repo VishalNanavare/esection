@@ -260,17 +260,3 @@ if (!function_exists('can_any')) {
         return false;
     }
 }
-
-if (!function_exists('page_access_granted')) {
-    /**
-     * Legacy alias kept so nothing breaks mid-change.
-     *
-     * The old page keys are gone; callers should ask for a specific permission
-     * such as 'students.view'. Passing a bare module name still works because
-     * it is treated as that module's view right.
-     */
-    function page_access_granted(string $pageKey): bool
-    {
-        return can(str_contains($pageKey, '.') ? $pageKey : $pageKey . '.view');
-    }
-}

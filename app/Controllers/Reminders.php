@@ -2,9 +2,7 @@
 
 namespace App\Controllers;
 
-use App\Models\StudentModel;
 use App\Services\ExcelExportService;
-use App\Services\UniversityService;
 use App\Services\StudentVerificationService;
 use App\Services\PdfGenerationService;
 use App\Services\LetterTemplateService;
@@ -13,8 +11,6 @@ use App\Services\StudentReminderService;
 
 class Reminders extends BaseController
 {
-    protected StudentModel $studentModel;
-    protected UniversityService $universityService;
     protected StudentVerificationService $studentService;
     protected PdfGenerationService $pdfService;
     protected LetterTemplateService $letterTemplateService;
@@ -23,8 +19,6 @@ class Reminders extends BaseController
 
     public function __construct()
     {
-        $this->studentModel      = new StudentModel();
-        $this->universityService = new UniversityService();
         $this->studentService    = new StudentVerificationService();
         $this->pdfService        = new PdfGenerationService();
         $this->letterTemplateService = new LetterTemplateService();

@@ -40,7 +40,7 @@
     <div style="margin-top: 15px;">
         To,<br>
         <strong><?= esc($first_row['to_name'] ?: 'The Controller of Examinations') ?></strong>,<br>
-        <?= nl2br(esc($first_row['clg_add'] ?? '')) ?>
+        <?= esc_address($first_row['clg_add'] ?? '') ?>
     </div>
 
     <div class="subject">

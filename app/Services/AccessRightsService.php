@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\AccessPageModel;
 use App\Models\UserModel;
 use App\Models\UserPageAccessModel;
 use Config\Permissions;
@@ -21,22 +20,15 @@ class AccessRightsService
     // next save revoked it from everyone. Config\Permissions is now the only
     // source of truth, and access_pages is seeded from it.
 
-    protected AccessPageModel $accessPageModel;
     protected UserPageAccessModel $userPageAccessModel;
     protected UserModel $userModel;
     protected ActivityLogService $activityLogService;
 
     public function __construct()
     {
-        $this->accessPageModel     = new AccessPageModel();
         $this->userPageAccessModel = new UserPageAccessModel();
         $this->userModel           = new UserModel();
         $this->activityLogService  = new ActivityLogService();
-    }
-
-    public function getAllPages(): array
-    {
-        return $this->accessPageModel->getAllOrdered();
     }
 
     public function getPagesForUser(int $userId): array

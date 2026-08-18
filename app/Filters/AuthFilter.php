@@ -10,6 +10,8 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class AuthFilter implements FilterInterface
 {
+    use DetectsJsonRequests;
+
     /**
      * How stale session('role')/session('page_access') are allowed to get
      * before being re-checked against the database.
@@ -109,20 +111,6 @@ class AuthFilter implements FilterInterface
      * Note that PDF routes are opened via window.open -- a real navigation,
      * not XHR -- so they are correctly excluded here and keep redirecting.
      */
-    private function expectsJson(RequestInterface $request): bool
-    {
-        $path = '/' . ltrim($request->getUri()->getPath(), '/');
-
-        if (str_starts_with($path, '/api/')) {
-            return true;
-        }
-
-        if (method_exists($request, 'isAJAX') && $request->isAJAX()) {
-            return true;
-        }
-
-        return str_contains((string) $request->getHeaderLine('Accept'), 'application/json');
-    }
 
     /**
      * 401 with an envelope that is ALSO a valid empty Select2 payload.
