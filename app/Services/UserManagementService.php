@@ -346,8 +346,19 @@ class UserManagementService
 
         self::assertPasswordPolicy($new);
 
+        $newHash = password_hash($new, PASSWORD_DEFAULT);
+
+        // The session doing the changing keeps working; every other session for
+        // this account fails AuthFilter's fingerprint check within
+        // REVALIDATE_INTERVAL_SECONDS and is ended. Set before the write so a
+        // failure cannot leave the session marked for a password that was never
+        // stored.
+        if ($userId === (int) (session()->get('id') ?? 0)) {
+            session()->set('pw_fingerprint', UserModel::sessionFingerprint($newHash));
+        }
+
         $this->userModel->update($userId, [
-            'password_hash' => password_hash($new, PASSWORD_DEFAULT),
+            'password_hash' => $newHash,
             // Any outstanding emailed reset link dies with the old password.
             //
             // Without this, someone who requested a reset link and then changed

@@ -82,6 +82,38 @@ class AuthFilter implements FilterInterface
                 ->with('error', 'Your session has ended because your account is no longer active.');
         }
 
+        // Has the password changed under this session's feet?
+        //
+        // Nothing used to end a session when its account's password changed,
+        // so the one action a user takes when they think they are compromised
+        // left the attacker's session running until it expired on its own.
+        //
+        // A session with no fingerprint at all predates this check. Those are
+        // adopted rather than ended, so deploying this does not sign every
+        // logged-in user out; from their next request on they are covered like
+        // everyone else.
+        $fingerprint = UserModel::sessionFingerprint((string) ($user['password_hash'] ?? ''));
+        $seen        = session()->get('pw_fingerprint');
+
+        if ($seen === null) {
+            session()->set('pw_fingerprint', $fingerprint);
+        } elseif (! hash_equals($fingerprint, (string) $seen)) {
+            log_message('warning', '[AuthFilter] session ended for user {id}: password changed elsewhere', [
+                'id' => (string) ($user['id'] ?? '-'),
+            ]);
+
+            session()->remove(['id', 'username', 'full_name', 'role', 'isLoggedIn', 'page_access', 'auth_revalidated_at', 'pw_fingerprint']);
+            session()->regenerate(true);
+
+            if ($this->expectsJson($request)) {
+                return $this->jsonUnauthorised('Your password was changed. Please sign in again.');
+            }
+
+            return redirect()
+                ->to(base_url('auth/login'))
+                ->with('error', 'Your password was changed, so this session has ended. Please sign in again.');
+        }
+
         // Refresh the two values every other filter trusts from session,
         // exactly as Auth::processLogin() computes them the first time.
         $role = $user['role'] ?? 'staff';

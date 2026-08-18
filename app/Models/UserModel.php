@@ -54,6 +54,24 @@ class UserModel extends Model
      * synthesised phantom users with hardcoded ids (1 and 99) that did not
      * exist in the database, which then got stamped onto inserted records.
      */
+    /**
+     * A short, non-reversible marker for "which password this session was
+     * established under".
+     *
+     * Stored in the session at login and compared on every revalidation, so a
+     * password change ends the account's OTHER sessions without needing a
+     * column, a token table or a schema change of any kind.
+     *
+     * A digest OF the bcrypt hash, never the hash itself: the session store is
+     * a file on disk, and putting the verifier in it would hand anyone who
+     * could read that directory an offline cracking target. 32 hex characters
+     * is far beyond what a collision would need here.
+     */
+    public static function sessionFingerprint(string $passwordHash): string
+    {
+        return substr(hash('sha256', $passwordHash), 0, 32);
+    }
+
     public function authenticateUser(string $username, #[\SensitiveParameter] string $password): ?array
     {
         $user = $this->findByUsername($username);
@@ -73,6 +91,12 @@ class UserModel extends Model
         if ((int) ($user['is_active'] ?? 1) === 0) {
             return null;
         }
+
+        // Derived before the hash is dropped. The caller needs to record
+        // WHICH password this session was established under, and this keeps
+        // the bcrypt verifier itself from ever leaving the model -- which is
+        // what the unset below has always been for.
+        $user['pw_fingerprint'] = self::sessionFingerprint((string) $user['password_hash']);
 
         unset($user['password_hash']);
 

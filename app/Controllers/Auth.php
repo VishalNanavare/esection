@@ -189,6 +189,13 @@ class Auth extends BaseController
                 'full_name'  => $user['full_name'] ?? 'E-Section Staff',
                 'role'       => $user['role'] ?? 'staff',
                 'isLoggedIn' => true,
+
+                // Which password this session was established under. AuthFilter
+                // compares it against the stored hash on every revalidation, so
+                // changing the password ends every OTHER session for the
+                // account -- the whole point of changing it after a suspected
+                // compromise.
+                'pw_fingerprint' => (string) ($user['pw_fingerprint'] ?? ''),
             ];
 
             // Cached once at login so every AccessFilter check is a plain
