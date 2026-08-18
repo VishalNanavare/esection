@@ -324,8 +324,48 @@ class StudentVerificationService
             throw new \InvalidArgumentException('Student record not found.');
         }
 
+        // The candidate's dependent rows go with them, in one transaction.
+        //
+        // The schema carries no foreign keys, so deleting a candidate used to
+        // leave their confirmation and reminder rows behind pointing at an id
+        // that no longer existed. That is not invisible: ConfirmationModel
+        // LEFT JOINs student_details, so every orphan still appears on
+        // Confirmation History as a row with no candidate name, no university
+        // and no course. There were 20 of them in the live database when this
+        // was written.
+        //
+        // Deleting them is the honest reading of what the screen already
+        // promises -- this is a hard delete, mirroring esection_basic's
+        // stud-delete.php, not an archive -- and a confirmation whose candidate
+        // is gone is not a record of anything that can still be looked up.
+        //
+        // Query builder rather than raw SQL, so the id stays bound.
+        $db = $this->studentModel->db;
+        $db->transStart();
+
+        $confirmations = $db->table('conf_stud_data')->where('student_id', $id)->countAllResults(false);
+        $db->table('conf_stud_data')->where('student_id', $id)->delete();
+
+        $notes = $db->table('university_reminder_notes')->where('student_id', $id)->countAllResults(false);
+        $db->table('university_reminder_notes')->where('student_id', $id)->delete();
+
         $this->studentModel->delete($id);
 
-        $this->activityLogService->record('student.delete', 'student', $id, 'Deleted candidate ' . $student['student_name']);
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            throw new \RuntimeException('The candidate could not be deleted. No changes were made.');
+        }
+
+        // The counts go in the audit entry, because "deleted a candidate" and
+        // "deleted a candidate plus three confirmations" are different events
+        // to anyone reviewing this later.
+        $this->activityLogService->record(
+            'student.delete',
+            'student',
+            $id,
+            'Deleted candidate ' . $student['student_name']
+            . ' (with ' . $confirmations . ' confirmation(s) and ' . $notes . ' reminder note(s))'
+        );
     }
 }
