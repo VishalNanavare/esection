@@ -539,19 +539,35 @@ class StudentImportService
      */
     public function previewUpload(?UploadedFile $file, array $chosenBoards = [], array $chosenCourses = []): array
     {
+        return $this->buildPreview($this->parseForImport($file), $chosenBoards, $chosenCourses);
+    }
+
+    /**
+     * Validates the upload and parses it, once.
+     *
+     * Extracted because commitImport() needs the SAME parsed rows the preview
+     * was built from. It used to call previewUpload() -- which parses -- and
+     * then parse the file a second time to recover the full 24 columns the
+     * preview does not carry. Both parses read the identical bytes off the
+     * identical temp file, so the second was pure duplicate work on the
+     * largest input this app accepts.
+     *
+     * @return array{rows: array, mapping: array, sheet: string}
+     * @throws \InvalidArgumentException with operator-safe text
+     */
+    private function parseForImport(?UploadedFile $file): array
+    {
         $this->assertAcceptableUpload($file);
 
         try {
-            $parsed = $this->parseSheet($file->getTempName());
+            return $this->parseSheet($file->getTempName());
         } catch (\InvalidArgumentException $e) {
             throw $e;
         } catch (\Throwable $e) {
-            log_message('error', '[StudentImportService::previewUpload] {message}', ['message' => (string) $e]);
+            log_message('error', '[StudentImportService::parseForImport] {message}', ['message' => (string) $e]);
 
             throw new \InvalidArgumentException('That workbook could not be read. Re-save it from Excel as .xlsx and try again.');
         }
-
-        return $this->buildPreview($parsed, $chosenBoards, $chosenCourses);
     }
 
     /**
@@ -831,7 +847,11 @@ class StudentImportService
      */
     public function commitImport(?UploadedFile $file, array $chosenBoards, array $chosenCourses, string $username): array
     {
-        $preview = $this->previewUpload($file, $chosenBoards, $chosenCourses);
+        // Parsed once here and reused below. Calling previewUpload() would
+        // parse the workbook, and the full-column re-parse underneath would
+        // then read the same temp file all over again.
+        $parsed  = $this->parseForImport($file);
+        $preview = $this->buildPreview($parsed, $chosenBoards, $chosenCourses);
 
         if ($preview['oversized'] !== []) {
             throw new \InvalidArgumentException(
@@ -839,10 +859,6 @@ class StudentImportService
                 . implode('; ', $preview['oversized']) . '.'
             );
         }
-
-        // Re-parse for the full 24 columns -- the preview carries only what the
-        // screen needs to show.
-        $parsed = $this->parseSheet($file->getTempName());
 
         $boards  = $this->indexBySource($preview['boards']);
         $courses = $this->indexBySource($preview['courses']);

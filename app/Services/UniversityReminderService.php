@@ -86,6 +86,15 @@ class UniversityReminderService
             $username
         );
 
+        // One transaction over the whole set, matching how every other
+        // multi-row write in this codebase is done. A failure partway through
+        // the loop previously left the batch created and only some of its
+        // candidates noted -- and because findOrCreateBatch() finds the
+        // existing batch on a retry, the operator's second attempt appended
+        // duplicate notes for everyone the first attempt had already written.
+        $db = $this->noteModel->db;
+        $db->transStart();
+
         $today = date('Y-m-d');
         foreach ($students as $student) {
             $this->noteModel->insert([
@@ -95,6 +104,12 @@ class UniversityReminderService
                 'note_date'  => $today,
                 'created_by' => $username,
             ]);
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            throw new \RuntimeException('The reminder notes could not be saved. No changes were made.');
         }
 
         $this->activityLogService->record(
