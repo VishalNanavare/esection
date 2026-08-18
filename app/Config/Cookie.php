@@ -54,10 +54,9 @@ class Cookie extends BaseConfig
      *
      * Cookie will only be set if a secure HTTPS connection exists.
      *
-     * Safe to enable: the example.com vhost is HTTPS-only
-     * (there is no `listen 80` server block for this host). If a plain-HTTP
-     * listener is ever added, this must be revisited or cookies will silently
-     * stop being sent.
+     * Enabled on purpose: this app is deployed HTTPS-only. If a plain-HTTP
+     * listener is ever added for the site, this must be revisited or cookies
+     * will silently stop being sent.
      */
     public bool $secure = true;
 

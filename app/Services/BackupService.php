@@ -23,7 +23,16 @@ class BackupService
     public const TYPE_SQL   = 'sql';
     public const TYPE_EXCEL = 'excel';
 
-    private const MYSQLDUMP_PATH = 'mysqldump';
+    /**
+     * Absolute path to the mysqldump binary. Deployment-specific, so it is
+     * read from .env (`backup.mysqldumpPath`) instead of being committed: a
+     * hardcoded path both pins the app to one machine and publishes the
+     * server's filesystem layout to anyone who can read the repository.
+     */
+    private function mysqldumpPath(): string
+    {
+        return (string) (env('backup.mysqldumpPath') ?: 'mysqldump');
+    }
 
     /**
      * Tables whose data goes into the Excel workbook, mapped to the columns
@@ -114,8 +123,15 @@ class BackupService
 
         $this->ensureBackupDirectory();
 
-        if (! is_file(self::MYSQLDUMP_PATH)) {
-            throw new \RuntimeException('Database backup tool not found at ' . self::MYSQLDUMP_PATH . '. Ask your system administrator to check the MySQL installation path.');
+        $mysqldump = $this->mysqldumpPath();
+
+        if (! is_file($mysqldump)) {
+            // The resolved path goes to the log, not to the response: telling a
+            // browser where the binary was expected hands out the server's
+            // directory layout for free.
+            log_message('error', '[BackupService] mysqldump not found at ' . $mysqldump);
+
+            throw new \RuntimeException('Database backup tool not found. Ask your system administrator to check the backup.mysqldumpPath setting.');
         }
 
         return $this->withLock(function () use ($password, $createdBy): array {
@@ -364,7 +380,7 @@ class BackupService
         $db = config('Database')->default;
 
         $command = [
-            self::MYSQLDUMP_PATH,
+            $this->mysqldumpPath(),
             '-h', (string) $db['hostname'],
             '-P', (string) ($db['port'] ?? 3306),
             '-u', (string) $db['username'],

@@ -8,8 +8,8 @@ use CodeIgniter\Database\Seeder;
 /**
  * Creates the seven operator accounts on a fresh installation.
  *
- * Passwords are GENERATED, not hardcoded. This seeder previously shipped
- * a fixed password derived from each username -- a guessable pattern, so
+ * Passwords are GENERATED, not hardcoded. This seeder previously shipped a
+ * fixed password derived from each username -- a guessable pattern, so
  * knowing any one username gave you that account. Those had never been
  * rotated on the live system and were still valid at audit time (AUTH-01,
  * Critical). Baking them into the seeder meant every fresh deployment

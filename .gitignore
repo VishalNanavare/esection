@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #-------------------------
 # Operating Specific Junk Files
 #-------------------------
@@ -154,23 +153,66 @@ _modules/*
 /phpunit.xml
 /writable/backups/*
 !/writable/backups/index.html
-=======
-*/config/development
-*/logs/log-*.php
-!*/logs/index.html
-*/cache/*
-!system/cache/*
-!*/cache/index.html
-!*/cache/.htaccess
 
-user_guide_src/build/*
-user_guide_src/cilexer/build/*
-user_guide_src/cilexer/dist/*
-user_guide_src/cilexer/pycilexer.egg-info/*
+#-------------------------
+# Security audit documents
+#-------------------------
+# Internal security audits enumerate live hostnames, server filesystem paths,
+# seeded account credentials and not-yet-fixed vulnerabilities. They are a
+# working document for the maintainer, never something to publish.
+AUDIT_*.md
+SECURITY_AUDIT*.md
 
-#codeigniter 3
-application/logs/*
-!application/logs/index.html
-!application/logs/.htaccess
-/vendor/
->>>>>>> df00abafb4e7605dc5870a01318eaf6185f0da76
+#-------------------------
+# Database dumps and archives
+#-------------------------
+# A dump carries every row the application holds -- student records, user
+# rows, bcrypt hashes -- in plaintext.
+*.sql
+*.sql.gz
+*.dump
+*.mwb.bak
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar
+
+#-------------------------
+# Keys, certificates and credential files
+#-------------------------
+*.pem
+*.key
+*.crt
+*.cer
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*.ppk
+.htpasswd
+
+#-------------------------
+# Further environment variants
+#-------------------------
+# `.env` itself is ignored above. These catch the copies people make around a
+# deploy, each carrying the same database password and encryption key.
+.env.*
+!.env.example
+*.env
+!env
+
+#-------------------------
+# Editor, tooling and OS leftovers
+#-------------------------
+node_modules/
+.fleet/
+*.swp
+*.swo
+*.orig
+*.rej
