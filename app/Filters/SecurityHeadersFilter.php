@@ -70,5 +70,48 @@ class SecurityHeadersFilter implements FilterInterface
         // deliberately: preload is effectively irreversible, and subdomains on
         // this host are separate projects that are not all HTTPS-only.
         $response->setHeader('Strict-Transport-Security', 'max-age=31536000');
+
+        // Switches off browser features this app never uses, so a successful
+        // injection cannot reach for a camera, a microphone or a location
+        // prompt on a logged-in operator's machine. Every item listed is
+        // verified unused in app/Views and public/assets/js.
+        //
+        // fullscreen and clipboard are deliberately NOT listed: leaving a
+        // feature out keeps its default (self), while naming it with () would
+        // disable it outright. Nothing here should be able to break a page by
+        // being absent.
+        $response->setHeader(
+            'Permissions-Policy',
+            'accelerometer=(), autoplay=(), browsing-topics=(), camera=(), '
+            . 'display-capture=(), encrypted-media=(), geolocation=(), '
+            . 'gyroscope=(), idle-detection=(), magnetometer=(), microphone=(), '
+            . 'midi=(), payment=(), picture-in-picture=(), '
+            . 'publickey-credentials-get=(), screen-wake-lock=(), serial=(), '
+            . 'usb=(), xr-spatial-tracking=()'
+        );
+
+        // 'same-origin-allow-popups', NOT 'same-origin'. The stricter value
+        // severs window.opener for popups this app opens itself, and it opens
+        // several: the PDF tab in ajax_students_new_js.php and the deferred
+        // window.open('', '_blank') in ajax_common_js.php both rely on holding
+        // the handle they get back. allow-popups keeps that working while
+        // still stopping a cross-origin document from getting a reference to
+        // this window, which is what the XS-Leaks and tabnabbing classes need.
+        $response->setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+
+        // Nothing outside this origin has any business embedding E-Section's
+        // pages, PDFs or spreadsheets. This is the server-side half of the
+        // clickjacking/leak protection that frame-ancestors covers for frames.
+        $response->setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+
+        // Cross-Origin-Embedder-Policy is deliberately NOT set.
+        //
+        // Its purpose is to unlock cross-origin isolation -- SharedArrayBuffer
+        // and high-resolution timers. This app uses neither, so require-corp
+        // would buy nothing, while making every future subresource fail
+        // silently unless it carries CORP or CORS. That is a foot-gun with no
+        // upside here. If cross-origin isolation is ever actually needed:
+        //     $response->setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+        // and then re-test every asset, PDF and export.
     }
 }
