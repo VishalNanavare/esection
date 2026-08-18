@@ -66,7 +66,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-secondary small fw-semibold">Password</label>
-                                <input type="password" name="password" class="form-control" minlength="8" maxlength="10" required>
+                                <input type="password" name="password" class="form-control" minlength="<?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?>" maxlength="<?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?>" required>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-secondary small fw-semibold">Full Name</label>
@@ -168,7 +168,7 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-secondary small fw-semibold">New Password</label>
-                                <input type="password" name="password" id="edit_password" class="form-control" minlength="8" maxlength="10" placeholder="Leave blank to keep current password">
+                                <input type="password" name="password" id="edit_password" class="form-control" minlength="<?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?>" maxlength="<?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?>" placeholder="Leave blank to keep current password">
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-secondary small fw-semibold">Full Name</label>

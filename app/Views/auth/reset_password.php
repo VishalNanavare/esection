@@ -28,11 +28,11 @@
 
                 <div class="mb-3">
                     <label class="form-label text-secondary small fw-semibold">New Password</label>
-                    <input type="password" name="password" class="form-control" minlength="8" maxlength="10" required autofocus>
+                    <input type="password" name="password" class="form-control" minlength="<?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?>" maxlength="<?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?>" required autofocus>
                 </div>
                 <div class="mb-4">
                     <label class="form-label text-secondary small fw-semibold">Confirm New Password</label>
-                    <input type="password" name="password_confirm" class="form-control" minlength="8" maxlength="10" required>
+                    <input type="password" name="password_confirm" class="form-control" minlength="<?= (int) \App\Services\UserManagementService::MIN_PASSWORD_LENGTH ?>" maxlength="<?= (int) \App\Services\UserManagementService::MAX_PASSWORD_LENGTH ?>" required>
                 </div>
                 <button type="submit" class="btn btn-indigo w-100">
                     <i class="fa fa-check me-2"></i> Reset Password

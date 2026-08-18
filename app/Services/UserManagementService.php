@@ -25,6 +25,13 @@ class UserManagementService
      *
      * Existing stored passwords are untouched. This is checked only when a new
      * password is being set, so nobody is locked out by the change.
+     *
+     * For whenever the office revisits it: the technical ceiling is 72 BYTES,
+     * because password_hash() with bcrypt silently ignores everything past
+     * that -- a longer password reads as stronger without being so. Anything
+     * from here up to 72 is free to choose. Raising it cannot lock anyone out,
+     * for the reason directly above, and the views now read this constant
+     * rather than repeating the number, so it is a one-line change.
      */
     public const MAX_PASSWORD_LENGTH = 10;
 
