@@ -1,69 +1,244 @@
-# CodeIgniter 4 Application Starter
+# E-Section
 
-## What is CodeIgniter?
+Eligibility verification management for a distance-learning institute.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+When a candidate is admitted on the strength of a qualification awarded by
+another university or board, that qualification has to be verified with the
+body that issued it before the admission is regularised. In practice that
+means letters going out to dozens of universities, chasing the ones that never
+reply, recording the confirmations that do come back, and knowing at any moment
+which candidates are still unverified.
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+E-Section is the system of record for that process. It replaces the
+spreadsheets and Word templates the work used to run on.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+---
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## The workflow
 
-## Installation & updates
+The modules map onto the real sequence, so the app reads in the order the work
+actually happens:
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+```
+Candidate admitted
+        │
+        ▼
+  ┌────────────────┐  documents recorded, eligibility case number assigned
+  │    Students    │
+  └───────┬────────┘
+          │  dispatch letter → issuing university
+          ▼
+  ┌────────────────┐   no reply?    ┌────────────────────────┐
+  │  Universities  │───────────────▶│ Reminders — University │
+  └───────┬────────┘                └────────────────────────┘
+          │  reply received
+          ▼
+  ┌────────────────┐  documents missing?  ┌────────────────────────┐
+  │  Confirmations │─────────────────────▶│ Reminders — Candidate  │
+  └───────┬────────┘                      └────────────────────────┘
+          │  irregularity to resolve
+          ▼
+  ┌────────────────┐
+  │ Regularization │  eligibility regularised, case closed
+  └────────────────┘
+```
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+---
+
+## Features
+
+### Candidate records
+
+- Batch entry — one row per candidate, up to 200 in a single submission
+- Eligibility case numbers generated against a configurable prefix, with
+  collision handling so two clerks working at once cannot claim the same number
+- Full edit / delete history, with every batch retrievable
+- **Excel import** — upload an `.xlsx`, map its columns to the candidate fields,
+  preview what will be written, then commit. Column mappings are remembered
+  between imports. Validated by magic bytes rather than MIME type, because
+  Excel workbooks are zip files and report inconsistent MIME types.
+- Blank import template download
+
+### Universities and colleges
+
+- Reference register of issuing universities with addresses, fees and
+  in-favour-of details used to populate letters
+- Activate / deactivate rather than delete, so historic records keep pointing
+  at something real
+- Searchable pickers across the app backed by shared endpoints
+
+### Confirmations
+
+- Record verification replies against a per-candidate checklist — migration
+  certificate, previous degree, statement of marks, letter number and date
+- Track where the confirmation was received from, plus clarification and
+  name-change categories (gazette, marriage certificate)
+- Eligibility confirmation letters as PDF
+
+### Regularization
+
+- Record and issue regularization letters where documents have been reviewed
+  and the eligibility accepted
+- Full history with export
+
+### Reminders
+
+- **To universities** — chase unreturned verifications in batches, with
+  first/second/final reminder wording, and notes recorded per batch
+- **To candidates** — chase missing original documents, listing exactly which
+  documents are outstanding
+
+### Documents
+
+- Six letter templates rendered to PDF: dispatch, dispatch (accounts),
+  confirmation eligibility, regularization, university reminder, candidate
+  reminder
+- Templates are **editable in the app**, not in code. Each has a subject, body
+  and closing, with `{tokens}` substituted at render time
+- Institute letterhead and logo upload, signatory name and designation, and a
+  configurable blank space reserved for a wet-ink signature
+
+### Bulk email
+
+- Send a reminder to every university or every candidate in a filtered list
+- SMTP settings configured in the app
+- Per-recipient send log with sent/failed status and filtering
+
+### Reporting
+
+- Dashboard totals — candidates, confirmed, pending, universities — plus a
+  per-stream breakdown
+- Excel export on every list screen, generated as real `.xlsx`
+
+---
+
+## Access control
+
+Two roles. **Admin** has everything. **Staff** get exactly what they are
+granted.
+
+Permissions are per action, not per page — 32 of them across six modules,
+expressed as `module.action`:
+
+| Module | Actions |
+|---|---|
+| Students | view, create, edit, delete, import, export, print |
+| Universities | view, create, edit, toggle, export |
+| Confirmations | view, create, delete, export, print |
+| Regularization | view, create, edit, delete, export, print |
+| Reminders — University | view, create, export, print |
+| Reminders — Candidate | view, create, delete, export, print |
+
+So a clerk can be given "record confirmations but never delete one", or "read
+the student register and export it, but not edit it". Every permission maps to
+a route that exists — there are no decorative checkboxes.
+
+`app/Config/Permissions.php` is the single source of truth: the migration seed,
+the validation, the Access Rights UI and the sidebar all derive from it.
+
+---
+
+## Administration
+
+Under **Settings**:
+
+| Screen | Purpose |
+|---|---|
+| Users | Create staff, reset passwords, activate / deactivate |
+| Access Rights | The permission matrix |
+| Institute | Name, address, contact, logo, letterhead, signatory |
+| Letter Templates | Edit the six PDF letter bodies |
+| Academic Years | Define years, set the current one |
+| Courses | Course register |
+| Numbering | Eligibility case number prefix |
+| Mail | SMTP configuration |
+| Features | Toggle Excel export, Excel import, bulk email and delete on or off globally |
+| Backup | Database backups |
+| Activity Log | Who changed what |
+
+### Backups
+
+- Full `mysqldump` wrapped in an **AES-256 password-protected ZIP** — the
+  rescue copy. Without the password the archive cannot be opened.
+- A separate plain Excel workbook of reference and configuration data only,
+  for people to read. Candidate records are deliberately excluded from it, and
+  password hashes are never exported.
+- Configurable retention; only successful backups are recorded, so a row in the
+  history always means the file exists and passed its integrity checks.
+
+---
+
+## Built with
+
+- **CodeIgniter 4.7** on **PHP 8.4+**
+- **MySQL**
+- [Dompdf](https://github.com/dompdf/dompdf) — PDF letters
+- [OpenSpout](https://github.com/openspout/openspout) — `.xlsx` read and write
+- Bootstrap 5, jQuery, Select2, Flatpickr, SweetAlert2 (all served locally, no CDN)
+
+## Security
+
+- Session authentication with login throttling keyed on IP **and** username
+- Per-action authorization filters, layered — a route carries both the module's
+  view permission and the specific action's
+- CSRF protection on every state-changing request, with randomised tokens
+- Content-Security-Policy with a per-response nonce for inline scripts;
+  `object-src`, `frame-src` and `worker-src` are `'none'`
+- HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
+- bcrypt password hashing; reset tokens are stored hashed, single-use and expiring
+- Uploads validated by content, not filename — MIME allowlist, real image parse,
+  exact dimensions, randomised stored name
+
+---
+
+## Requirements
+
+- PHP 8.4 or higher, with `intl`, `mbstring`, `json`, `mysqlnd` and `libcurl`
+- MySQL 5.7+ / MariaDB
+- A web server pointed at `public/`, **not** the project root
+- `mysqldump` available on the host, for the backup feature
 
 ## Setup
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+```bash
+composer install
+cp env .env
+```
 
-## Important Change with index.php
+Then edit `.env`:
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+| Key | Notes |
+|---|---|
+| `CI_ENVIRONMENT` | `production` on a real deployment |
+| `app.baseURL` | Your site URL, with a trailing slash |
+| `database.default.*` | Use a database user scoped to this schema — not `root` |
+| `encryption.key` | Generate with `php spark key:generate` |
+| `backup.mysqldumpPath` | Absolute path to the `mysqldump` binary |
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+Nothing environment-specific belongs in `app/Config` — that is what `.env` is
+for, and `.env` is never committed.
 
-**Please** read the user guide for a better explanation of how CI4 works!
+Then:
 
-## Repository Management
+```bash
+php spark migrate
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+# Reference data
+php spark db:seed StreamSeeder
+php spark db:seed CourseSeeder
+php spark db:seed AcademicYearSeeder
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+# Operator accounts — prints generated passwords ONCE
+php spark db:seed UserSeeder
+```
 
-## Server Requirements
+`UserSeeder` creates the operator accounts with random passphrases and prints
+them to the console a single time. Nothing is written to disk in plaintext. If
+you lose the output, reset the account from Settings → Users rather than
+re-running the seeder.
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+## Tests
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
-
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
-
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+```bash
+php vendor/bin/phpunit
+```
