@@ -67,7 +67,24 @@ class Students extends BaseController
 
     public function storeBatch()
     {
-        $json = $this->request->getJSON(true);
+        // Inside a try, because getJSON() throws HTTPException::forInvalidJSON
+        // when the body will not decode (IncomingRequest.php:409). It sat
+        // outside every catch arm below, so a truncated or malformed POST --
+        // a dropped connection mid-upload is enough -- surfaced as an
+        // uncaught 500 rather than as this endpoint's normal JSON error
+        // envelope, which the New Entry screen knows how to display.
+        try {
+            $json = $this->request->getJSON(true);
+        } catch (\Throwable $e) {
+            log_message('warning', '[Students::storeBatch] undecodable JSON body: {message}', [
+                'message' => $e->getMessage(),
+            ]);
+
+            return $this->response->setJSON([
+                'status'  => 'error',
+                'message' => 'The batch could not be read. Please reload the page and try again.',
+            ]);
+        }
 
         // No silent 'esection1' fallback: array_space is built from this
         // value, so an absent session would have filed the batch under

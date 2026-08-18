@@ -2,33 +2,31 @@
 
 namespace App\Controllers;
 
-use App\Models\StreamModel;
 use App\Services\ExcelExportService;
-use App\Services\UniversityService;
 use App\Services\PdfGenerationService;
 use App\Services\RegularizationService;
 
 class Regularization extends BaseController
 {
-    protected StreamModel $streamModel;
-    protected UniversityService $universityService;
     protected PdfGenerationService $pdfService;
     protected RegularizationService $regularizationService;
 
     public function __construct()
     {
-        $this->streamModel           = new StreamModel();
-        $this->universityService     = new UniversityService();
         $this->pdfService             = new PdfGenerationService();
         $this->regularizationService = new RegularizationService();
     }
 
     public function index()
     {
+        // 'streams' and 'colleges' used to be loaded here and handed to the
+        // view, which never read either of them: the screen's two pickers are
+        // Select2 widgets that fetch api/streams and api/colleges over AJAX
+        // (see common/ajax_regularization_js). Every open of this page was
+        // therefore reading the full university register and stream list --
+        // 469 and 45 rows -- to discard both.
         $data = [
-            'title'    => 'Student Eligibility Regularization Portal',
-            'streams'  => $this->streamModel->getAllStreams(),
-            'colleges' => $this->universityService->getAllColleges(),
+            'title' => 'Student Eligibility Regularization Portal',
         ];
 
         return view('regularization/index', $data);
