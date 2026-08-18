@@ -238,6 +238,10 @@ class Auth extends BaseController
             // immediately re-checking on the very next request.
             $sessionData['auth_revalidated_at'] = time();
 
+            // Start the idle clock AuthFilter enforces against
+            // Config\Session::$expiration.
+            $sessionData['last_seen'] = time();
+
             session()->set($sessionData);
 
             // Recorded AFTER the session is set, so the entry carries the
@@ -365,10 +369,31 @@ class Auth extends BaseController
         // still sends the cookie on a real navigation.
         //
         // Rather than change the route (a UX change), require the request to
-        // have come from this app. An absent Referer is allowed on purpose:
-        // browsers omit it in legitimate privacy configurations, and refusing
-        // those would break logout for real users. That still blocks the
-        // cross-site case, which always carries the attacker's own origin.
+        // have come from this app.
+        //
+        // Sec-Fetch-Site first, because Referer alone was not enough: the rule
+        // below has to allow an absent Referer -- browsers omit it in ordinary
+        // privacy configurations and refusing those would break logout for real
+        // users -- and an attacker's page can simply arrange for it to be
+        // absent, with <meta name="referrer" content="no-referrer"> or
+        // rel="noreferrer" on the link. The guard then passed.
+        //
+        // Sec-Fetch-Site is set by the browser and is forbidden to page script,
+        // so it cannot be suppressed the same way. Every current browser sends
+        // it; when it is missing entirely (an older one), the Referer rule
+        // below still applies and behaviour is exactly as before.
+        $fetchSite = strtolower(trim((string) $this->request->getServer('HTTP_SEC_FETCH_SITE')));
+
+        if ($fetchSite !== '' && ! in_array($fetchSite, ['same-origin', 'same-site', 'none'], true)) {
+            log_message('warning', '[Auth::logout] refused cross-site logout (Sec-Fetch-Site: {site})', [
+                'site' => $fetchSite,
+            ]);
+
+            return redirect()->to(base_url('dashboard'));
+        }
+
+        // 'none' above is a user-initiated navigation -- a bookmark or a typed
+        // URL -- which is the owner of the session, not another site.
         $referer = (string) $this->request->getServer('HTTP_REFERER');
 
         if ($referer !== '' && ! str_starts_with($referer, base_url())) {

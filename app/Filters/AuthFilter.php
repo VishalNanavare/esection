@@ -43,10 +43,67 @@ class AuthFilter implements FilterInterface
                 ->with('error', 'Please login to access E-Section portal.');
         }
 
+        $idleFailure = $this->endIfIdle($request);
+        if ($idleFailure !== null) {
+            return $idleFailure;
+        }
+
         $revalidationFailure = $this->revalidateIfStale($request);
         if ($revalidationFailure !== null) {
             return $revalidationFailure;
         }
+
+        return null;
+    }
+
+    /**
+     * Enforces Config\Session::$expiration server-side.
+     *
+     * CodeIgniter passes that value to session.gc_maxlifetime and to the
+     * cookie's expiry, and neither actually ends anything on its own: PHP's
+     * garbage collector runs on a probability, so a session file can easily
+     * outlive its window, and the cookie's lifetime is a hint to the browser
+     * that a client is free to ignore. So the declared two-hour limit was
+     * documentation rather than a rule -- an unattended session could keep
+     * working long past it.
+     *
+     * Idle time, not total age: the clock resets on every request, so this
+     * ends abandoned sessions and never interrupts anyone still working.
+     *
+     * A session with no last_seen predates this check and adopts the current
+     * time rather than being ended, so deploying it does not sign out
+     * everyone who is logged in at the time.
+     */
+    private function endIfIdle(RequestInterface $request)
+    {
+        $limit = (int) config(\Config\Session::class)->expiration;
+
+        if ($limit <= 0) {
+            return null; // configured never to expire
+        }
+
+        $lastSeen = session()->get('last_seen');
+        $now      = time();
+
+        if ($lastSeen !== null && ($now - (int) $lastSeen) > $limit) {
+            log_message('info', '[AuthFilter] session ended after {mins} minutes idle for user {id}', [
+                'mins' => (string) (int) (($now - (int) $lastSeen) / 60),
+                'id'   => (string) (session()->get('id') ?? '-'),
+            ]);
+
+            session()->remove(['id', 'username', 'full_name', 'role', 'isLoggedIn', 'page_access', 'auth_revalidated_at', 'pw_fingerprint', 'last_seen']);
+            session()->regenerate(true);
+
+            if ($this->expectsJson($request)) {
+                return $this->jsonUnauthorised('Your session has timed out. Please sign in again.');
+            }
+
+            return redirect()
+                ->to(base_url('auth/login'))
+                ->with('error', 'Your session timed out after a period of inactivity. Please sign in again.');
+        }
+
+        session()->set('last_seen', $now);
 
         return null;
     }
