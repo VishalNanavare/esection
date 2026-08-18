@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     // --- Delete confirm -------------------------------------------------------
     // Declared on the form itself (reminders/_student_history_rows.php) and

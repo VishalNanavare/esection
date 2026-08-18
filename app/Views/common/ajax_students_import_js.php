@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
 
     // The last preview the server returned. Held only to render the screen and

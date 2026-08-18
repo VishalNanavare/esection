@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 /**
  * Shared AJAX / Select2 plumbing.
  *

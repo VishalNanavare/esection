@@ -37,7 +37,7 @@
             <form action="<?= base_url('bulk-email') ?>" method="get" class="row g-3 mb-3 filter-panel">
                 <div class="col-md-4">
                     <label class="form-label text-secondary small fw-semibold">Send to</label>
-                    <select name="audience" class="form-select" onchange="this.form.submit()">
+                    <select name="audience" class="form-select" data-submit-on-change>
                         <option value="university" <?= $audience === 'university' ? 'selected' : '' ?>>Universities (verification reminder)</option>
                         <option value="student" <?= $audience === 'student' ? 'selected' : '' ?>>Candidates (document reminder)</option>
                     </select>

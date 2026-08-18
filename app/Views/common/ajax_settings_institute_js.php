@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     var ALLOWED_TYPES = ['image/png', 'image/jpeg'];
 

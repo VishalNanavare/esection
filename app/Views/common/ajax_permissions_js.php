@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
 
     // Behaviour for the grouped permission cards (settings/_permission_groups.php).

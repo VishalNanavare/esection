@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     // --- Edit modal ---------------------------------------------------------
     // Delegated on document: these buttons live inside #user_rows, which is

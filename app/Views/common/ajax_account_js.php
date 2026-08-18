@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
 
     // Client-side half of the Reset Password validation. The authoritative

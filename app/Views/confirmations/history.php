@@ -15,7 +15,7 @@
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
-                    <button type="button" class="btn btn-glass me-1" onclick="location.reload()"><i class="fa fa-refresh me-1"></i> Refresh</button>
+                    <button type="button" class="btn btn-glass me-1" data-reload><i class="fa fa-refresh me-1"></i> Refresh</button>
                     <a href="<?= base_url('confirmations') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Confirmation Portal</a>
                 </div>
             </div>

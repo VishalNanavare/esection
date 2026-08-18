@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     esAjaxSelect('.select2-ajax-college', '<?= base_url("api/colleges") ?>', {
         context: 'Loading universities failed'

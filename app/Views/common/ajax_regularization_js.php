@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     esAjaxSelect('.select2-ajax-stream', '<?= base_url("api/streams") ?>', {
         context: 'Loading academic streams failed'

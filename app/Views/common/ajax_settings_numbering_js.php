@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     var $prefixInput = $('#case_no_prefix');
     var $preview = $('#preview_example');

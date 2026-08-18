@@ -314,7 +314,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
     <script src="<?= asset_url('assets/vendor/select2/select2.min.js') ?>"></script>
     <script src="<?= asset_url('assets/vendor/flatpickr/flatpickr.min.js') ?>"></script>
     <script src="<?= asset_url('assets/vendor/sweetalert2/sweetalert2.min.js') ?>"></script>
-    <script>
+    <script {csp-script-nonce}>
         // Some SweetAlert2 builds only export `Sweetalert2` (the UMD global)
         // and never assign `Swal`. Normalise here so every call site can rely
         // on window.Swal existing -- or being null, which each site checks.
@@ -442,7 +442,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
             // --- Flash messages ---------------------------------------------
             // Values are emitted as whole JSON literals, never hand-quoted: a
             // single apostrophe in a DB-derived message used to terminate the
-            // JS string and take this entire <script> block down with it.
+            // JS string and take this entire inline script block down with it.
             <?php if (session()->getFlashdata('success')): ?>
                 if (window.Swal) {
                     Swal.fire({
@@ -465,6 +465,28 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                     });
                 }
             <?php endif; ?>
+        });
+
+        // Replaces the two inline handler attributes this app used to carry:
+        // a submit-the-form-on-change on the bulk-email audience select, and
+        // a reload on the confirmation-history refresh button. A CSP nonce
+        // authorises script ELEMENTS only and can never authorise a handler
+        // attribute, so both had to move here or they would silently stop
+        // working the moment the policy is enforced.
+        //
+        // Delegated from document so it does not matter whether the control
+        // was in the initial HTML or added later by one of the AJAX views.
+        document.addEventListener('change', function (e) {
+            var el = e.target.closest && e.target.closest('[data-submit-on-change]');
+            if (el && el.form) {
+                el.form.submit();
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('[data-reload]')) {
+                location.reload();
+            }
         });
     </script>
     <?php // Shared AJAX/Select2 helpers. Must load before any view's

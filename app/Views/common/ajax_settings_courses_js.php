@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     // --- Edit modal ---------------------------------------------------------
     // Delegated: these buttons live inside #course_rows, which is replaced

@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     esAjaxSelect('.select2-ajax-state', '<?= base_url("api/states") ?>', {
         context: 'Loading states failed'

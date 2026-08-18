@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     // --- Footer department (plain text, no files, no preview needed) --------
     $('#footer_form').on('submit', function (e) {

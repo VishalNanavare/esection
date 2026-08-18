@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
 
     // Every POST on this screen goes through AJAX so the page never reloads.

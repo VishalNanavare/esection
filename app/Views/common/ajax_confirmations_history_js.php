@@ -1,4 +1,4 @@
-<script>
+<script {csp-script-nonce}>
 $(document).ready(function () {
     // Deep-link highlight from the "Already confirmed" link on
     // confirmations/index.php -- scroll the specific student's row into
