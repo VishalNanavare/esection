@@ -17,12 +17,54 @@ class StudentVerificationService
     public const MAX_BATCH_SIZE = 200;
 
     /**
+     * @throws \InvalidArgumentException naming the candidate, the field and the
+     *                                   limit, so the clerk can find the row
+     */
+    private function assertWithinLimits(array $data): void
+    {
+        foreach (self::COLUMN_LIMITS as $column => [$limit, $label]) {
+            $value = (string) ($data[$column] ?? '');
+
+            if ($value !== '' && mb_strlen($value) > $limit) {
+                $who = (string) ($data['student_name'] ?? '');
+                $who = $who === '' ? '' : ' for "' . mb_substr($who, 0, 40) . '"';
+
+                throw new \InvalidArgumentException(
+                    $label . $who . ' is too long (' . mb_strlen($value)
+                    . ' characters; the limit is ' . $limit . ').'
+                );
+            }
+        }
+    }
+
+    /**
      * How many times to step past an array_space that is already in use before
      * giving up and letting the write proceed. Bounded rather than a loop: a
      * collision needs one or two steps in practice, and an unbounded search
      * inside an open transaction is a worse failure than a rare merge.
      */
     private const MAX_ARRAY_SPACE_ATTEMPTS = 25;
+
+    /**
+     * student_details column widths, with the label each one wears on screen.
+     *
+     * Verified against information_schema. If a column is ever widened or
+     * narrowed, this has to move with it -- the same contract
+     * StudentImportService::DEST_LIMITS carries for the import path.
+     */
+    private const COLUMN_LIMITS = [
+        'to_name'                               => [200, 'Addressee name'],
+        'clg_add'                               => [1500, 'University address'],
+        'admission_taken_year'                  => [25,  'Academic year'],
+        'student_name'                          => [100, 'Candidate name'],
+        'student_nee_name'                      => [200, 'Candidate former name'],
+        'eligibility_case_no'                   => [60,  'Eligibility case number'],
+        'admission_taken_in'                    => [60,  'Course'],
+        'verification_of_marksheet_done_by_you' => [60,  'Verification done by'],
+        'in_favour_of'                          => [200, 'Payment favouring title'],
+        'email'                                 => [190, 'Email address'],
+        'array_space'                           => [30,  'Batch reference'],
+    ];
 
     protected StudentModel $studentModel;
     protected ActivityLogService $activityLogService;
@@ -133,6 +175,13 @@ class StudentVerificationService
                 'en_time'                               => time()
             ];
 
+            // Checked before the write, not after MySQL refuses it. Every
+            // field here is free text a clerk typed, and the whole batch runs
+            // inside one transaction -- so one over-long name used to roll back
+            // every other candidate keyed in alongside it, with an error that
+            // named none of them.
+            $this->assertWithinLimits($data);
+
             $this->studentModel->insert($data);
             $insertedCount++;
         }
@@ -241,13 +290,20 @@ class StudentVerificationService
             throw new \InvalidArgumentException('Student name is required.');
         }
 
-        $this->studentModel->update($id, [
+        $data = [
             'student_name'                           => $studentName,
             'student_nee_name'                        => sanitize_xss($postData['student_nee_name'] ?? ''),
             'eligibility_case_no'                     => sanitize_xss($postData['eligibility_case_no'] ?? ''),
             'verification_of_marksheet_done_by_you'   => sanitize_xss($postData['verification_of_marksheet_done_by_you'] ?? ''),
             'email'                                   => $this->normalizedEmail($postData['email'] ?? ''),
-        ]);
+        ];
+
+        // Edit gets the same check as create. Every field on this form is free
+        // text, and eligibility_case_no in particular is only varchar(60)
+        // against an input with no maxlength of its own.
+        $this->assertWithinLimits($data);
+
+        $this->studentModel->update($id, $data);
 
         $this->activityLogService->record('student.update', 'student', $id, 'Updated candidate ' . $studentName);
     }

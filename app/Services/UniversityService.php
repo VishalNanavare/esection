@@ -68,7 +68,7 @@ class UniversityService
             throw new \InvalidArgumentException('University name is required.');
         }
 
-        return [
+        $data = [
             'Name'         => $name,
             'States'       => trim(sanitize_xss($postData['state'] ?? '')),
             'Address'      => sanitize_xss($postData['address'] ?? ''),
@@ -78,6 +78,53 @@ class UniversityService
             'head_name'    => sanitize_xss($postData['head_name'] ?? 'The Controller of Examinations'),
             'in_favour_of' => sanitize_xss($postData['in_favour_of'] ?? ''),
         ];
+
+        // Here rather than at each call site, so create and update are covered
+        // by construction -- this is the one function both of them go through.
+        $this->assertWithinLimits($data);
+
+        return $data;
+    }
+
+    /**
+     * college_details column widths, with the label each one wears on screen.
+     *
+     * Nothing checked these, so a value the form happily accepted was handed
+     * straight to MySQL. `fees` is varchar(5) -- a six-figure fee is one digit
+     * too many -- and `head_name` is varchar(50) against a field offering a
+     * free-text officer title. In strict mode that is a rejected write
+     * surfacing as "the issue has been logged"; in a non-strict configuration
+     * it is worse, because the value is silently truncated and the letter goes
+     * out with a cut-off name.
+     *
+     * Verified against information_schema.
+     */
+    private const COLUMN_LIMITS = [
+        'Name'         => [1500, 'University name'],
+        'States'       => [150,  'State'],
+        'Address'      => [1500, 'Address'],
+        'email_id'     => [50,   'Email address'],
+        'mobile_no'    => [50,   'Mobile number'],
+        'fees'         => [5,    'Fees'],
+        'head_name'    => [50,   'Head name'],
+        'in_favour_of' => [250,  'Payment favouring title'],
+    ];
+
+    /**
+     * @throws \InvalidArgumentException naming the field and its limit, which
+     *                                   the controllers already display verbatim
+     */
+    private function assertWithinLimits(array $data): void
+    {
+        foreach (self::COLUMN_LIMITS as $column => [$limit, $label]) {
+            $value = (string) ($data[$column] ?? '');
+
+            if ($value !== '' && mb_strlen($value) > $limit) {
+                throw new \InvalidArgumentException(
+                    $label . ' is too long (' . mb_strlen($value) . ' characters; the limit is ' . $limit . ').'
+                );
+            }
+        }
     }
 
     public function saveUniversity(array $postData): bool
