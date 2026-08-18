@@ -178,16 +178,48 @@ Under **Settings**:
 
 ## Security
 
-- Session authentication with login throttling keyed on IP **and** username
-- Per-action authorization filters, layered — a route carries both the module's
-  view permission and the specific action's
-- CSRF protection on every state-changing request, with randomised tokens
-- Content-Security-Policy with a per-response nonce for inline scripts;
-  `object-src`, `frame-src` and `worker-src` are `'none'`
-- HSTS, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
-- bcrypt password hashing; reset tokens are stored hashed, single-use and expiring
-- Uploads validated by content, not filename — MIME allowlist, real image parse,
-  exact dimensions, randomised stored name
+**Authentication**
+
+- bcrypt hashing; the session id is regenerated on login and destroyed on logout
+- Login throttled on IP **and** username, in the database. `proxyIPs` is empty,
+  so `X-Forwarded-For` cannot move the key
+- Password changes throttled too — the form verifies the current password, which
+  makes it a checker
+- Reset tokens: 256-bit CSPRNG, stored hashed, single-use, expiring
+- Session cookies are `Secure`, `HttpOnly`, `SameSite=Lax`, bound to the client
+  address, with `session.use_strict_mode` forced on so PHP will not adopt a
+  client-supplied id
+
+**Authorization**
+
+- Per-action permissions, layered: a route carries both its module's view right
+  and the specific action's, and CodeIgniter runs both
+- Permission-changing screens are admin-only; a user cannot alter their own role
+- Refused requests are logged with the account, the path and what was required
+
+**Input and output**
+
+- CSRF on every state-changing request, tokens randomised
+- All output escaped; a Content-Security-Policy with a per-response nonce for
+  inline scripts, and `object-src` / `frame-src` / `worker-src` set to `'none'`
+- Query parameters are forced to scalars before any controller reads them
+- Exports write every string as a literal — a cell beginning `=` is text, never
+  a formula in the recipient's Excel
+- Uploads validated by content rather than filename: MIME allowlist, real image
+  parse, exact dimensions, server-generated name
+
+**Handling**
+
+- Credential parameters are `#[\SensitiveParameter]`, so a password cannot
+  reach a log through a stack trace
+- Errors shown to users carry authored text only; detail goes to the log
+- `HSTS`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`,
+  `Permissions-Policy`, `Cross-Origin-Opener-Policy`,
+  `Cross-Origin-Resource-Policy`
+
+Run `php vendor/bin/phpunit` — the suite includes tests that fail if the CSP
+nonce, the header set, the sensitive-parameter attributes, the scalar-query
+guard or the formula-safe export are ever removed.
 
 ---
 
@@ -244,6 +276,19 @@ academic years) through their own settings screens.
 
 If you are adding a schema change, `php spark make:migration` still works — the
 directories are kept in the repository so the tooling has somewhere to write.
+
+### Indexes the application expects
+
+`student_details` is queried by case number on the New Entry screen and by
+college address when a university is renamed. Without these two indexes both
+paths scan the whole table:
+
+```sql
+ALTER TABLE student_details ADD INDEX idx_student_case_no (eligibility_case_no);
+-- clg_add is varchar(1500); at utf8mb4 that exceeds the 3072-byte key limit,
+-- so index a prefix. The longest value in practice is ~180 characters.
+ALTER TABLE student_details ADD INDEX idx_student_clg_add (clg_add(191));
+```
 
 ## Tests
 
