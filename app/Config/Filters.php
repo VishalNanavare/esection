@@ -38,11 +38,17 @@ class Filters extends BaseFilters
         'adminFilter'   => \App\Filters\AdminFilter::class,
         'accessFilter'  => \App\Filters\AccessFilter::class,
         'securityHeaders' => \App\Filters\SecurityHeadersFilter::class,
+        'scalarQuery'     => \App\Filters\ScalarQueryParamsFilter::class,
     ];
 
     public array $required = [
         'before' => [
             'pagecache',
+            // Must run before any controller reads the query string. Every
+            // filter/search/export screen treats its parameters as scalars, so
+            // one `?year[]=x` produced an uncaught ErrorException and a 500 on
+            // 35 separate entry points until this dropped them.
+            'scalarQuery',
             // securityHeaders runs in BOTH phases on purpose. CodeIgniter's
             // exception handler renders 404/500 pages without running the
             // after-filter chain, so an after-only registration left every

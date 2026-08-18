@@ -111,11 +111,25 @@ class StudentImportService
      * which row. sanitize_xss() also EXPANDS strings ("'" becomes "&#039;"),
      * so the check has to run on the encoded form, not the raw one.
      */
+    /**
+     * Destination column widths, mirroring student_details exactly.
+     *
+     * Three of these used to be wider than the column they describe --
+     * student_name 150 against varchar(100), eligibility_case_no 100 against
+     * varchar(60), verification_of_marksheet_done_by_you 150 against
+     * varchar(60). A row between the two numbers passed the preview as
+     * "ready", and MySQL then rejected it during the commit, aborting the
+     * dispatch batch after earlier rows had already been written. The operator
+     * saw a failure on a file the app had just told them was fine.
+     *
+     * Checked against information_schema; if a column is ever widened or
+     * narrowed, this constant has to move with it.
+     */
     private const DEST_LIMITS = [
-        'student_name'                          => 150,
-        'student_nee_name'                      => 150,
-        'eligibility_case_no'                   => 100,
-        'verification_of_marksheet_done_by_you' => 150,
+        'student_name'                          => 100,
+        'student_nee_name'                      => 200,
+        'eligibility_case_no'                   => 60,
+        'verification_of_marksheet_done_by_you' => 60,
         'email'                                 => 190,
         'admission_taken_in'                    => 60,
         'admission_taken_year'                  => 25,

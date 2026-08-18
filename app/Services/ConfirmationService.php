@@ -6,6 +6,7 @@ use App\Models\ConfirmationModel;
 use App\Models\StudentModel;
 use App\Models\StreamModel;
 use App\Models\CourseModel;
+use App\Services\StudentVerificationService;
 
 class ConfirmationService
 {
@@ -96,6 +97,18 @@ class ConfirmationService
 
         if (empty($studentIds) || ! is_array($studentIds)) {
             throw new \InvalidArgumentException('No student records selected for confirmation.');
+        }
+
+        // Same ceiling the dispatch side already enforces. The screen submits
+        // whatever is ticked on one page, so this is far above real use -- it
+        // stops a hand-made POST confirming every pending candidate in the
+        // system in a single request, which is not an action any screen
+        // offers and not one that could be undone from the UI.
+        if (count($studentIds) > StudentVerificationService::MAX_BATCH_SIZE) {
+            throw new \InvalidArgumentException(
+                'One confirmation batch cannot hold more than '
+                . StudentVerificationService::MAX_BATCH_SIZE . ' candidates.'
+            );
         }
 
         $students = $this->studentModel->getStudentsByIds($studentIds);
