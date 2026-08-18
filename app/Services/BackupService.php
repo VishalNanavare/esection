@@ -470,7 +470,7 @@ class BackupService
         }
     }
 
-    private function packageEncryptedZip(string $sourcePath, string $entryName, string $zipPath, string $password): void
+    private function packageEncryptedZip(string $sourcePath, string $entryName, string $zipPath, #[\SensitiveParameter] string $password): void
     {
         $zip = new \ZipArchive();
 

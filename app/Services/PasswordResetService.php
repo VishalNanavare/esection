@@ -93,7 +93,7 @@ class PasswordResetService
     /**
      * @throws \InvalidArgumentException on an invalid/expired token or a weak password
      */
-    public function resetWithToken(string $rawToken, string $newPassword, string $confirmPassword): void
+    public function resetWithToken(#[\SensitiveParameter] string $rawToken, #[\SensitiveParameter] string $newPassword, #[\SensitiveParameter] string $confirmPassword): void
     {
         $rawToken = trim($rawToken);
         if ($rawToken === '') {

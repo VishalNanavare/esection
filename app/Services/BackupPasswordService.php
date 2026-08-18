@@ -59,7 +59,7 @@ class BackupPasswordService
      * @throws \InvalidArgumentException on validation failure (safe user-facing text)
      * @throws \RuntimeException         when encryption is unavailable or fails its self-check
      */
-    public function save(string $plain, string $confirm): void
+    public function save(#[\SensitiveParameter] string $plain, #[\SensitiveParameter] string $confirm): void
     {
         $plain   = trim($plain);
         $confirm = trim($confirm);
@@ -162,7 +162,7 @@ class BackupPasswordService
      * utf8mb4 TEXT column under STRICT_TRANS_TABLES -- writing the raw bytes
      * throws "Incorrect string value". Verified on this database.
      */
-    private function encode(string $plain): string
+    private function encode(#[\SensitiveParameter] string $plain): string
     {
         return base64_encode(service('encrypter')->encrypt($plain));
     }

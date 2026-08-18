@@ -54,7 +54,7 @@ class UserModel extends Model
      * synthesised phantom users with hardcoded ids (1 and 99) that did not
      * exist in the database, which then got stamped onto inserted records.
      */
-    public function authenticateUser(string $username, string $password): ?array
+    public function authenticateUser(string $username, #[\SensitiveParameter] string $password): ?array
     {
         $user = $this->findByUsername($username);
 

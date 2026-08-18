@@ -156,7 +156,7 @@ class MailSettingsService
      *
      * @throws \RuntimeException when encryption is unavailable
      */
-    private function savePassword(string $plain): void
+    private function savePassword(#[\SensitiveParameter] string $plain): void
     {
         try {
             $stored = base64_encode(service('encrypter')->encrypt($plain));

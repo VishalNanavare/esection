@@ -89,7 +89,18 @@ class UserManagementService
         $db->transBegin();
 
         try {
-            $this->userModel->insert($data);
+            // Checked, not assumed. CodeIgniter only throws on a failed query
+            // when transDepth === 0 or transException is on
+            // (BaseConnection.php:836-844), and this app enables neither -- so
+            // inside transBegin() a rejected INSERT just returns false and sets
+            // transStatus. transCommit() never reads transStatus (unlike the
+            // transStart()/transComplete() pairs used elsewhere here), so the
+            // failure committed and the caller was told the user was created.
+            // The driver has already logged the real MySQL error.
+            if ($this->userModel->insert($data) === false) {
+                throw new \RuntimeException('The user could not be saved. No changes were made.');
+            }
+
             $newId = $this->userModel->getInsertID();
 
             // Access Rights only ever governs staff accounts (admin bypasses
@@ -180,7 +191,12 @@ class UserManagementService
         $db->transBegin();
 
         try {
-            $this->userModel->update($id, $data);
+            // Same reason as create(): a rejected UPDATE inside transBegin()
+            // returns false rather than throwing, and transCommit() would
+            // commit it anyway and report success.
+            if ($this->userModel->update($id, $data) === false) {
+                throw new \RuntimeException('The user could not be updated. No changes were made.');
+            }
 
             // Same pages_submitted-gated logic as create() above. The "no
             // marker" branch also covers an admin demoted to staff by a caller
@@ -259,7 +275,7 @@ class UserManagementService
      * one is being set, so no user is locked out and nobody is forced to
      * reset.
      */
-    private function assertPasswordStrength(string $password): void
+    private function assertPasswordStrength(#[\SensitiveParameter] string $password): void
     {
         self::assertPasswordPolicy($password);
     }
@@ -278,7 +294,7 @@ class UserManagementService
      *
      * @throws \InvalidArgumentException when the password is outside the policy
      */
-    public static function assertPasswordPolicy(string $password): void
+    public static function assertPasswordPolicy(#[\SensitiveParameter] string $password): void
     {
         $length = mb_strlen($password);
 
@@ -306,7 +322,7 @@ class UserManagementService
      * @throws \InvalidArgumentException on a wrong current password, a mismatch
      *                                   or a password outside the policy
      */
-    public function changeOwnPassword(int $userId, string $current, string $new, string $confirm): void
+    public function changeOwnPassword(int $userId, #[\SensitiveParameter] string $current, #[\SensitiveParameter] string $new, #[\SensitiveParameter] string $confirm): void
     {
         $user = $this->userModel->find($userId);
 
