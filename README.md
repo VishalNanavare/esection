@@ -133,8 +133,8 @@ So a clerk can be given "record confirmations but never delete one", or "read
 the student register and export it, but not edit it". Every permission maps to
 a route that exists — there are no decorative checkboxes.
 
-`app/Config/Permissions.php` is the single source of truth: the migration seed,
-the validation, the Access Rights UI and the sidebar all derive from it.
+`app/Config/Permissions.php` is the single source of truth: the validation, the
+Access Rights UI and the sidebar all derive from it.
 
 ---
 
@@ -218,24 +218,32 @@ Then edit `.env`:
 Nothing environment-specific belongs in `app/Config` — that is what `.env` is
 for, and `.env` is never committed.
 
-Then:
+### Database schema
+
+**Migrations and seeders are not distributed in this repository.**
+`app/Database/Migrations/` and `app/Database/Seeds/` are intentionally empty,
+so `php spark migrate` will not build the schema for you.
+
+Provision the database separately — restore a dump taken from an existing
+deployment via **Settings → Backup**, which produces a complete, AES-256
+password-protected SQL archive for exactly this purpose. Create an empty
+database first and restore into it by name; the dump is written without a
+`CREATE DATABASE`/`USE` header specifically so it cannot be restored over the
+wrong schema by accident.
+
+Once the schema is in place, create the first operator account directly in the
+`users` table with a bcrypt hash:
 
 ```bash
-php spark migrate
-
-# Reference data
-php spark db:seed StreamSeeder
-php spark db:seed CourseSeeder
-php spark db:seed AcademicYearSeeder
-
-# Operator accounts — prints generated passwords ONCE
-php spark db:seed UserSeeder
+php -r "echo password_hash('choose-a-strong-passphrase', PASSWORD_BCRYPT), PHP_EOL;"
 ```
 
-`UserSeeder` creates the operator accounts with random passphrases and prints
-them to the console a single time. Nothing is written to disk in plaintext. If
-you lose the output, reset the account from Settings → Users rather than
-re-running the seeder.
+Insert it with `role = 'admin'` and `is_active = 1`. Every further account is
+created through **Settings → Users**, and reference data (streams, courses,
+academic years) through their own settings screens.
+
+If you are adding a schema change, `php spark make:migration` still works — the
+directories are kept in the repository so the tooling has somewhere to write.
 
 ## Tests
 
