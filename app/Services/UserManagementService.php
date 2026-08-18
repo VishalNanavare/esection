@@ -11,6 +11,25 @@ class UserManagementService
      * Kept identical to PasswordResetService's self-service rule so the
      * two cannot drift apart again.
      */
+    /**
+     * Longest username that can safely exist.
+     *
+     * Not a style preference -- it is derived. StudentVerificationService
+     * builds every dispatch batch key as `username . '_' . $commonNo` and
+     * stores it in student_details.array_space, which is varchar(30). The
+     * username column itself is varchar(50), so the two disagreed by twenty
+     * characters and nothing checked either of them: a username over about
+     * twenty-five characters produced a batch key the destination column could
+     * not hold, and array_space is not incidental -- it is the grouping key
+     * that appears in pdf/dispatch/<array_space> URLs and on every batch
+     * screen.
+     *
+     * 20 leaves room for the separator and an eight-digit batch number inside
+     * the 30 available. Every existing account (admin, esection1..esection6) is
+     * far below it, so nothing in service is affected.
+     */
+    public const MAX_USERNAME_LENGTH = 20;
+
     public const MIN_PASSWORD_LENGTH = 8;
 
     /**
@@ -70,6 +89,8 @@ class UserManagementService
         if ($username === '') {
             throw new \InvalidArgumentException('Username is required.');
         }
+
+        self::assertUsernamePolicy($username);
         if ($password === '') {
             throw new \InvalidArgumentException('Password is required.');
         }
@@ -150,6 +171,8 @@ class UserManagementService
         if ($username === '') {
             throw new \InvalidArgumentException('Username is required.');
         }
+
+        self::assertUsernamePolicy($username);
 
         $existing = $this->userModel->findByUsername($username);
         if ($existing && (int) $existing['id'] !== $id) {
@@ -301,6 +324,18 @@ class UserManagementService
      *
      * @throws \InvalidArgumentException when the password is outside the policy
      */
+    /**
+     * @throws \InvalidArgumentException with text written for the operator
+     */
+    public static function assertUsernamePolicy(string $username): void
+    {
+        if (mb_strlen($username) > self::MAX_USERNAME_LENGTH) {
+            throw new \InvalidArgumentException(
+                'Username must be no more than ' . self::MAX_USERNAME_LENGTH . ' characters long.'
+            );
+        }
+    }
+
     public static function assertPasswordPolicy(#[\SensitiveParameter] string $password): void
     {
         $length = mb_strlen($password);

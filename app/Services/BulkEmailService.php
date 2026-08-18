@@ -254,6 +254,45 @@ class BulkEmailService
         }
     }
 
+    /** @var \CodeIgniter\Email\Email|null Built once per request, reused for every message. */
+    private $mailerInstance;
+
+    /** @var array<string, mixed> */
+    private array $mailerSettings = [];
+
+    /**
+     * The mail transport, built once instead of once per recipient.
+     *
+     * deliver() used to construct a fresh Email object AND re-read the SMTP
+     * settings from the database on every single message. A 500-recipient run
+     * therefore made a thousand settings queries to send five hundred mails,
+     * before any of the actual sending.
+     *
+     * SMTPKeepAlive is deliberately NOT enabled, even though it is the obvious
+     * next step and would collapse 500 TCP+TLS+AUTH handshakes into one.
+     * CodeIgniter cannot survive the connection being dropped mid-run:
+     * isSMTPConnected() (Email.php:2251) only checks that the local resource is
+     * not closed, so a socket the server has timed out still reads as live and
+     * the remaining messages are written into a dead connection. Worse,
+     * Email.php:2024 sets SMTPAuth = false once keep-alive is on, so even a
+     * genuine reconnect would skip authentication and be refused. Trading five
+     * hundred handshakes for "everything after the first idle timeout fails
+     * silently" is the wrong way round.
+     *
+     * @return array{0: \CodeIgniter\Email\Email, 1: array<string, mixed>}
+     */
+    private function mailer(): array
+    {
+        if ($this->mailerInstance === null) {
+            $this->mailerSettings = $this->mailSettingsService->getAll();
+
+            $this->mailerInstance = \Config\Services::email(null, false);
+            $this->mailerInstance->initialize($this->mailSettingsService->buildEmailConfig());
+        }
+
+        return [$this->mailerInstance, $this->mailerSettings];
+    }
+
     /**
      * The one place a message actually leaves the system.
      *
@@ -261,11 +300,17 @@ class BulkEmailService
      */
     private function deliver(string $to, string $toName, string $subject, string $htmlBody): array
     {
-        $settings = $this->mailSettingsService->getAll();
-
         try {
-            $email = \Config\Services::email(null, false);
-            $email->initialize($this->mailSettingsService->buildEmailConfig());
+            [$email, $settings] = $this->mailer();
+
+            // The instance is shared across the run now, and send(false) never
+            // auto-clears, so reset the message state explicitly. setTo() and
+            // friends do replace rather than append, so this is belt and
+            // braces -- but a future CC or attachment would otherwise leak
+            // from one recipient's mail into the next one's, which is the kind
+            // of bug that is only noticed after it has been sent.
+            $email->clear(true);
+
             $email->setFrom(
                 $settings[MailSettingsService::KEY_FROM_EMAIL],
                 $settings[MailSettingsService::KEY_FROM_NAME] ?: 'E-Section'
