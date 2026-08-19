@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Services\DocumentNumberingService;
 use App\Services\ExcelExportService;
+use App\Services\CandidateSheetService;
 use App\Services\StudentImportService;
 use App\Services\StudentVerificationService;
 use App\Services\UniversityService;
@@ -144,6 +145,44 @@ class Students extends BaseController
     // -----------------------------------------------------------------
     // Excel import
     // -----------------------------------------------------------------
+
+    /**
+     * Reads an .xlsx of candidates and returns the rows for the New Form table.
+     *
+     * Writes nothing. The operator ticks what they want, fills in the
+     * university, year and course as usual, and the ordinary Save button does
+     * the actual work through storeBatch() -- so an imported batch and a typed
+     * batch are the same batch, saved by the same validated, transactional
+     * path.
+     */
+    public function readCandidateSheet()
+    {
+        set_time_limit(0);
+
+        try {
+            $result = (new CandidateSheetService())->read($this->request->getFile('candidate_sheet'));
+
+            return $this->response->setJSON(['status' => 'success', 'data' => $result]);
+        } catch (\InvalidArgumentException $e) {
+            // Written for the operator -- "row 14 has no case number", not a
+            // stack trace. 422 so the caller can tell a rejected sheet from a
+            // broken server.
+            return $this->response->setStatusCode(422)->setJSON([
+                'status'  => 'error',
+                'message' => $e->getMessage(),
+            ]);
+        } catch (\Throwable $e) {
+            log_message('error', '[Students::readCandidateSheet] {type}: {msg}', [
+                'type' => $e::class,
+                'msg'  => $e->getMessage(),
+            ]);
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'status'  => 'error',
+                'message' => 'That sheet could not be read. The issue has been logged.',
+            ]);
+        }
+    }
 
     public function importForm()
     {

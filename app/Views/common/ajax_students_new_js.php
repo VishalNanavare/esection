@@ -96,6 +96,305 @@ $(document).ready(function () {
         esNotify('success', 'Candidate added to the batch');
     });
 
+
+    /* =================================================================
+       Fill from Excel
+       -----------------------------------------------------------------
+       Reads a five-column sheet server-side and drops the ticked rows
+       into studentList, the same array the manual "Add Candidate" button
+       feeds. Nothing is saved here: the batch is written only when the
+       operator presses Save & Generate PDF, through the same validated
+       storeBatch() path a typed batch uses.
+       ================================================================= */
+
+    // Rows as returned by students/new/readSheet, in sheet order.
+    var sheetRows = [];
+
+    // Above this many, the rows go in a chunk at a time behind a progress
+    // dialog. Adding is cheap, but a single synchronous loop over a few
+    // hundred rows repaints the table once at the end and looks frozen --
+    // and the operator gets no sense of how much is left.
+    var SHEET_CHUNK_THRESHOLD = 10;
+    var SHEET_CHUNK_SIZE      = 10;
+
+    function sheetResetToPicker() {
+        sheetRows = [];
+        $('#sheet_step_review').hide();
+        $('#sheet_step_pick').show();
+        $('#sheet_preview_table tbody').empty();
+        $('#candidate_sheet_file').val('');
+        $('#sheet_truncated_note').hide().text('');
+        $('#btn_sheet_add').prop('disabled', true);
+        $('#sheet_selection_label').text('');
+        $('#sheet_check_all').prop('checked', false);
+    }
+
+    function sheetSelectedIndexes() {
+        var picked = [];
+
+        $('#sheet_preview_table tbody input.sheet-row-check:checked').each(function () {
+            picked.push(parseInt($(this).val(), 10));
+        });
+
+        return picked;
+    }
+
+    function sheetRefreshSelectionLabel() {
+        var count = sheetSelectedIndexes().length;
+
+        $('#btn_sheet_add').prop('disabled', count === 0);
+        $('#sheet_selection_label').text(count === 0 ? '' : count + ' row(s) selected');
+    }
+
+    function sheetRenderPreview(data) {
+        var tbody = $('#sheet_preview_table tbody');
+        tbody.empty();
+
+        $('#sheet_ok_count').text(data.ok_count + ' usable');
+        $('#sheet_error_count').text(data.error_count + ' with problems');
+        $('#sheet_name_label').text(data.sheet ? 'Sheet: ' + data.sheet : '');
+
+        if (data.truncated) {
+            $('#sheet_truncated_note')
+                .text('Only the first ' + data.rows.length + ' rows were read. One batch cannot hold more than that, '
+                      + 'so split the file and import the rest as a second batch.')
+                .show();
+        }
+
+        $.each(data.rows, function (idx, row) {
+            var usable   = row.status === 'ok';
+            var problems = (row.messages || []).join(' ');
+
+            // Every value here came out of somebody's spreadsheet, so it is
+            // escaped on the way into the DOM -- same rule as
+            // renderStudentTable() below.
+            tbody.append(
+                '<tr class="' + (usable ? '' : 'table-warning') + '">' +
+                    '<td>' +
+                        (usable
+                            ? '<input type="checkbox" class="form-check-input sheet-row-check" value="' + idx + '" checked>'
+                            : '<i class="fa fa-ban text-danger" title="' + esEscapeHtml(problems) + '"></i>') +
+                    '</td>' +
+                    '<td class="text-muted small">' + row.line + '</td>' +
+                    '<td class="fw-bold text-dark">' + esEscapeHtml(row.data.student_name) + '</td>' +
+                    '<td>' + esEscapeHtml(row.data.student_nee_name) + '</td>' +
+                    '<td><span class="badge badge-glass-indigo">' + esEscapeHtml(row.data.eligibility_case_no) + '</span></td>' +
+                    '<td class="small">' + esEscapeHtml(row.data.verification_by_you) + '</td>' +
+                    '<td class="small text-muted">' + esEscapeHtml(row.data.email || '-') + '</td>' +
+                '</tr>'
+            );
+
+            if (!usable) {
+                tbody.append(
+                    '<tr class="table-warning">' +
+                        '<td></td>' +
+                        '<td colspan="6" class="small text-danger pt-0">' +
+                            '<i class="fa fa-exclamation-triangle me-1"></i>' + esEscapeHtml(problems) +
+                        '</td>' +
+                    '</tr>'
+                );
+            }
+        });
+
+        $('#sheet_check_all').prop('checked', data.ok_count > 0);
+        $('#sheet_step_pick').hide();
+        $('#sheet_step_review').show();
+        sheetRefreshSelectionLabel();
+    }
+
+    $('#btn_read_sheet').on('click', function () {
+        var input = $('#candidate_sheet_file')[0];
+
+        if (!input || !input.files || input.files.length === 0) {
+            Swal.fire({ icon: 'warning', title: 'No file chosen', text: 'Pick an .xlsx file first.' });
+            return;
+        }
+
+        var form = new FormData();
+        form.append('candidate_sheet', input.files[0]);
+        form.append('<?= csrf_token() ?>', '<?= csrf_hash() ?>');
+
+        var button = $(this).prop('disabled', true);
+        button.html('<i class="fa fa-spinner fa-spin me-1"></i> Reading...');
+
+        $.ajax({
+            url:         '<?= base_url("students/new/readSheet") ?>',
+            type:        'POST',
+            data:        form,
+            processData: false,
+            contentType: false,
+            dataType:    'json'
+        }).done(function (res) {
+            if (!res || res.status !== 'success' || !res.data || !res.data.rows.length) {
+                Swal.fire({ icon: 'error', title: 'Nothing to import', text: 'That sheet had no candidate rows.' });
+                return;
+            }
+
+            sheetRows = res.data.rows;
+            sheetRenderPreview(res.data);
+        }).fail(function (xhr) {
+            var message = 'That sheet could not be read.';
+
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                message = xhr.responseJSON.message;
+            }
+
+            Swal.fire({ icon: 'error', title: 'Sheet not accepted', text: message });
+        }).always(function () {
+            button.prop('disabled', false).html('<i class="fa fa-search me-1"></i> Read Sheet');
+        });
+    });
+
+    $('#btn_sheet_back').on('click', sheetResetToPicker);
+
+    $('#sheet_check_all').on('change', function () {
+        $('#sheet_preview_table tbody input.sheet-row-check').prop('checked', $(this).is(':checked'));
+        sheetRefreshSelectionLabel();
+    });
+
+    $('#btn_sheet_select_all').on('click', function () {
+        $('#sheet_preview_table tbody input.sheet-row-check').prop('checked', true);
+        $('#sheet_check_all').prop('checked', true);
+        sheetRefreshSelectionLabel();
+    });
+
+    $('#btn_sheet_select_none').on('click', function () {
+        $('#sheet_preview_table tbody input.sheet-row-check').prop('checked', false);
+        $('#sheet_check_all').prop('checked', false);
+        sheetRefreshSelectionLabel();
+    });
+
+    $(document).on('change', '#sheet_preview_table tbody input.sheet-row-check', sheetRefreshSelectionLabel);
+
+    /**
+     * Copies the ticked rows into studentList.
+     *
+     * Duplicate case numbers are skipped rather than added twice -- the case
+     * number is what identifies a candidate on the letter, and the same sheet
+     * read twice is an easy mistake to make.
+     */
+    $('#btn_sheet_add').on('click', function () {
+        var picked = sheetSelectedIndexes();
+
+        if (picked.length === 0) {
+            return;
+        }
+
+        var existing = {};
+        $.each(studentList, function (i, item) {
+            existing[(item.eligibility_case_no || '').toLowerCase()] = true;
+        });
+
+        var queued = [];
+        var skipped = 0;
+
+        $.each(picked, function (i, index) {
+            var row = sheetRows[index];
+
+            if (!row || row.status !== 'ok') {
+                return;
+            }
+
+            var key = (row.data.eligibility_case_no || '').toLowerCase();
+
+            if (existing[key]) {
+                skipped++;
+                return;
+            }
+
+            existing[key] = true;
+            queued.push({
+                student_name:        row.data.student_name,
+                student_nee_name:    row.data.student_nee_name,
+                eligibility_case_no: row.data.eligibility_case_no,
+                verification_by_you: row.data.verification_by_you,
+                email:               row.data.email
+            });
+        });
+
+        if (queued.length === 0) {
+            Swal.fire({
+                icon:  'info',
+                title: 'Nothing new to add',
+                text:  skipped > 0
+                    ? 'Every selected candidate is already in the batch (matched on eligibility case number).'
+                    : 'No usable rows were selected.'
+            });
+            return;
+        }
+
+        var modalEl = document.getElementById('candidateSheetModal');
+        var modal   = window.bootstrap ? bootstrap.Modal.getInstance(modalEl) : null;
+
+        function finish() {
+            renderStudentTable();
+
+            if (modal) {
+                modal.hide();
+            }
+
+            sheetResetToPicker();
+
+            Swal.fire({
+                icon:  'success',
+                title: 'Candidates added',
+                html:  '<strong>' + queued.length + '</strong> candidate(s) added to the batch.'
+                       + (skipped > 0 ? '<br><span class="text-muted small">' + skipped
+                          + ' skipped as already present.</span>' : '')
+                       + '<br><span class="text-muted small">Nothing is saved yet -- choose the university, '
+                       + 'year and course, then press Save &amp; Generate PDF.</span>'
+            });
+        }
+
+        // Small lists go straight in; the dialog would flash past.
+        if (queued.length <= SHEET_CHUNK_THRESHOLD) {
+            Array.prototype.push.apply(studentList, queued);
+            finish();
+            return;
+        }
+
+        // Larger ones go a chunk at a time, yielding to the browser between
+        // chunks so the bar genuinely moves instead of jumping to 100% after
+        // a frozen pause.
+        var added = 0;
+
+        Swal.fire({
+            title: 'Adding candidates',
+            html:
+                '<div class="progress" style="height:1.25rem;">' +
+                    '<div id="sheet_progress_bar" class="progress-bar progress-bar-striped progress-bar-animated" ' +
+                         'role="progressbar" style="width:0%;">0%</div>' +
+                '</div>' +
+                '<p class="text-muted small mt-2 mb-0" id="sheet_progress_text">0 of ' + queued.length + '</p>',
+            allowOutsideClick: false,
+            allowEscapeKey:    false,
+            showConfirmButton: false,
+            didOpen: function () {
+                function step() {
+                    var slice = queued.slice(added, added + SHEET_CHUNK_SIZE);
+                    Array.prototype.push.apply(studentList, slice);
+                    added += slice.length;
+
+                    var percent = Math.round((added / queued.length) * 100);
+                    $('#sheet_progress_bar').css('width', percent + '%').text(percent + '%');
+                    $('#sheet_progress_text').text(added + ' of ' + queued.length);
+
+                    if (added < queued.length) {
+                        setTimeout(step, 60);
+                        return;
+                    }
+
+                    setTimeout(function () {
+                        Swal.close();
+                        finish();
+                    }, 250);
+                }
+
+                step();
+            }
+        });
+    });
+
     function renderStudentTable() {
         var tbody = $('#student_batch_table tbody');
         tbody.empty();

@@ -50,11 +50,6 @@ class StudentImportService
      */
     private const MAX_COLUMNS = 64;
 
-    /** Zip-audit bounds -- see assertAcceptableUpload(). */
-    private const MAX_ZIP_ENTRIES        = 512;
-    private const MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024;
-    private const MAX_COMPRESSION_RATIO  = 200;
-    private const MAX_SHARED_STRINGS     = 20 * 1024 * 1024;
 
     /**
      * Header synonyms, normalised key => canonical column.
@@ -166,107 +161,12 @@ class StudentImportService
             throw new \InvalidArgumentException('Excel import is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
         }
 
-        if ($file === null || ! $file->isValid() || $file->hasMoved()) {
-            throw new \InvalidArgumentException(
-                $file === null ? 'Choose a file to import.' : 'The file could not be uploaded: ' . $file->getErrorString()
-            );
-        }
-
-        if ($file->getSizeByUnit('kb') > self::MAX_SIZE_KB) {
-            throw new \InvalidArgumentException('The file must be ' . (self::MAX_SIZE_KB / 1024) . 'MB or smaller.');
-        }
-
-        // Extension is the gate, NOT the MIME type. Config\Mimes maps xlsx to
-        // application/zip and application/msword among others, and finfo
-        // returns application/zip for perfectly valid xlsx on some builds -- so
-        // a MIME allowlist both accepts any renamed zip and rejects legitimate
-        // files. It is a check that produces false positives and false
-        // negatives at the same time.
-        $extension = strtolower($file->getClientExtension());
-
-        if ($extension === 'xls' || $extension === 'xlsm') {
-            throw new \InvalidArgumentException(
-                'This is an .' . $extension . ' workbook. Open it in Excel and use File > Save As > Excel Workbook (.xlsx), then upload again.'
-            );
-        }
-
-        if ($extension !== 'xlsx') {
-            throw new \InvalidArgumentException('Only .xlsx files can be imported.');
-        }
-
-        // Magic bytes: every xlsx is a zip. This is the real content check --
-        // it costs one fread and catches a renamed .txt/.pdf immediately.
-        $handle = @fopen($file->getTempName(), 'rb');
-        $magic  = $handle ? (string) fread($handle, 4) : '';
-        if ($handle) {
-            fclose($handle);
-        }
-
-        if ($magic !== "PK\x03\x04") {
-            throw new \InvalidArgumentException('That file is not a readable Excel workbook.');
-        }
-
-        $this->auditZipArchive($file->getTempName());
-    }
-
-    /**
-     * Reject decompression bombs before the reader touches the file.
-     *
-     * This matters more than it looks: Reader::open() extracts the shared
-     * strings table EAGERLY, before a single row is iterated, and this server
-     * has memory_limit=4000M with max_execution_time=0 -- so there is no
-     * platform-level backstop at all. The application-level cap IS the control.
-     * Reading the zip central directory costs microseconds.
-     */
-    private function auditZipArchive(string $path): void
-    {
-        if (! class_exists(\ZipArchive::class)) {
-            return;
-        }
-
-        $zip = new \ZipArchive();
-
-        if ($zip->open($path) !== true) {
-            throw new \InvalidArgumentException('That file is not a readable Excel workbook.');
-        }
-
-        try {
-            if ($zip->numFiles > self::MAX_ZIP_ENTRIES) {
-                throw new \InvalidArgumentException('That workbook has an unexpected internal structure and was not opened.');
-            }
-
-            if ($zip->locateName('[Content_Types].xml') === false) {
-                throw new \InvalidArgumentException('That file is not a readable Excel workbook.');
-            }
-
-            $totalUncompressed = 0;
-
-            for ($i = 0; $i < $zip->numFiles; $i++) {
-                $stat = $zip->statIndex($i);
-
-                if ($stat === false) {
-                    continue;
-                }
-
-                $size       = (int) ($stat['size'] ?? 0);
-                $compressed = (int) ($stat['comp_size'] ?? 0);
-                $totalUncompressed += $size;
-
-                if ($totalUncompressed > self::MAX_UNCOMPRESSED_BYTES) {
-                    throw new \InvalidArgumentException('That workbook expands to an unreasonable size and was not opened.');
-                }
-
-                if ($compressed > 0 && ($size / $compressed) > self::MAX_COMPRESSION_RATIO) {
-                    throw new \InvalidArgumentException('That workbook expands to an unreasonable size and was not opened.');
-                }
-
-                if (str_ends_with((string) ($stat['name'] ?? ''), 'sharedStrings.xml') && $size > self::MAX_SHARED_STRINGS) {
-                    throw new \InvalidArgumentException('That workbook has an unexpectedly large text table and was not opened.');
-                }
-            }
-        } finally {
-            $zip->close();
-        }
+        // Everything else -- size, extension, magic bytes, the zip audit --
+        // now lives in XlsxUploadGuard, shared with the New Form candidate
+        // sheet. Upload hardening is exactly the code that must not exist
+        // twice: the copy that gets forgotten is the one that lets a zip bomb
+        // through.
+        (new XlsxUploadGuard())->assertAcceptable($file, self::MAX_SIZE_KB);
     }
 
     // ---------------------------------------------------------------------

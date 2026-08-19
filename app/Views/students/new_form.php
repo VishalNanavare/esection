@@ -79,6 +79,10 @@
                     <input type="email" class="form-control" id="stud_email" placeholder="Email (Optional)">
                 </div>
                 <div class="col-12 text-end">
+                    <button type="button" class="btn btn-glass me-2" id="btn_open_sheet"
+                            data-bs-toggle="modal" data-bs-target="#candidateSheetModal">
+                        <i class="fa fa-file-excel-o me-1"></i> Fill from Excel
+                    </button>
                     <button type="button" class="btn btn-emerald" id="btn_add_student">
                         <i class="fa fa-plus me-1"></i> Add Candidate to List
                     </button>
@@ -120,7 +124,129 @@
         </div>
     </div>
 </div>
+<!--
+  Fill from Excel.
+
+  Reads a five-column sheet and drops the ticked rows into the batch table
+  above. It saves nothing by itself -- the operator still picks the university,
+  year and course, and the ordinary Save button writes the batch through the
+  same path a typed batch uses.
+-->
+<div class="modal fade" id="candidateSheetModal" tabindex="-1" aria-labelledby="candidateSheetLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="candidateSheetLabel">
+                    <i class="fa fa-file-excel-o me-2 text-emerald"></i>Fill Candidates from Excel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <!-- Step 1 -->
+                <div id="sheet_step_pick">
+                    <p class="text-muted small">
+                        Upload an <strong>.xlsx</strong> file whose first sheet has these five columns, in this order.
+                        The heading row is ignored, so name the headings whatever you like.
+                    </p>
+
+                    <div class="table-responsive mb-3">
+                        <table class="table table-sm table-glass mb-0">
+                            <thead>
+                                <tr>
+                                    <th>A</th><th>B</th><th>C</th><th>D</th><th>E</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Candidate name <span class="badge badge-glass-indigo">required</span></td>
+                                    <td>Nee / maiden name</td>
+                                    <td>Eligibility case no. <span class="badge badge-glass-indigo">required</span></td>
+                                    <td>Verification remarks</td>
+                                    <td>Email</td>
+                                </tr>
+                                <tr class="text-muted small">
+                                    <td>Priya Sharma</td>
+                                    <td>Priya Deshmukh</td>
+                                    <td>IDOL/2026/0142</td>
+                                    <td>Marksheet Verification</td>
+                                    <td>priya@example.com</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row g-2 align-items-center">
+                        <div class="col-sm-8">
+                            <input type="file" class="form-control" id="candidate_sheet_file" accept=".xlsx">
+                        </div>
+                        <div class="col-sm-4 d-grid">
+                            <button type="button" class="btn btn-emerald" id="btn_read_sheet">
+                                <i class="fa fa-search me-1"></i> Read Sheet
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="text-muted small mt-2 mb-0">
+                        Blank rows are skipped. Nothing is saved until you press
+                        <strong>Save &amp; Generate PDF</strong> on the form behind this window.
+                    </p>
+                </div>
+
+                <!-- Step 2 -->
+                <div id="sheet_step_review" style="display:none;">
+                    <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                        <div>
+                            <span class="badge badge-glass-emerald" id="sheet_ok_count">0 usable</span>
+                            <span class="badge badge-glass-danger ms-1" id="sheet_error_count">0 with problems</span>
+                            <span class="text-muted small ms-2" id="sheet_name_label"></span>
+                        </div>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-glass" id="btn_sheet_select_all">Select all usable</button>
+                            <button type="button" class="btn btn-sm btn-glass" id="btn_sheet_select_none">Clear</button>
+                            <button type="button" class="btn btn-sm btn-glass text-primary" id="btn_sheet_back">
+                                <i class="fa fa-arrow-left me-1"></i> Choose another file
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 small" id="sheet_truncated_note" style="display:none;"></div>
+
+                    <div class="table-responsive" style="max-height:52vh;">
+                        <table class="table table-sm table-glass table-sticky-id mb-0" id="sheet_preview_table">
+                            <thead>
+                                <tr>
+                                    <th style="width:2.5rem;">
+                                        <input type="checkbox" class="form-check-input" id="sheet_check_all" title="Select all usable rows">
+                                    </th>
+                                    <th style="width:4rem;">Row</th>
+                                    <th>Candidate name</th>
+                                    <th>Nee / maiden</th>
+                                    <th>Case no.</th>
+                                    <th>Remarks</th>
+                                    <th>Email</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <span class="text-muted small me-auto" id="sheet_selection_label"></span>
+                <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-emerald" id="btn_sheet_add" disabled>
+                    <i class="fa fa-plus me-1"></i> Add Selected to List
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
+
+
 
 <?= $this->section('scripts') ?>
     <?= $this->include('common/ajax_students_new_js') ?>

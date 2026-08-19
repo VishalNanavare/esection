@@ -109,6 +109,11 @@ $routes->group('', ['filter' => 'authFilter'], function ($routes) {
         $routes->get('students/getCollegeInfo/(:num)', 'Students::getCollegeInfo/$1', ['filter' => 'accessFilter:students.create']);
         $routes->post('students/storeBatch', 'Students::storeBatch', ['filter' => 'accessFilter:students.create']);
 
+        // Reads a five-column candidate sheet and hands the rows straight back
+        // for the New Form table. Writes nothing, so it needs no permission of
+        // its own beyond the one that opens the screen it fills.
+        $routes->post('students/new/readSheet', 'Students::readCandidateSheet', ['filter' => 'accessFilter:students.create']);
+
         // Excel import now has its own permission. Under the old page-level
         // scheme it deliberately shared students_new, because a separate KEY
         // would have granted bulk-write without single-write. That reasoning
