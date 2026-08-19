@@ -265,10 +265,20 @@ class StudentVerificationService
     }
 
     /** Feeds the batch history/browse page -- mirrors esection_basic's view.php. */
-    /** @param array<string,string> $filters see StudentModel::getBatchSummaries() */
-    public function getBatchSummaries(array $filters = []): array
+    /**
+     * @param array<string,string> $filters see StudentModel::getBatchSummaries()
+     * @param int|null             $perPage null for every match (export), a number to paginate
+     *
+     * @return array{batches: array, pager: \CodeIgniter\Pager\Pager|null}
+     */
+    public function getBatchSummaries(array $filters = [], ?int $perPage = null): array
     {
-        return $this->studentModel->getBatchSummaries($filters);
+        $batches = $this->studentModel->getBatchSummaries($filters, $perPage);
+
+        return [
+            'batches' => $batches,
+            'pager'   => $perPage === null ? null : $this->studentModel->pager,
+        ];
     }
 
     /**

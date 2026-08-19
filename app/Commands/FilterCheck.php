@@ -87,6 +87,14 @@ class FilterCheck extends BaseCommand
         $this->report('created after 2099 (future)', count($m->getBatchSummaries(['date_from' => '2099-01-01'])), $all, 'empty');
         $this->report('created before 2000 (past)', count($m->getBatchSummaries(['date_to' => '2000-01-01'])), $all, 'empty');
         $this->report('created after 2000 (all of it)', count($m->getBatchSummaries(['date_from' => '2000-01-01'])), $all, 'same');
+
+        // Pagination: a page must be a slice, not the whole table.
+        $page = $m->getBatchSummaries([], 20);
+        $this->report('paginated page is 20 rows', count($page), $all, 'narrows');
+
+        $pager = $m->pager;
+        $total = $pager === null ? 0 : $pager->getTotal();
+        $this->report('pager total matches unpaginated count', $total, $all, 'same');
     }
 
     private function universities(): void

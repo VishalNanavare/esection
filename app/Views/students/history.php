@@ -26,7 +26,7 @@
                      screen still opens on real data rather than an empty prompt
                      to search first. The same query string drives the export,
                      so the file always matches what is on screen. */ ?>
-            <form action="<?= base_url('students/history') ?>" method="get" class="row g-3 mb-4 filter-panel">
+            <form action="<?= base_url('students/history') ?>" method="get" class="row g-3 mb-4 filter-panel" id="batch_history_filters">
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-semibold">Admission Year</label>
                     <select name="year" class="form-select select2-ajax-academic-year">
@@ -68,57 +68,47 @@
                 </div>
             </form>
 
-            <div class="table-responsive">
-                <table class="table table-glass">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <small class="text-muted" id="batch_history_count">
+                    <?php if ($pager !== null && $pager->getTotal() > 0): ?>
+                        <?= number_format($pager->getTotal()) ?> batch<?= $pager->getTotal() === 1 ? '' : 'es' ?>
+                    <?php endif; ?>
+                </small>
+                <small class="text-muted d-none" id="batch_history_loading">
+                    <i class="fa fa-circle-o-notch fa-spin me-1"></i> Loading...
+                </small>
+            </div>
+
+            <div class="table-responsive position-relative" id="batch_history_wrap">
+                <table class="table table-glass align-middle mb-0" id="batch_history_table">
                     <thead>
                         <tr>
-                            <th>Batch</th>
-                            <th>University Address</th>
-                            <th>Admission Taken In</th>
-                            <th>Academic Year</th>
-                            <th class="text-center">Candidates</th>
-                            <th>Created</th>
+                            <th>Batch / Created</th>
+                            <th>Target University</th>
+                            <th>Course &amp; Year</th>
+                            <th class="text-center">Size</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php if (empty($batches)): ?>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No batches submitted yet.</td>
-                            </tr>
-                        <?php else: ?>
-                            <?php foreach ($batches as $b): ?>
-                                <tr>
-                                    <td class="fw-bold text-dark"><?= esc($b['array_space']) ?></td>
-                                    <td class="small text-muted"><?= esc_address($b['clg_add']) ?></td>
-                                    <td><?= esc($b['admission_taken_in']) ?></td>
-                                    <td><?= esc($b['admission_taken_year']) ?></td>
-                                    <td class="text-center"><span class="badge badge-glass-indigo"><?= (int) $b['student_count'] ?></span></td>
-                                    <td class="small text-muted"><?= esc(is_numeric($b['en_time']) ? date('d/m/Y H:i', (int) $b['en_time']) : $b['en_time']) ?></td>
-                                    <td class="text-end">
-                                        <a href="<?= base_url('students/batch/' . urlencode($b['array_space'])) ?>" class="btn btn-sm btn-glass text-primary me-1">
-                                            <i class="fa fa-eye"></i> View
-                                        </a>
-                                        <?php // Both routes require students.print. These open in a new
-                                              // tab, so AccessFilter takes its non-JSON branch and the tab
-                                              // shows the dashboard with an error -- which reads as a broken
-                                              // link rather than a withheld one. ?>
-                                        <?php if (can('students.print')): ?>
-                                            <a href="<?= base_url('pdf/dispatch/' . urlencode($b['array_space'])) ?>" target="_blank" class="btn btn-sm btn-glass text-emerald me-1">
-                                                <i class="fa fa-file-pdf-o"></i> PDF
-                                            </a>
-                                            <a href="<?= base_url('pdf/dispatchAccounts/' . urlencode($b['array_space'])) ?>" target="_blank" class="btn btn-sm btn-glass text-emerald">
-                                                <i class="fa fa-file-pdf-o"></i> AC View
-                                            </a>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <tbody id="batch_history_rows">
+                        <?= $this->include('students/_history_rows') ?>
                     </tbody>
                 </table>
+            </div>
+
+            <?php /* Rendered by the same 'glass' template the AJAX reply uses,
+                     so a paged view cannot drift from a freshly loaded one. */ ?>
+            <div id="batch_history_pager">
+                <?php if ($pager !== null): ?>
+                    <?= $pager->links('default', 'glass') ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
 <?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+    <?= $this->include('common/ajax_students_history_js') ?>
+<?= $this->endSection() ?>
+

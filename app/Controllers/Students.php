@@ -353,15 +353,37 @@ class Students extends BaseController
         ];
     }
 
+    /** Batches per page. Small enough that a page stays quick to render. */
+    private const HISTORY_PER_PAGE = 20;
+
     public function history()
     {
         $filters = $this->historyFilters();
 
+        $result = $this->studentService->getBatchSummaries($filters, self::HISTORY_PER_PAGE);
+
         $data = [
             'title'   => 'Verification Batch History',
-            'batches' => $this->studentService->getBatchSummaries($filters),
+            'batches' => $result['batches'],
+            'pager'   => $result['pager'],
             'filters' => $filters,
         ];
+
+        // An AJAX request wants the table and its pager, not the whole page.
+        // Both are rendered from the SAME partials the full page uses, so a
+        // paged or filtered view cannot drift from a freshly loaded one.
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'rows'   => view('students/_history_rows', $data),
+                // links('default', 'glass') -- the same call the full page makes,
+                // so the AJAX pager is rendered by the identical template
+                // rather than a second copy that could drift from it.
+                'pager'  => $result['pager'] === null ? '' : $result['pager']->links('default', 'glass'),
+                'count'  => count($result['batches']),
+                'total'  => $result['pager'] === null ? count($result['batches']) : $result['pager']->getTotal(),
+            ]);
+        }
 
         return view('students/history', $data);
     }
@@ -369,7 +391,8 @@ class Students extends BaseController
     /** Exports exactly what the screen is showing -- same filters, same query string. */
     public function historyExport()
     {
-        $batches = $this->studentService->getBatchSummaries($this->historyFilters());
+        // null perPage: the export is every matching batch, not one page.
+        $batches = $this->studentService->getBatchSummaries($this->historyFilters())['batches'];
 
         $columns = [
             ['header' => 'Batch'],

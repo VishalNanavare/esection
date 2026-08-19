@@ -167,11 +167,18 @@ class StudentModel extends Model
      * en_time is a unix timestamp stored as text, so the date filter converts
      * the chosen day to its start/end seconds rather than comparing strings.
      *
-     * @param array<string,string> $filters year, university, batch, name, date_from, date_to
+     * @param array<string,string> $filters  year, university, batch, name, date_from, date_to
+     * @param int|null              $perPage  null returns every match (the export);
+     *                                        a number paginates via the model builder
      */
-    public function getBatchSummaries(array $filters = []): array
+    public function getBatchSummaries(array $filters = [], ?int $perPage = null): array
     {
-        $builder = $this->table()
+        // $this->select(...) -- the MODEL's own builder -- rather than the
+        // isolated table() helper the rest of this class uses. CI4's paginate()
+        // only ever operates on the model builder, so a paginated query has to
+        // start there. Safe here because this is one call per request, not a
+        // loop, so the shared-state leak table() exists to avoid cannot bite.
+        $builder = ($perPage === null ? $this->table() : $this)
                         ->select(
                             'array_space, COUNT(*) AS student_count,'
                             . ' MAX(clg_add) AS clg_add, MAX(admission_taken_year) AS admission_taken_year,'
@@ -218,7 +225,13 @@ class StudentModel extends Model
             $builder->having('MAX(admission_taken_in)', $filters['course']);
         }
 
-        return $builder->orderBy('MAX(en_time)', 'DESC')->get()->getResultArray();
+        $builder->orderBy('MAX(en_time)', 'DESC');
+
+        // Unpaginated when $perPage is null -- the Excel export needs every
+        // matching batch in one go, not a page of them.
+        return $perPage === null
+            ? $builder->get()->getResultArray()
+            : $builder->paginate($perPage);
     }
 
     public function getGroupedStudentCounts(): array
