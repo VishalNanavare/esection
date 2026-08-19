@@ -1339,3 +1339,71 @@ body.es-leaving > .container-fluid {
         animation-duration: 1.6s;
     }
 }
+
+/* --- Show / hide password -------------------------------------------------
+   Added by common/es_password_toggle_js to every password field. Two shapes,
+   because a control inside Bootstrap's .input-group has to be laid out by the
+   group itself, while a standalone field has no such row to join.
+   ------------------------------------------------------------------------ */
+.es-pw-toggle {
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color var(--es-dur-base) var(--es-ease),
+                background-color var(--es-dur-base) var(--es-ease);
+}
+
+.es-pw-toggle:hover  { color: var(--accent-indigo); }
+.es-pw-toggle:focus-visible {
+    outline: 2px solid var(--accent-indigo);
+    outline-offset: 2px;
+    border-radius: 0.35rem;
+}
+
+/* Standalone field: the input is wrapped and the button sits over its right
+   padding, so the field keeps its own rounded corners. */
+.es-pw {
+    position: relative;
+    display: block;
+}
+
+.es-pw .form-control { padding-right: 2.6rem; }
+
+.es-pw-toggle--inline {
+    position: absolute;
+    top: 50%;
+    right: 0.75rem;
+    transform: translateY(-50%);
+    width: 1.75rem;
+    height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.es-pw-toggle--inline:hover { background: var(--bg-secondary); }
+
+/* Inside an .input-group the button is a real group member, matched to the
+   prepended icon so the row reads as one control. */
+.es-pw-toggle--group {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.9rem;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-left: 0;
+    border-radius: 0 0.5rem 0.5rem 0;
+}
+
+.es-pw-toggle--group:hover { background: var(--bg-secondary); }
+
+/* The browser's own reveal control would sit beside ours in Edge and IE. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+    display: none;
+}

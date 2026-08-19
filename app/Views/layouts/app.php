@@ -499,6 +499,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
     <?php // Shared AJAX/Select2 helpers. Must load before any view's
           // scripts section, which is what consumes them. ?>
     <?= $this->include('common/es_form_motion_js') ?>
+    <?= $this->include('common/es_password_toggle_js') ?>
     <?= $this->include('common/ajax_common_js') ?>
     <?php // The account menu and its Reset Password dialog live in this layout,
           // so their script does too -- every page carries them. ?>
