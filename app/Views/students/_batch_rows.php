@@ -3,14 +3,18 @@
  * The <tbody> contents of the candidates table on a batch detail page.
  *
  * Extracted so the full page render and the AJAX refresh emit IDENTICAL markup
- * from one source.
+ * from one source. Batch History's View dialog renders it too.
  *
- * @var array $students rows for this batch
+ * @var array $students    rows for this batch
+ * @var bool  $showActions render the Edit/Delete cell. Defaults TRUE so the
+ *                         standalone page is unchanged; the dialog passes false.
  */
+$showActions = $showActions ?? true;
+$columns     = $showActions ? 7 : 6;
 ?>
 <?php if (empty($students)): ?>
     <tr>
-        <td colspan="7" class="text-center text-muted py-4">No candidates in this batch.</td>
+        <td colspan="<?= $columns ?>" class="text-center text-muted py-4">No candidates in this batch.</td>
     </tr>
 <?php else: ?>
     <?php $i = 1; foreach ($students as $s): ?>
@@ -21,6 +25,7 @@
             <td><span class="badge badge-glass-indigo"><?= esc($s['eligibility_case_no']) ?></span></td>
             <td class="small text-muted"><?= esc($s['verification_of_marksheet_done_by_you']) ?></td>
             <td class="small text-muted"><?= esc($s['email'] ?: '-') ?></td>
+            <?php if ($showActions): ?>
             <td class="text-end">
                 <?php if (can('students.edit')): ?>
                     <button type="button" class="btn btn-sm btn-glass text-primary me-1 edit-student-btn" data-id="<?= $s['id'] ?>">
@@ -48,6 +53,7 @@
                     </form>
                 <?php endif; ?>
             </td>
+            <?php endif; ?>
         </tr>
     <?php endforeach; ?>
 <?php endif; ?>

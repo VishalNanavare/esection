@@ -49,6 +49,104 @@ $(document).ready(function () {
     var $loading = $('#batch_history_loading');
     var $form    = $('#batch_history_filters');
 
+    // --- View: a dialog rather than a page ------------------------------
+    //
+    // Bound BEFORE the early return below. That guard exists for the paging
+    // code, which needs the history table; this needs the dialog, and the two
+    // are not on the same screens -- batch_detail.php includes this same file
+    // and has neither.
+    (function () {
+        var $modalEl = $('#batchViewModal');
+
+        if ($modalEl.length === 0 || !window.bootstrap) {
+            return;   // not this screen, or Bootstrap absent: the link still works
+        }
+
+        var modal      = new window.bootstrap.Modal($modalEl[0]);
+        var $viewRows  = $('#batch_view_rows');
+        var $viewWrap  = $('#batch_view_wrap');
+        var $viewBusy  = $('#batch_view_loading');
+        var $viewRef   = $('#batch_view_ref');
+        var $viewMeta  = $('#batch_view_meta');
+        var viewReq    = null;
+
+        $(document).on('click', 'a.js-view-batch', function (e) {
+            // Let the browser have the ones that are not a plain click:
+            // ctrl/cmd-click, shift-click and middle-click all mean "open this
+            // somewhere else", and swallowing them would make the button worse
+            // than the link it replaced.
+            if (e.which > 1 || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) {
+                return;
+            }
+
+            e.preventDefault();
+
+            var $link = $(this);
+            var $row  = $link.closest('tr');
+
+            $viewRef.text($link.data('batch') || '');
+
+            // Context from the row already on screen -- no second request for
+            // something the operator is looking at.
+            var university = $.trim($row.children('td').eq(1).text());
+            $viewMeta.text(university);
+
+            $viewRows.empty();
+            $viewWrap.addClass('d-none');
+            $viewBusy.removeClass('d-none');
+
+            modal.show();
+
+            // Reopening while a slower request is still running would otherwise
+            // paint the previous batch into the dialog.
+            if (viewReq && viewReq.readyState !== 4) {
+                viewReq.abort();
+            }
+
+            viewReq = $.ajax({
+                url: $link.attr('href'),
+                type: 'GET',
+                dataType: 'json'
+            }).done(function (res) {
+                if (!res || res.status !== 'success') {
+                    esNotify('error', 'Could not load that batch');
+                    modal.hide();
+                    return;
+                }
+
+                $viewRows.html(res.rows);
+                $viewWrap.removeClass('d-none');
+
+                var n = Number(res.count) || 0;
+                $viewMeta.text(
+                    (university ? university + '  \u00b7  ' : '') +
+                    n.toLocaleString() + ' candidate' + (n === 1 ? '' : 's')
+                );
+            }).fail(function (xhr, status) {
+                if (status === 'abort') {
+                    return;   // superseded by a newer open
+                }
+
+                modal.hide();
+                esAjaxError(xhr, 'Could not load that batch');
+            }).always(function () {
+                $viewBusy.addClass('d-none');
+            });
+        });
+
+        // Drop the rows on close: leaving one batch's candidates in the DOM
+        // means the next open flashes them before its own request lands.
+        $modalEl.on('hidden.bs.modal', function () {
+            if (viewReq && viewReq.readyState !== 4) {
+                viewReq.abort();
+            }
+
+            $viewRows.empty();
+            $viewWrap.addClass('d-none');
+            $viewMeta.text('');
+        });
+    }());
+
     if ($rows.length === 0) {
         return;
     }

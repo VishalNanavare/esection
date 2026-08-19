@@ -438,11 +438,33 @@ class Students extends BaseController
     /** One batch's full student list, for the browse/edit/delete view. */
     public function batchDetail($arraySpace)
     {
+        $students = $this->studentService->getStudentsByArraySpace($arraySpace);
+
         $data = [
             'title'      => 'Verification Batch Detail',
             'arraySpace' => $arraySpace,
-            'students'   => $this->studentService->getStudentsByArraySpace($arraySpace),
+            'students'   => $students,
         ];
+
+        // Batch History opens this in a dialog rather than navigating, so an
+        // AJAX caller gets the candidate rows on their own.
+        //
+        // Rendered from the SAME partial the full page uses, for the reason
+        // that partial was extracted in the first place -- two renderings of
+        // one table drift. showActions is off here: the dialog is for reading
+        // a batch, and its Edit control never worked (nothing in the codebase
+        // binds .edit-student-btn), so carrying it across would be carrying a
+        // dead button into a new screen.
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'rows'   => view('students/_batch_rows', [
+                    'students'    => $students,
+                    'showActions' => false,
+                ]),
+                'count'  => count($students),
+            ]);
+        }
 
         return view('students/batch_detail', $data);
     }
@@ -510,7 +532,16 @@ class Students extends BaseController
             $students = $this->studentService->getStudentsByArraySpace($arraySpace);
 
             $extra = [
-                'html'      => view('students/_batch_rows', ['students' => $students]),
+                // showActions stated rather than left to the partial's default.
+                // Config\View::$saveData is true, so view data persists across
+                // renders WITHIN a request -- a second render that omits the key
+                // inherits whatever the first one set. Nothing renders this
+                // twice in one request today; saying it here means nothing has
+                // to keep being true for this refresh to keep its buttons.
+                'html'      => view('students/_batch_rows', [
+                    'students'    => $students,
+                    'showActions' => true,
+                ]),
                 'remaining' => count($students),
             ];
         }

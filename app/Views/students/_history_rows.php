@@ -77,8 +77,17 @@
                       // layout wrapped into three rows on every line and made
                       // each row three times taller than its content. ?>
                 <div class="btn-group btn-group-sm" role="group" aria-label="Batch actions">
+                    <?php /*
+                      Still a real link to a real page, and deliberately so. The
+                      JS below intercepts the click and opens a dialog instead,
+                      but middle-click, ctrl-click and "open in new tab" keep
+                      working, and if the script fails to load the button still
+                      goes somewhere -- which a <button> could not.
+                    */ ?>
                     <a href="<?= base_url('students/batch/' . urlencode($b['array_space'])) ?>"
-                       class="btn btn-glass text-primary" title="View candidates in this batch">
+                       class="btn btn-glass text-primary js-view-batch"
+                       data-batch="<?= esc($b['array_space'], 'attr') ?>"
+                       title="View candidates in this batch">
                         <i class="fa fa-eye"></i><span class="d-none d-xl-inline ms-1">View</span>
                     </a>
 
