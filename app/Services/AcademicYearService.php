@@ -16,9 +16,26 @@ class AcademicYearService
         $this->activityLogService = new ActivityLogService();
     }
 
-    public function getAll(): array
+    /**
+     * @param bool $withUsage attach how many records depend on each year, which
+     *                        is what decides whether it may be deleted
+     */
+    public function getAll(bool $withUsage = false): array
     {
-        return $this->academicYearModel->getAllOrdered();
+        $years = $this->academicYearModel->getAllOrdered();
+
+        if (! $withUsage) {
+            return $years;
+        }
+
+        $counts = $this->academicYearModel->usageCounts();
+
+        foreach ($years as &$year) {
+            $year['usage_count'] = (int) ($counts[$year['year_label']] ?? 0);
+        }
+        unset($year);
+
+        return $years;
     }
 
     public function getById(int $id): ?array
@@ -96,6 +113,50 @@ class AcademicYearService
         }
 
         $year = $this->getById($id);
+
+        // Previously absent, and its absence was silent: delete() on an id that
+        // does not exist reported "Academic year deleted." and wrote an
+        // activity-log line reading "Deleted academic year 999". setCurrent()
+        // immediately above has always had this check.
+        if (! $year) {
+            throw new \InvalidArgumentException('Academic year not found.');
+        }
+
+        // The guard this method never had.
+        //
+        // Every table stores the year LABEL as free text, not a foreign key, so
+        // the database will not stop this and nothing cascades. Deleting
+        // 2022-2023 today would leave 2,471 records naming a year that no
+        // longer exists: they vanish from the year filter, the picker stops
+        // offering it, and no error is raised anywhere. The records are still
+        // in the table, which is what makes it hard to notice.
+        //
+        // Not one of the 22 years is currently unused, so in practice this
+        // closes the delete button rather than narrowing it -- which is the
+        // point. The rest of the app reaches the same end by not giving these
+        // lookup tables a delete route at all (courses and universities have
+        // no delete method anywhere); academic years is the one that has the
+        // button, so it needs the check.
+        $usage = $this->academicYearModel->usageCountFor($year['year_label']);
+
+        if ($usage > 0) {
+            throw new \InvalidArgumentException(sprintf(
+                '%s cannot be deleted: %s record%s still use it. Delete is only available for a period with no data.',
+                $year['year_label'],
+                number_format($usage),
+                $usage === 1 ? '' : 's'
+            ));
+        }
+
+        // A year nothing references can still be the one the system defaults
+        // to. Removing that leaves no current year at all, which no screen
+        // reports and every new record then has to be told by hand.
+        if ((int) ($year['is_current'] ?? 0) === 1) {
+            throw new \InvalidArgumentException(
+                $year['year_label'] . ' is the current academic year. Set another year as current before deleting it.'
+            );
+        }
+
         $this->academicYearModel->delete($id);
 
         $this->activityLogService->record('academic_year.delete', 'academic_year', $id, 'Deleted academic year ' . ($year['year_label'] ?? (string) $id));

@@ -17,7 +17,7 @@ class SettingsAcademicYears extends BaseController
     {
         $data = [
             'title' => 'Settings — Academic Years',
-            'years' => $this->academicYearService->getAll(),
+            'years' => $this->academicYearService->getAll(true),
         ];
 
         return view('settings/academic_years', $data);
@@ -91,6 +91,14 @@ class SettingsAcademicYears extends BaseController
             $this->academicYearService->delete((int) $id);
         } catch (\InvalidArgumentException $e) {
             return $this->respond(false, $e->getMessage());
+        } catch (\Throwable $e) {
+            // The arm every sibling on this controller already had. Without it
+            // a DB-level failure escaped as an unhandled exception, and the
+            // AJAX handler got CodeIgniter's HTML error page where it expects
+            // JSON -- so the screen showed a parse failure instead of a reason.
+            log_message('error', '[SettingsAcademicYears::delete] {message}', ['message' => (string) $e]);
+
+            return $this->respond(false, 'Could not delete the academic year. The issue has been logged.', 500);
         }
 
         return $this->respond(true, 'Academic year deleted.');
@@ -102,7 +110,7 @@ class SettingsAcademicYears extends BaseController
         $extra = [];
 
         if ($this->request->isAJAX()) {
-            $extra['html'] = view('settings/_academic_years_rows', ['years' => $this->academicYearService->getAll()]);
+            $extra['html'] = view('settings/_academic_years_rows', ['years' => $this->academicYearService->getAll(true)]);
         }
 
         return $this->respondToPost($ok, $message, base_url('settings/academic-years'), $extra, $failStatus);
