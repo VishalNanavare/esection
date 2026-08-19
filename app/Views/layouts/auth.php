@@ -17,37 +17,25 @@
     <link rel="stylesheet" href="<?= asset_url('assets/css/esection-theme.css') ?>">
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 py-5">
-    <?php /*
-      Splash.
-
-      A splash used to live here and was removed for two sound reasons: its
-      only removal path was a jQuery load handler, so any JS error above it
-      trapped the app behind an opaque overlay with no recovery; and on a
-      server-rendered multi-page app it added dead time to every navigation.
-
-      This one cannot repeat either failure.
-
-        - It is dismissed by a CSS animation with fill-mode forwards and NO
-          JavaScript at all. If every script on the page fails to parse, the
-          browser still runs the animation, so the splash still goes away.
-        - #es-splash carries pointer-events: none from the start, so it never
-          intercepts a click even while it is visible.
-        - It is on the AUTH layout only -- the moment the application is
-          entered -- so it costs the signed-in navigation nothing.
-    */ ?>
-    <div id="es-splash" aria-hidden="true">
-        <div class="es-splash__stage">
-            <div class="es-splash__ring">
-                <span class="es-splash__mark"><i class="fa fa-shield"></i></span>
-            </div>
-
-            <div class="es-splash__word">E-Section Portal</div>
-            <div class="es-splash__sub">Institute of Distance &amp; Open Learning</div>
-
-            <div class="es-splash__bar"><span></span></div>
-        </div>
-    </div>
-
+    <?php
+    // No splash screen here, and there will not be one.
+    //
+    // layouts/app.php has carried a note for a while explaining why the last
+    // one was deleted: its only removal path was a jQuery load handler, so any
+    // JS error left the app behind an opaque overlay, AND on a server-rendered
+    // multi-page app it added dead time to every navigation.
+    //
+    // I reintroduced it on this layout anyway, reasoning that signing in is a
+    // moment rather than a hop between pages. That was wrong. The auth layout
+    // is not rendered once -- it renders after every logout, after every failed
+    // sign-in, after a password reset, and on every return to this page. So the
+    // splash appeared in the middle of ordinary work, which is exactly the
+    // "dead time on every navigation" the original note described.
+    //
+    // Feedback while signing in belongs on the control the operator just used:
+    // the submit button spins (common/es_form_motion_js) and the page changes
+    // when the server answers. Nothing needs to cover the screen to say so.
+    ?>
 
     <div class="container">
         <?= $this->renderSection('content') ?>
