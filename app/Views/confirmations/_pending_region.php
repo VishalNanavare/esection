@@ -41,7 +41,7 @@
 
                     <!-- Students Listing Table -->
                     <div class="table-responsive mb-4">
-                        <table class="table table-glass table-sticky-id">
+                        <table class="table table-glass conf-pending-table">
                             <thead>
                                 <tr>
                                     <th class="col-sr"><?php if ($canCreate): ?><input type="checkbox" id="check_all_conf"><?php endif; ?></th>
@@ -69,57 +69,57 @@
                                             : base_url('confirmations/history');
                                     ?>
                                     <tr class="conf-row">
-                                        <td>
+                                        <td class="conf-cell-select" data-label="Select">
                                             <?php if (!$isConfirmed && $canCreate): ?>
                                                 <input type="checkbox" name="student_ids[]" value="<?= $s['id'] ?>" class="conf-check">
                                             <?php else: ?>
                                                 <i class="fa fa-check-circle text-emerald"></i>
                                             <?php endif; ?>
                                         </td>
-                                        <td class="fw-bold text-dark">
+                                        <td class="fw-bold text-dark conf-cell-name" data-label="Candidate">
                                             <?= esc($s['student_name']) ?>
                                             <?php if (!empty($s['student_nee_name']) && $s['student_nee_name'] !== '-'): ?>
                                                 <span class="text-muted small d-block fw-normal">Nee Name: <?= esc($s['student_nee_name']) ?></span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><span class="badge badge-glass-indigo"><?= esc($s['eligibility_case_no']) ?></span></td>
-                                        <td class="small text-muted"><?= esc_address($s['clg_add']) ?></td>
+                                        <td data-label="Case no."><span class="badge badge-glass-indigo"><?= esc($s['eligibility_case_no']) ?></span></td>
+                                        <td class="small text-muted" data-label="Target university"><?= esc_address($s['clg_add']) ?></td>
                                         <?php if ($isConfirmed): ?>
-                                            <td colspan="5" class="text-center text-muted small">Already confirmed &mdash; see <a href="<?= $historyHref ?>">Confirmation History</a></td>
+                                            <td colspan="6" class="text-center text-muted small conf-cell-note">Already confirmed &mdash; see <a href="<?= $historyHref ?>">Confirmation History</a></td>
                                         <?php elseif (! $canCreate): ?>
                                             <?php // Deliberately NOT the "Already confirmed" cell above: this
                                                   // row is still pending, and labelling it confirmed because the
                                                   // reader lacks a permission would be a plain untruth on screen. ?>
-                                            <td colspan="5" class="text-center text-muted small">Awaiting confirmation &mdash; you do not have permission to record confirmations.</td>
+                                            <td colspan="6" class="text-center text-muted small conf-cell-note">Awaiting confirmation &mdash; you do not have permission to record confirmations.</td>
                                         <?php else: ?>
-                                            <td>
+                                            <td data-label="Migration / TC">
                                                 <select name="checklist[<?= $s['id'] ?>][mig_tc]" class="form-select form-select-sm mig-tc-select">
                                                     <option value="">Select</option>
                                                     <option value="Yes">Yes</option>
                                                     <option value="No">No</option>
                                                 </select>
                                             </td>
-                                            <td>
+                                            <td data-label="Pass / Degree">
                                                 <select name="checklist[<?= $s['id'] ?>][p_degree]" class="form-select form-select-sm">
                                                     <option value="">Select</option>
                                                     <option value="Yes">Yes</option>
                                                     <option value="No">No</option>
                                                 </select>
                                             </td>
-                                            <td>
+                                            <td data-label="Statement of marks">
                                                 <select name="checklist[<?= $s['id'] ?>][s_marks]" class="form-select form-select-sm">
                                                     <option value="">Select</option>
                                                     <option value="Yes">Yes</option>
                                                     <option value="No">No</option>
                                                 </select>
                                             </td>
-                                            <td>
+                                            <td data-label="Letter no. / dated">
                                                 <input type="text" name="checklist[<?= $s['id'] ?>][letter_no_date]" class="form-control form-control-sm" placeholder="Letter no., date">
                                             </td>
-                                            <td>
+                                            <td data-label="Remark">
                                                 <input type="text" name="checklist[<?= $s['id'] ?>][remark]" class="form-control form-control-sm mb-1" placeholder="Remark">
                                             </td>
-                                            <td><?= render_status_badge('Pending') ?></td>
+                                            <td data-label="Status"><?= render_status_badge('Pending') ?></td>
                                         <?php endif; ?>
                                     </tr>
 
@@ -135,11 +135,13 @@
                                       there is room to label and lay them out.
                                     */ ?>
                                     <tr class="conf-detail-row" data-for="<?= (int) $s['id'] ?>" hidden>
-                                        <td colspan="11" class="conf-detail-cell">
+                                        <td colspan="10" class="conf-detail-cell">
                                             <div class="conf-detail">
                                                 <div class="conf-detail__head">
-                                                    <i class="fa fa-info-circle me-1"></i>
-                                                    Clarification for <strong><?= esc($s['student_name']) ?></strong>
+                                                    <i class="fa fa-level-up fa-rotate-90 me-2" aria-hidden="true"></i>
+                                                    Clarification for
+                                                    <strong><?= esc($s['student_name']) ?></strong>
+                                                    <span class="badge badge-glass-indigo ms-1"><?= esc($s['eligibility_case_no']) ?></span>
                                                 </div>
 
                                                 <div class="row g-3">

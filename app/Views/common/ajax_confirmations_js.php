@@ -22,10 +22,17 @@ $(document).ready(function () {
 
         if ($(this).val() === 'Yes') {
             $detail.removeAttr('hidden').addClass('conf-detail-row--open');
+
+            // Mark the candidate too. The panel is a separate full-width row,
+            // so on its own it reads as the next record rather than as this
+            // candidate's fields; the class is what lets CSS tint and bracket
+            // the pair into one block (and join them into one card below lg).
+            $row.addClass('conf-row--open');
             return;
         }
 
         $detail.attr('hidden', 'hidden').removeClass('conf-detail-row--open');
+        $row.removeClass('conf-row--open');
         $detail.find('select').val('');
         $detail.find('.conf-from-other').val('').hide();
     });

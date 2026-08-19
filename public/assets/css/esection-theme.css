@@ -1331,12 +1331,27 @@ input[type="password"]::-ms-clear {
     display: block;
 }
 
-/* --- Confirmation clarification row ---------------------------------------
-   The four clarification fields used to sit inside the REMARK cell, which is
-   one narrow column -- the panel overflowed it and spilled over the cells
-   beside it. They are now a full-width row under the candidate, so they have
-   the width to be laid out and labelled.
-   ------------------------------------------------------------------------ */
+/* ==========================================================================
+   Confirmations -- pending list
+   --------------------------------------------------------------------------
+   Two problems this block solves.
+
+   1. The clarification fields used to sit inside the REMARK cell, which is one
+      narrow column -- the panel overflowed it and spilled over its neighbours.
+      They are a full-width row under the candidate now, which gives them room
+      but makes them look like the NEXT record rather than part of this one.
+      The rules below tie the pair together.
+
+   2. Ten columns of form controls do not fit a laptop, let alone a phone.
+      Above lg this stays a table; below it each row becomes a labelled card
+      built from the SAME cells, so there is one set of markup rather than a
+      table plus a mobile list that drift apart. Every field name is untouched.
+
+   This table opts out of .table-sticky-id: pinning the first two columns is
+   for horizontal scrolling, and below lg there is no horizontal scrolling any
+   more. Above lg those rules do not apply at all, so nothing is lost.
+   ========================================================================== */
+
 .conf-detail-cell {
     background: var(--bg-secondary);
     border-top: 0 !important;
@@ -1351,7 +1366,23 @@ input[type="password"]::-ms-clear {
 .conf-detail__head {
     font-size: 0.85rem;
     color: var(--text-muted);
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+
+/* The candidate whose clarification is open is tinted and carries the same
+   accent bar as the panel, so the two rows read as one block. Without this the
+   panel is just a wide row sitting under an untouched candidate.
+
+   Specificity here (0,3,2) is deliberate: it has to beat .table-glass tbody
+   tr:hover td (0,2,2), or the tint would drop out under the pointer -- exactly
+   when the operator is looking at the row. */
+.conf-pending-table tbody tr.conf-row--open > td {
+    background: var(--bg-secondary);
+    border-bottom-color: transparent;
+}
+
+.conf-pending-table tbody tr.conf-row--open > td:first-child {
+    box-shadow: inset 3px 0 0 0 var(--accent-indigo);
 }
 
 /* Opens by expanding rather than appearing, so the eye follows where the
@@ -1363,6 +1394,129 @@ input[type="password"]::-ms-clear {
 @keyframes esDetailOpen {
     from { opacity: 0; transform: translateY(-6px); }
     to   { opacity: 1; transform: none; }
+}
+
+/* --- Stacked cards below lg ---------------------------------------------- */
+@media (max-width: 991.98px) {
+    /* The wrapper otherwise forces 760px of width and paints a right-edge
+       gradient hinting at more table off-screen. In card form there is no
+       off-screen, so that hint would be a lie. */
+    .table-responsive > .conf-pending-table { min-width: 0; }
+    .table-responsive:has(> .conf-pending-table)::after { content: none; }
+
+    .conf-pending-table,
+    .conf-pending-table tbody,
+    .conf-pending-table tr,
+    .conf-pending-table td {
+        display: block;
+        width: auto;
+    }
+
+    /* Column headings would only repeat what each cell now prints for itself,
+       so they go -- except the select-all box, which is a control and the only
+       one on the screen. Losing it would mean no bulk selection on a phone. */
+    .conf-pending-table thead,
+    .conf-pending-table thead tr { display: block; }
+
+    .conf-pending-table thead th { display: none; }
+
+    .conf-pending-table thead th.col-sr:has(input) {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        width: auto;
+        padding: 0 0.25rem 0.7rem;
+        background: transparent;
+        border-bottom: 0;
+    }
+
+    .conf-pending-table thead th.col-sr:has(input)::after { content: 'Select all'; }
+
+    .conf-pending-table tr.conf-row {
+        border: 1px solid var(--border-card);
+        border-radius: 0.75rem;
+        background: var(--bg-card);
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+
+    .conf-pending-table tr.conf-row > td {
+        border: 0;
+        padding: 0.4rem 0;
+        display: grid;
+        grid-template-columns: 9.5rem minmax(0, 1fr);
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .conf-pending-table tr.conf-row > td::before {
+        content: attr(data-label);
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-muted);
+    }
+
+    /* The candidate's name is the card's heading: full width, no label. */
+    .conf-pending-table td.conf-cell-name {
+        grid-template-columns: minmax(0, 1fr);
+        font-size: 1.02rem;
+        padding-bottom: 0.6rem;
+        margin-bottom: 0.35rem;
+        border-bottom: 1px solid var(--border-card);
+    }
+
+    .conf-pending-table td.conf-cell-name::before { content: none; }
+
+    /* "Already confirmed" / "no permission" spans the entry columns and has no
+       data-label, so it must not reserve the empty label gutter. */
+    .conf-pending-table td.conf-cell-note {
+        grid-template-columns: minmax(0, 1fr);
+        text-align: left !important;
+        padding-top: 0.5rem;
+    }
+
+    .conf-pending-table td.conf-cell-note::before { content: none; }
+
+    /* The tick belongs beside its label, not stranded in a 9.5rem gutter. */
+    .conf-pending-table td.conf-cell-select {
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 0.6rem;
+    }
+
+    /* Hover tint is a pointer affordance; on a card list it just makes one
+       card look selected when it is not. */
+    .conf-pending-table tbody tr:hover td { background: transparent; }
+
+    .conf-pending-table tbody tr.conf-row--open > td { background: transparent; }
+    .conf-pending-table tbody tr.conf-row--open > td:first-child { box-shadow: none; }
+
+    /* An open card and its clarification join into a single rounded block. */
+    .conf-pending-table tr.conf-row--open {
+        margin-bottom: 0;
+        border-bottom: 0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .conf-pending-table tr.conf-detail-row {
+        margin-bottom: 0.85rem;
+        border: 1px solid var(--border-card);
+        border-top: 0;
+        border-radius: 0 0 0.75rem 0.75rem;
+        overflow: hidden;
+    }
+
+    .conf-pending-table .conf-detail {
+        padding: 0.9rem 1rem 1.1rem;
+        border-left: 0;
+    }
+
+    /* A card is already narrow; thirds inside it would be unusable. */
+    .conf-detail .row > [class*="col-"] {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
