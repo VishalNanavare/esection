@@ -25,51 +25,39 @@ $(document).ready(function () {
     // point at detached nodes from then on: the filter would toggle rows that
     // are no longer in the document and the counter would report against the
     // old row count ("Showing 0 of 47").
-    var $countNote = $('#filter_count');
+    <?php /*
+      The client-side filter that used to live here has gone.
 
-    function applyFilter() {
-        var $rows = $('.uni-row');
-        var state = $('#state_filter').val() || '';
-        var uniId = $('#university_name_filter').val() || '';
-        var shown = 0;
+      It narrowed only the rows already rendered, which meant Export produced
+      the whole directory regardless of what was on screen, and a filtered view
+      could be neither bookmarked nor sent to anybody. Filtering is now a plain
+      GET form handled by Universities::index(), so the query string is the
+      single source of truth for the table AND the export.
 
-        $rows.each(function () {
-            var $row       = $(this);
-            var stateMatch = !state || String($row.data('state')) === String(state);
-            var nameMatch  = !uniId || String($row.data('id')) === String(uniId);
-            var visible    = stateMatch && nameMatch;
+      Removed with it: applyFilter(), the #filter_count counter, the
+      #no_filter_match note and the es:refreshed re-run they needed -- all of
+      which existed only to keep DOM-derived state honest after an AJAX row
+      swap. Server-rendered rows do not have that problem.
+    */ ?>
 
-            $row.toggle(visible);
-            if (visible) {
-                shown++;
-            }
-        });
+    <?php /*
+      Filtering moved server-side, so the rows returned by an AJAX save are
+      the UNFILTERED set -- the controller re-renders them without a query
+      string. Swapping those in under an active filter would silently widen
+      the table back to every university straight after a save.
 
-        if ($countNote.length) {
-            $countNote.text(
-                (shown === $rows.length)
-                    ? ($rows.length + ' universities')
-                    : ('Showing ' + shown + ' of ' + $rows.length + ' universities')
-            );
+      Reloading keeps the URL, and with it the filter, so the operator sees
+      their saved change inside the view they were working in. Only when a
+      filter is actually active: without one the in-place swap is still the
+      better, flicker-free path.
+    */ ?>
+    $(document).on('es:refreshed', function () {
+        var query = window.location.search;
+
+        if (query.indexOf('name=') !== -1 || query.indexOf('state=') !== -1) {
+            window.location.reload();
         }
-
-        $('#no_filter_match').toggle(shown === 0 && $rows.length > 0);
-    }
-
-    $('#state_filter, #university_name_filter').on('change', applyFilter);
-
-    $('#reset_filters').on('click', function () {
-        $('#state_filter').val(null).trigger('change.select2');
-        $('#university_name_filter').val(null).trigger('change.select2');
-        applyFilter();
     });
-
-    applyFilter();
-
-    // The counter and the "no matches" note are computed from the DOM, not
-    // rendered server-side, so they stay stale after a row swap unless the
-    // filter is re-run against the new rows.
-    $(document).on('es:refreshed', applyFilter);
 
     // --- Edit modal --------------------------------------------------------
     // Delegated: these buttons live inside #university_rows.

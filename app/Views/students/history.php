@@ -12,13 +12,61 @@
                 <div>
                     <?php // Toggle stays a master kill switch; the permission scopes it per user. ?>
                     <?php if (feature_enabled('feature_export_enabled') && can('students.export')): ?>
-                        <a href="<?= base_url('students/history/export') ?>" class="btn btn-glass me-1">
+                        <?php /* Carries the current filters, so the export is what the
+                                 screen is showing rather than the whole table. */ ?>
+                        <a href="<?= base_url('students/history/export?' . http_build_query($filters)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
                     <a href="<?= base_url('students/new') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to New Entry Form</a>
                 </div>
             </div>
+
+            <?php /* Every filter optional -- blank means no restriction, so the
+                     screen still opens on real data rather than an empty prompt
+                     to search first. The same query string drives the export,
+                     so the file always matches what is on screen. */ ?>
+            <form action="<?= base_url('students/history') ?>" method="get" class="row g-3 mb-4 filter-panel">
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Admission Year</label>
+                    <select name="year" class="form-select select2-ajax-academic-year">
+                        <?php if ($filters['year'] !== ''): ?>
+                            <option value="<?= esc($filters['year']) ?>" selected><?= esc($filters['year']) ?></option>
+                        <?php else: ?>
+                            <option value="">-- All Years --</option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">University</label>
+                    <input type="text" name="university" class="form-control" placeholder="Any part of the name or address"
+                           value="<?= esc($filters['university']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Batch No.</label>
+                    <input type="text" name="batch" class="form-control" placeholder="e.g. esection1_47"
+                           value="<?= esc($filters['batch']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Candidate Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Any part of the name"
+                           value="<?= esc($filters['name']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Created From</label>
+                    <input type="text" name="date_from" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($filters['date_from']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Created To</label>
+                    <input type="text" name="date_to" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($filters['date_to']) ?>">
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <a href="<?= base_url('students/history') ?>" class="btn btn-glass"><i class="fa fa-refresh me-1"></i> Reset</a>
+                    <button type="submit" class="btn btn-indigo px-4"><i class="fa fa-filter me-1"></i> Filter</button>
+                </div>
+            </form>
 
             <div class="table-responsive">
                 <table class="table table-glass">

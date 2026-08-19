@@ -220,9 +220,9 @@ class ConfirmationService
      *
      * @return array{batches: array, pager: \CodeIgniter\Pager\PagerInterface}
      */
-    public function getBatchSummaries(string $acdYear = '', string $stream = '', string $university = '', string $studentName = ''): array
+    public function getBatchSummaries(string $acdYear = '', string $stream = '', string $university = '', string $studentName = '', string $dateFrom = '', string $dateTo = ''): array
     {
-        $batches = $this->confirmationModel->getBatchSummaries($acdYear, $stream, $university, $studentName);
+        $batches = $this->confirmationModel->getBatchSummaries($acdYear, $stream, $university, $studentName, $dateFrom, $dateTo);
 
         return [
             'batches' => $batches,
@@ -231,9 +231,9 @@ class ConfirmationService
     }
 
     /** Same filters as getBatchSummaries() above, unpaginated -- feeds the Excel export. */
-    public function getBatchSummariesAll(string $acdYear = '', string $stream = '', string $university = '', string $studentName = ''): array
+    public function getBatchSummariesAll(string $acdYear = '', string $stream = '', string $university = '', string $studentName = '', string $dateFrom = '', string $dateTo = ''): array
     {
-        return $this->confirmationModel->getBatchSummariesAll($acdYear, $stream, $university, $studentName);
+        return $this->confirmationModel->getBatchSummariesAll($acdYear, $stream, $university, $studentName, $dateFrom, $dateTo);
     }
 
     /** One confirmed batch's full student detail, for the browse/expand view. */

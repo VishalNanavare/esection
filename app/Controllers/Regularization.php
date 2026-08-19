@@ -76,20 +76,50 @@ class Regularization extends BaseController
     }
 
     /** Browse previously generated letters -- mirrors esection_basic's reg_view.php. */
+    /**
+     * The screen's filters, read once so the list and its export cannot
+     * disagree.
+     *
+     * Exporting used to ignore them entirely: an operator narrowed the screen
+     * to one university, pressed Export, and silently got every row in the
+     * table. The export link carries the same query string, so reading it in
+     * one place is what keeps the file matching what is on screen.
+     *
+     * trim(), NOT sanitize_xss() -- encoding a search term before binding it
+     * corrupts the term itself, and these fields carry apostrophes and
+     * ampersands routinely. The query builder binds and the view esc()s.
+     *
+     * @return array<string,string>
+     */
+    private function historyFilters(): array
+    {
+        return [
+            'name'       => trim((string) ($this->request->getGet('name') ?? '')),
+            'case_no'    => trim((string) ($this->request->getGet('case_no') ?? '')),
+            'university' => trim((string) ($this->request->getGet('university') ?? '')),
+            'year'       => trim((string) ($this->request->getGet('year') ?? '')),
+            'date_from'  => trim((string) ($this->request->getGet('date_from') ?? '')),
+            'date_to'    => trim((string) ($this->request->getGet('date_to') ?? '')),
+        ];
+    }
+
     public function history()
     {
+        $filters = $this->historyFilters();
+
         $data = [
             'title'    => 'Regularization Letter History',
-            'records'  => $this->regularizationService->getAll(),
+            'records'  => $this->regularizationService->getAll($filters),
+            'filters'  => $filters,
         ];
 
         return view('regularization/history', $data);
     }
 
-    /** No server-side filters on this page -- every letter, always. */
+    /** Exports exactly what the screen is showing -- same filters, same query string. */
     public function historyExport()
     {
-        $records = $this->regularizationService->getAll();
+        $records = $this->regularizationService->getAll($this->historyFilters());
 
         $columns = [
             ['header' => 'Student Name'],

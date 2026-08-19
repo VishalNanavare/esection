@@ -108,9 +108,27 @@ class CollegeModel extends Model
         return null;
     }
 
-    public function getAllColleges(): array
+    /**
+     * The university register, optionally narrowed.
+     *
+     * Both filters are optional and blank means unrestricted, so the directory
+     * still opens fully populated.
+     *
+     * @param array<string,string> $filters name, state
+     */
+    public function getAllColleges(array $filters = []): array
     {
-        return $this->table()->orderBy('Name', 'ASC')->get()->getResultArray();
+        $builder = $this->table();
+
+        if (($filters['name'] ?? '') !== '') {
+            $builder->like('Name', like_term($filters['name']));
+        }
+
+        if (($filters['state'] ?? '') !== '') {
+            $builder->like('States', like_term($filters['state']));
+        }
+
+        return $builder->orderBy('Name', 'ASC')->get()->getResultArray();
     }
 
     public function getDistinctStates(): array

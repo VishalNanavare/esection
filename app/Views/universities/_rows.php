@@ -13,7 +13,17 @@
 ?>
 <?php if (empty($colleges)): ?>
     <tr>
-        <td colspan="8" class="text-center text-muted py-4">No universities recorded in database.</td>
+        <td colspan="8" class="text-center text-muted py-4">
+            <?php /* The message has to distinguish "nothing here" from "nothing
+                     MATCHES" -- telling an operator the register is empty when
+                     they have simply filtered it too far sends them looking for
+                     a data problem that does not exist. */ ?>
+            <?php if (! empty($filters['name']) || ! empty($filters['state'])): ?>
+                No universities match the current filters.
+            <?php else: ?>
+                No universities recorded in database.
+            <?php endif; ?>
+        </td>
     </tr>
 <?php else: ?>
     <?php $sr = 1; foreach ($colleges as $c): ?>

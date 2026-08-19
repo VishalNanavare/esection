@@ -18,9 +18,10 @@ class RegularizationService
         $this->activityLogService    = new ActivityLogService();
     }
 
-    public function getAll(): array
+    /** @param array<string,string> $filters see RegularizationModel::getAllOrdered() */
+    public function getAll(array $filters = []): array
     {
-        return $this->regularizationModel->getAllOrdered();
+        return $this->regularizationModel->getAllOrdered($filters);
     }
 
     public function getById(int $id): ?array

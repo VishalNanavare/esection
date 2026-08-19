@@ -122,9 +122,10 @@ class UniversityReminderService
         return ['batch_id' => (int) $batch['id']];
     }
 
-    public function getBatchesSummary(): array
+    /** @param array<string,string> $filters see UniversityReminderBatchModel::getAllOrdered() */
+    public function getBatchesSummary(array $filters = []): array
     {
-        $batches = $this->batchModel->getAllOrdered();
+        $batches = $this->batchModel->getAllOrdered($filters);
 
         // One grouped query for every batch's count, instead of one query per
         // rendered row. The per-row call materialised the student ids purely

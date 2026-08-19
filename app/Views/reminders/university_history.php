@@ -11,13 +11,51 @@
                 </div>
                 <div>
                     <?php if (feature_enabled('feature_export_enabled') && can('reminders_university.export')): ?>
-                        <a href="<?= base_url('reminders/university/history/export') ?>" class="btn btn-glass me-1">
+                        <a href="<?= base_url('reminders/university/history/export?' . http_build_query($filters)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
                     <a href="<?= base_url('reminders/university') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Reminder Portal</a>
                 </div>
             </div>
+
+            <?php /* Every filter optional -- see students/history. */ ?>
+            <form action="<?= base_url('reminders/university/history') ?>" method="get" class="row g-3 mb-4 filter-panel">
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small fw-semibold">University</label>
+                    <input type="text" name="university" class="form-control" placeholder="Any part of the name"
+                           value="<?= esc($filters['university']) ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small fw-semibold">Academic Year</label>
+                    <select name="year" class="form-select select2-ajax-academic-year">
+                        <?php if ($filters['year'] !== ''): ?>
+                            <option value="<?= esc($filters['year']) ?>" selected><?= esc($filters['year']) ?></option>
+                        <?php else: ?>
+                            <option value="">-- All Years --</option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small fw-semibold">Course</label>
+                    <input type="text" name="course" class="form-control" placeholder="Any part of the course"
+                           value="<?= esc($filters['course']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Created From</label>
+                    <input type="text" name="date_from" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($filters['date_from']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Created To</label>
+                    <input type="text" name="date_to" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($filters['date_to']) ?>">
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <a href="<?= base_url('reminders/university/history') ?>" class="btn btn-glass"><i class="fa fa-refresh me-1"></i> Reset</a>
+                    <button type="submit" class="btn btn-indigo px-4"><i class="fa fa-filter me-1"></i> Filter</button>
+                </div>
+            </form>
 
             <div class="table-responsive">
                 <table class="table table-glass">

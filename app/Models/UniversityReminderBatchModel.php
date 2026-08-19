@@ -38,8 +38,35 @@ class UniversityReminderBatchModel extends Model
         return $row ?: null;
     }
 
-    public function getAllOrdered(): array
+    /**
+     * Reminder batches, newest first, every filter optional.
+     *
+     * @param array<string,string> $filters university, year, course, date_from, date_to
+     */
+    public function getAllOrdered(array $filters = []): array
     {
-        return $this->table()->orderBy('id', 'DESC')->get()->getResultArray();
+        $builder = $this->table();
+
+        if (($filters['university'] ?? '') !== '') {
+            $builder->like('university_name', like_term($filters['university']));
+        }
+
+        if (($filters['year'] ?? '') !== '') {
+            $builder->where('academic_year', $filters['year']);
+        }
+
+        if (($filters['course'] ?? '') !== '') {
+            $builder->like('admission_taken_in', like_term($filters['course']));
+        }
+
+        if (($filters['date_from'] ?? '') !== '') {
+            $builder->where('created_at >=', $filters['date_from'] . ' 00:00:00');
+        }
+
+        if (($filters['date_to'] ?? '') !== '') {
+            $builder->where('created_at <=', $filters['date_to'] . ' 23:59:59');
+        }
+
+        return $builder->orderBy('id', 'DESC')->get()->getResultArray();
     }
 }

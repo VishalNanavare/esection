@@ -16,9 +16,17 @@ class Universities extends BaseController
 
     public function index()
     {
+        // trim(), NOT sanitize_xss() -- see Confirmations::history().
+        $filters = [
+            'name'  => trim((string) ($this->request->getGet('name') ?? '')),
+            'state' => trim((string) ($this->request->getGet('state') ?? '')),
+        ];
+
         $data = [
             'title'    => 'University Master Directory',
-            'colleges' => $this->universityService->getAllColleges(),
+            'colleges' => $this->universityService->getAllColleges($filters),
+            'filters'  => $filters,
+            'states'   => $this->universityService->getDistinctStates(),
             // 'states' removed: universities/index.php renders the static
             // common/india_states_options partial, not $states. The service
             // method stays -- CollegeModel::searchStates() backs /api/states.

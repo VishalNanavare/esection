@@ -152,17 +152,73 @@ class StudentModel extends Model
      * fields that are identical across every row in the same batch
      * (clg_add/admission_taken_year/admission_taken_in/en_time).
      */
-    public function getBatchSummaries(): array
+    /**
+     * Dispatch batches, newest first, with every filter optional.
+     *
+     * A blank filter means "no restriction", so the screen still opens showing
+     * real data rather than an empty prompt to search first -- the same rule
+     * the confirmations screens already follow.
+     *
+     * The candidate name and the batch reference are matched per ROW and so
+     * belong in WHERE; the rest describe the batch and are matched against the
+     * grouped MAX(), which has to be HAVING because the group does not exist
+     * yet when WHERE runs.
+     *
+     * en_time is a unix timestamp stored as text, so the date filter converts
+     * the chosen day to its start/end seconds rather than comparing strings.
+     *
+     * @param array<string,string> $filters year, university, batch, name, date_from, date_to
+     */
+    public function getBatchSummaries(array $filters = []): array
     {
-        return $this->table()
-                    ->select(
-                        'array_space, COUNT(*) AS student_count,'
-                        . ' MAX(clg_add) AS clg_add, MAX(admission_taken_year) AS admission_taken_year,'
-                        . ' MAX(admission_taken_in) AS admission_taken_in, MAX(en_time) AS en_time'
-                    )
-                    ->groupBy('array_space')
-                    ->orderBy('MAX(en_time)', 'DESC')
-                    ->get()->getResultArray();
+        $builder = $this->table()
+                        ->select(
+                            'array_space, COUNT(*) AS student_count,'
+                            . ' MAX(clg_add) AS clg_add, MAX(admission_taken_year) AS admission_taken_year,'
+                            . ' MAX(admission_taken_in) AS admission_taken_in, MAX(en_time) AS en_time'
+                        );
+
+        // --- per-row, so WHERE ---
+        if (($filters['name'] ?? '') !== '') {
+            $builder->like('student_name', like_term($filters['name']));
+        }
+
+        if (($filters['batch'] ?? '') !== '') {
+            $builder->like('array_space', like_term($filters['batch']));
+        }
+
+        if (($filters['date_from'] ?? '') !== '') {
+            $from = strtotime($filters['date_from'] . ' 00:00:00');
+
+            if ($from !== false) {
+                $builder->where('en_time >=', $from);
+            }
+        }
+
+        if (($filters['date_to'] ?? '') !== '') {
+            $to = strtotime($filters['date_to'] . ' 23:59:59');
+
+            if ($to !== false) {
+                $builder->where('en_time <=', $to);
+            }
+        }
+
+        $builder->groupBy('array_space');
+
+        // --- per-group, so HAVING ---
+        if (($filters['year'] ?? '') !== '') {
+            $builder->having('MAX(admission_taken_year)', $filters['year']);
+        }
+
+        if (($filters['university'] ?? '') !== '') {
+            $builder->having('MAX(clg_add) LIKE', '%' . like_term($filters['university']) . '%');
+        }
+
+        if (($filters['course'] ?? '') !== '') {
+            $builder->having('MAX(admission_taken_in)', $filters['course']);
+        }
+
+        return $builder->orderBy('MAX(en_time)', 'DESC')->get()->getResultArray();
     }
 
     public function getGroupedStudentCounts(): array

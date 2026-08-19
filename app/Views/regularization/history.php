@@ -11,13 +11,56 @@
                 </div>
                 <div>
                     <?php if (feature_enabled('feature_export_enabled') && can('regularization.export')): ?>
-                        <a href="<?= base_url('regularization/history/export') ?>" class="btn btn-glass me-1">
+                        <a href="<?= base_url('regularization/history/export?' . http_build_query($filters)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
                     <a href="<?= base_url('regularization') ?>" class="btn btn-glass"><i class="fa fa-arrow-left me-1"></i> Back to Regularization Form</a>
                 </div>
             </div>
+
+            <?php /* Every filter optional -- see students/history. */ ?>
+            <form action="<?= base_url('regularization/history') ?>" method="get" class="row g-3 mb-4 filter-panel">
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Candidate Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Any part of the name"
+                           value="<?= esc($filters['name']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Eligibility Case No.</label>
+                    <input type="text" name="case_no" class="form-control" placeholder="e.g. IDOL/2026"
+                           value="<?= esc($filters['case_no']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">University / Board</label>
+                    <input type="text" name="university" class="form-control" placeholder="Any part of the name"
+                           value="<?= esc($filters['university']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Admission Year</label>
+                    <select name="year" class="form-select select2-ajax-academic-year">
+                        <?php if ($filters['year'] !== ''): ?>
+                            <option value="<?= esc($filters['year']) ?>" selected><?= esc($filters['year']) ?></option>
+                        <?php else: ?>
+                            <option value="">-- All Years --</option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Created From</label>
+                    <input type="text" name="date_from" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($filters['date_from']) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Created To</label>
+                    <input type="text" name="date_to" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($filters['date_to']) ?>">
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <a href="<?= base_url('regularization/history') ?>" class="btn btn-glass"><i class="fa fa-refresh me-1"></i> Reset</a>
+                    <button type="submit" class="btn btn-indigo px-4"><i class="fa fa-filter me-1"></i> Filter</button>
+                </div>
+            </form>
 
             <div class="table-responsive">
                 <table class="table table-glass">

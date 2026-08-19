@@ -265,9 +265,10 @@ class StudentVerificationService
     }
 
     /** Feeds the batch history/browse page -- mirrors esection_basic's view.php. */
-    public function getBatchSummaries(): array
+    /** @param array<string,string> $filters see StudentModel::getBatchSummaries() */
+    public function getBatchSummaries(array $filters = []): array
     {
-        return $this->studentModel->getBatchSummaries();
+        return $this->studentModel->getBatchSummaries($filters);
     }
 
     /**

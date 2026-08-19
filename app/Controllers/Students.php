@@ -325,20 +325,51 @@ class Students extends BaseController
     }
 
     /** Browse previously submitted batches -- mirrors esection_basic's view.php. */
+    /**
+     * The screen's filters, read once so the list and its export cannot
+     * disagree.
+     *
+     * Exporting used to ignore them entirely: an operator narrowed the screen
+     * to one university, pressed Export, and silently got every row in the
+     * table. The export link carries the same query string, so reading it in
+     * one place is what keeps the file matching what is on screen.
+     *
+     * trim(), NOT sanitize_xss() -- encoding a search term before binding it
+     * corrupts the term itself, and these fields carry apostrophes and
+     * ampersands routinely. The query builder binds and the view esc()s.
+     *
+     * @return array<string,string>
+     */
+    private function historyFilters(): array
+    {
+        return [
+            'year'       => trim((string) ($this->request->getGet('year') ?? '')),
+            'university' => trim((string) ($this->request->getGet('university') ?? '')),
+            'batch'      => trim((string) ($this->request->getGet('batch') ?? '')),
+            'course'     => trim((string) ($this->request->getGet('course') ?? '')),
+            'name'       => trim((string) ($this->request->getGet('name') ?? '')),
+            'date_from'  => trim((string) ($this->request->getGet('date_from') ?? '')),
+            'date_to'    => trim((string) ($this->request->getGet('date_to') ?? '')),
+        ];
+    }
+
     public function history()
     {
+        $filters = $this->historyFilters();
+
         $data = [
             'title'   => 'Verification Batch History',
-            'batches' => $this->studentService->getBatchSummaries(),
+            'batches' => $this->studentService->getBatchSummaries($filters),
+            'filters' => $filters,
         ];
 
         return view('students/history', $data);
     }
 
-    /** No server-side filters on this page -- every batch, always. */
+    /** Exports exactly what the screen is showing -- same filters, same query string. */
     public function historyExport()
     {
-        $batches = $this->studentService->getBatchSummaries();
+        $batches = $this->studentService->getBatchSummaries($this->historyFilters());
 
         $columns = [
             ['header' => 'Batch'],

@@ -11,7 +11,17 @@
                 </div>
                 <div>
                     <?php if (feature_enabled('feature_export_enabled') && can('confirmations.export')): ?>
-                        <a href="<?= base_url('confirmations/history/export?year=' . urlencode($selected_year) . '&stream=' . urlencode($selected_stream) . '&clg_add=' . urlencode($selected_colg) . '&student_name=' . urlencode($selected_name)) ?>" class="btn btn-glass me-1">
+                        <?php /* http_build_query rather than hand-concatenation: the filter list has
+         grown twice now, and every addition had to be remembered here too or
+         the export silently stopped matching the screen. */ ?>
+                        <a href="<?= base_url('confirmations/history/export?' . http_build_query([
+                            'year'         => $selected_year,
+                            'stream'       => $selected_stream,
+                            'clg_add'      => $selected_colg,
+                            'student_name' => $selected_name,
+                            'date_from'    => $selected_date_from,
+                            'date_to'      => $selected_date_to,
+                        ])) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
@@ -56,7 +66,18 @@
                     <label class="form-label text-secondary small fw-semibold">Student Name (optional)</label>
                     <input type="text" name="student_name" class="form-control" placeholder="e.g. Farah Naaz" value="<?= esc($selected_name) ?>">
                 </div>
-                <div class="col-12 text-end">
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Confirmed From</label>
+                    <input type="text" name="date_from" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($selected_date_from) ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Confirmed To</label>
+                    <input type="text" name="date_to" class="form-control es-datepicker" autocomplete="off"
+                           placeholder="YYYY-MM-DD" value="<?= esc($selected_date_to) ?>">
+                </div>
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <a href="<?= base_url('confirmations/history') ?>" class="btn btn-glass"><i class="fa fa-refresh me-1"></i> Reset</a>
                     <button type="submit" class="btn btn-indigo px-4"><i class="fa fa-filter me-1"></i> Filter</button>
                 </div>
             </form>

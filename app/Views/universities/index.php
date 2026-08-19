@@ -11,7 +11,8 @@
                 </div>
                 <div>
                     <?php if (feature_enabled('feature_export_enabled') && can('universities.export')): ?>
-                        <a href="<?= base_url('universities/export') ?>" class="btn btn-glass me-1">
+                        <?php /* Carries the current filters, so the export matches the screen. */ ?>
+                        <a href="<?= base_url('universities/export?' . http_build_query($filters)) ?>" class="btn btn-glass me-1">
                             <i class="fa fa-file-excel-o me-1"></i> Export to Excel
                         </a>
                     <?php endif; ?>
@@ -24,33 +25,59 @@
             </div>
 
             <!-- Search & State Filter Bar with AJAX Select2 -->
-            <div class="row g-3 mb-4 filter-panel">
+            <?php /*
+              Server-side, deliberately.
+
+              This was a client-side filter: instant, but it only ever narrowed
+              the rows already rendered, so Export silently produced the whole
+              directory regardless of what was on screen, and a filtered view
+              could be neither bookmarked nor sent to anyone.
+
+              The state list comes from the register itself, so the dropdown can
+              never offer a state that would return nothing.
+            */ ?>
+            <form action="<?= base_url('universities') ?>" method="get" class="row g-3 mb-4 filter-panel">
                 <div class="col-md-5">
-                    <label class="form-label text-secondary small fw-semibold">Filter by State (AJAX)</label>
-                    <select id="state_filter" class="form-select select2-ajax-state">
+                    <label class="form-label text-secondary small fw-semibold">State</label>
+                    <select name="state" class="form-select">
                         <option value="">-- All States --</option>
+                        <?php foreach ($states as $st): ?>
+                            <?php $stateName = is_array($st) ? ($st['States'] ?? '') : $st; ?>
+                            <?php if ($stateName === '') { continue; } ?>
+                            <option value="<?= esc($stateName) ?>"<?= $filters['state'] === $stateName ? ' selected' : '' ?>>
+                                <?= esc($stateName) ?>
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 
                 <div class="col-md-5">
-                    <label class="form-label text-secondary small fw-semibold">Search by University Name (AJAX)</label>
-                    <select id="university_name_filter" class="form-select select2-ajax-college">
-                        <option value="">-- All Universities --</option>
-                    </select>
+                    <label class="form-label text-secondary small fw-semibold">University Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="Any part of the name"
+                           value="<?= esc($filters['name']) ?>">
                 </div>
 
-                <div class="col-md-2">
-                    <label class="form-label text-secondary small fw-semibold">&nbsp;</label>
-                    <button type="button" class="btn btn-glass w-100 py-2" id="reset_filters">
-                        <i class="fa fa-refresh me-1"></i> Reset Filters
+                <div class="col-md-2 d-flex align-items-end gap-2">
+                    <a href="<?= base_url('universities') ?>" class="btn btn-glass" title="Reset filters">
+                        <i class="fa fa-refresh"></i>
+                    </a>
+                    <button type="submit" class="btn btn-indigo flex-grow-1">
+                        <i class="fa fa-filter me-1"></i> Filter
                     </button>
                 </div>
-            </div>
+            </form>
 
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <small class="text-muted" id="filter_count"></small>
-                <small class="text-danger d-none" id="no_filter_match">
-                    <i class="fa fa-info-circle me-1"></i> No universities match the current filters.
+                <?php /* Server-rendered now. The old pair was computed in JS from
+                         the DOM, which meant it went stale after every AJAX row
+                         swap and needed a re-run hook to stay honest. */ ?>
+                <small class="text-muted">
+                    <?php if ($filters['name'] !== '' || $filters['state'] !== ''): ?>
+                        <i class="fa fa-filter me-1"></i>
+                        <?= count($colleges) ?> matching <?= count($colleges) === 1 ? 'university' : 'universities' ?>
+                    <?php else: ?>
+                        <?= count($colleges) ?> universities
+                    <?php endif; ?>
                 </small>
             </div>
 

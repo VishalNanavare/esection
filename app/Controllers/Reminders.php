@@ -166,20 +166,49 @@ class Reminders extends BaseController
     }
 
     /** Browse reminder batches -- mirrors esection_basic's rem_view.php. */
+    /**
+     * The screen's filters, read once so the list and its export cannot
+     * disagree.
+     *
+     * Exporting used to ignore them entirely: an operator narrowed the screen
+     * to one university, pressed Export, and silently got every row in the
+     * table. The export link carries the same query string, so reading it in
+     * one place is what keeps the file matching what is on screen.
+     *
+     * trim(), NOT sanitize_xss() -- encoding a search term before binding it
+     * corrupts the term itself, and these fields carry apostrophes and
+     * ampersands routinely. The query builder binds and the view esc()s.
+     *
+     * @return array<string,string>
+     */
+    private function universityHistoryFilters(): array
+    {
+        return [
+            'university' => trim((string) ($this->request->getGet('university') ?? '')),
+            'year'       => trim((string) ($this->request->getGet('year') ?? '')),
+            'course'     => trim((string) ($this->request->getGet('course') ?? '')),
+            'date_from'  => trim((string) ($this->request->getGet('date_from') ?? '')),
+            'date_to'    => trim((string) ($this->request->getGet('date_to') ?? '')),
+        ];
+    }
+
     public function universityHistory()
     {
+        $filters = $this->universityHistoryFilters();
+
         $data = [
             'title'   => 'University Reminder History',
-            'batches' => $this->universityReminderService->getBatchesSummary(),
+            'batches' => $this->universityReminderService->getBatchesSummary($filters),
+            'filters' => $filters,
         ];
 
         return view('reminders/university_history', $data);
     }
 
-    /** No server-side filters on this page -- every batch, always. */
+    /** Exports exactly what the screen is showing -- same filters, same query string. */
     public function universityHistoryExport()
     {
-        $batches = $this->universityReminderService->getBatchesSummary();
+        $batches = $this->universityReminderService->getBatchesSummary($this->universityHistoryFilters());
 
         $columns = [
             ['header' => 'University', 'width' => 35],

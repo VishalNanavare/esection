@@ -186,11 +186,20 @@ class Confirmations extends BaseController
         $selectedStream   = trim((string) ($this->request->getGet('stream') ?? ''));
         $selectedColg     = trim((string) ($this->request->getGet('clg_add') ?? ''));
         $selectedName     = trim((string) ($this->request->getGet('student_name') ?? ''));
+        $selectedDateFrom = trim((string) ($this->request->getGet('date_from') ?? ''));
+        $selectedDateTo   = trim((string) ($this->request->getGet('date_to') ?? ''));
 
-        // All four filters are optional -- blank means "no restriction", so
-        // the page always shows real data on open (paginated) rather than an
-        // empty "search first" prompt, matching confirmations/index.php.
-        $result = $this->confirmationService->getBatchSummaries($selectedYear, $selectedStream, $selectedColg, $selectedName);
+        // Every filter is optional -- blank means "no restriction", so the page
+        // always shows real data on open (paginated) rather than an empty
+        // "search first" prompt, matching confirmations/index.php.
+        $result = $this->confirmationService->getBatchSummaries(
+            $selectedYear,
+            $selectedStream,
+            $selectedColg,
+            $selectedName,
+            $selectedDateFrom,
+            $selectedDateTo
+        );
 
         $data = [
             'title'           => 'Confirmation History',
@@ -200,6 +209,8 @@ class Confirmations extends BaseController
             'selected_stream' => $selectedStream,
             'selected_colg'   => $selectedColg,
             'selected_name'   => $selectedName,
+            'selected_date_from' => $selectedDateFrom,
+            'selected_date_to'   => $selectedDateTo,
         ];
 
         return view('confirmations/history', $data);
@@ -215,8 +226,17 @@ class Confirmations extends BaseController
         $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
         $selectedColg   = trim((string) ($this->request->getGet('clg_add') ?? ''));
         $selectedName   = trim((string) ($this->request->getGet('student_name') ?? ''));
+        $selectedFrom   = trim((string) ($this->request->getGet('date_from') ?? ''));
+        $selectedTo     = trim((string) ($this->request->getGet('date_to') ?? ''));
 
-        $batches = $this->confirmationService->getBatchSummariesAll($selectedYear, $selectedStream, $selectedColg, $selectedName);
+        $batches = $this->confirmationService->getBatchSummariesAll(
+            $selectedYear,
+            $selectedStream,
+            $selectedColg,
+            $selectedName,
+            $selectedFrom,
+            $selectedTo
+        );
 
         $columns = [
             ['header' => 'Batch'],

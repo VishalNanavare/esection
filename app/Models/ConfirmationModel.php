@@ -182,7 +182,7 @@ class ConfirmationModel extends Model
      *               student_details -- filtering the stale copy would
      *               silently miss renamed records.
      */
-    public function getBatchSummaries(string $acdYear, string $stream, string $university, string $studentName, int $perPage = 20): array
+    public function getBatchSummaries(string $acdYear, string $stream, string $university, string $studentName, string $dateFrom = '', string $dateTo = '', int $perPage = 20): array
     {
         $builder = $this->select(
                             'conf_stud_data.array_space AS array_space,'
@@ -203,6 +203,25 @@ class ConfirmationModel extends Model
         }
         if ($studentName !== '') {
             $builder->like('student_details.student_name', like_term($studentName));
+        }
+
+        // en_time is a unix timestamp stored as text, so the chosen day is
+        // converted to its first and last second rather than compared as a
+        // string -- '2026-08-18' would never match '1773489105'.
+        if ($dateFrom !== '') {
+            $from = strtotime($dateFrom . ' 00:00:00');
+
+            if ($from !== false) {
+                $builder->where('conf_stud_data.en_time >=', $from);
+            }
+        }
+
+        if ($dateTo !== '') {
+            $to = strtotime($dateTo . ' 23:59:59');
+
+            if ($to !== false) {
+                $builder->where('conf_stud_data.en_time <=', $to);
+            }
         }
 
         return $builder->groupBy('conf_stud_data.array_space')
@@ -214,7 +233,7 @@ class ConfirmationModel extends Model
      * Same 4-filter/GROUP BY shape as getBatchSummaries() above, but every
      * matching batch at once instead of one page -- feeds the Excel export.
      */
-    public function getBatchSummariesAll(string $acdYear, string $stream, string $university, string $studentName): array
+    public function getBatchSummariesAll(string $acdYear, string $stream, string $university, string $studentName, string $dateFrom = '', string $dateTo = ''): array
     {
         $builder = $this->select(
                             'conf_stud_data.array_space AS array_space,'
@@ -235,6 +254,25 @@ class ConfirmationModel extends Model
         }
         if ($studentName !== '') {
             $builder->like('student_details.student_name', like_term($studentName));
+        }
+
+        // en_time is a unix timestamp stored as text, so the chosen day is
+        // converted to its first and last second rather than compared as a
+        // string -- '2026-08-18' would never match '1773489105'.
+        if ($dateFrom !== '') {
+            $from = strtotime($dateFrom . ' 00:00:00');
+
+            if ($from !== false) {
+                $builder->where('conf_stud_data.en_time >=', $from);
+            }
+        }
+
+        if ($dateTo !== '') {
+            $to = strtotime($dateTo . ' 23:59:59');
+
+            if ($to !== false) {
+                $builder->where('conf_stud_data.en_time <=', $to);
+            }
         }
 
         return $builder->groupBy('conf_stud_data.array_space')

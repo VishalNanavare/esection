@@ -19,9 +19,10 @@ class UniversityService
         $this->activityLogService = new ActivityLogService();
     }
 
-    public function getAllColleges(): array
+    /** @param array<string,string> $filters name, state -- both optional */
+    public function getAllColleges(array $filters = []): array
     {
-        return $this->collegeModel->getAllColleges();
+        return $this->collegeModel->getAllColleges($filters);
     }
 
     public function getDistinctStates(): array
