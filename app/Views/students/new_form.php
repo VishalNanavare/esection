@@ -160,21 +160,22 @@
             </div>
 
             <!-- Candidate Batch Table -->
-            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
-                <div class="d-flex align-items-center gap-2">
-                    <div class="input-group input-group-sm" style="max-width: 20rem;">
-                        <span class="input-group-text"><i class="fa fa-search"></i></span>
+            <div class="d-flex flex-wrap gap-3 align-items-center justify-content-between mb-3">
+                <div class="d-flex align-items-center gap-3 flex-grow-1" style="min-width: 16rem; max-width: 30rem;">
+                    <div class="es-search">
+                        <i class="fa fa-search es-search__icon" aria-hidden="true"></i>
                         <input type="search" class="form-control" id="batch_filter"
-                               placeholder="Filter by candidate name..." autocomplete="off"
+                               placeholder="Filter by candidate name" autocomplete="off"
                                aria-label="Filter the batch list by candidate name">
-                        <button class="btn btn-glass" type="button" id="btn_clear_filter" title="Clear filter">
-                            <i class="fa fa-times"></i>
+                        <button class="es-search__clear" type="button" id="btn_clear_filter"
+                                title="Clear filter" aria-label="Clear filter">
+                            <i class="fa fa-times" aria-hidden="true"></i>
                         </button>
                     </div>
-                    <span class="text-muted small" id="batch_filter_note"></span>
+                    <span class="text-muted small text-nowrap" id="batch_filter_note"></span>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-3">
                     <span class="badge badge-glass-indigo" id="batch_selection_badge" style="display:none;"></span>
                     <button type="button" class="btn btn-sm btn-glass text-primary" id="btn_bulk_edit" disabled>
                         <i class="fa fa-pencil-square-o me-1"></i> Bulk Update

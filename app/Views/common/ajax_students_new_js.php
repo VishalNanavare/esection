@@ -665,6 +665,9 @@ $(document).ready(function () {
     $('#batch_filter').on('input', function () {
         var value = $(this).val();
 
+        // The clear button appears only once there is something to clear.
+        $(this).closest('.es-search').toggleClass('es-search--filled', $.trim(value) !== '');
+
         clearTimeout(filterTimer);
         filterTimer = setTimeout(function () {
             batchFilter = $.trim(value).toLowerCase();
@@ -673,7 +676,7 @@ $(document).ready(function () {
     });
 
     $('#btn_clear_filter').on('click', function () {
-        $('#batch_filter').val('');
+        $('#batch_filter').val('').closest('.es-search').removeClass('es-search--filled');
         batchFilter = '';
         renderStudentTable();
         $('#batch_filter').trigger('focus');

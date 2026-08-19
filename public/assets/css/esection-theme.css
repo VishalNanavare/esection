@@ -719,6 +719,86 @@ h1, h2, h3, h4, h5, h6 {
 .swal2-container { z-index: 2000; }
 .swal2-toast .swal2-title { font-size: 0.9rem; }
 
+/* Breathing room between the dialog's buttons.
+   buttonsStyling:false means SweetAlert stops supplying its own margins, so
+   Confirm and Cancel ended up all but touching -- two differently-coloured
+   buttons a couple of pixels apart, on a dialog whose whole job is to make the
+   operator pause. gap on the flex row it already uses, plus a top margin to
+   separate the pair from the text above. */
+.swal2-actions {
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+/* =============================================================================
+   Search field
+   -----------------------------------------------------------------------------
+   NOT an .input-group. This theme sets border-radius on .form-control with
+   !important, which Bootstrap's input-group cannot flatten -- so a group of
+   [icon][input][button] rendered as three separately rounded boxes wedged
+   together rather than one control, which is what made the batch filter look
+   unfinished.
+
+   One .form-control instead, with the icon and the clear button laid over its
+   own padding. The result is a single rounded field that inherits every focus
+   and border rule the rest of the form already uses.
+   ========================================================================== */
+.es-search {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 100%;
+}
+
+.es-search .form-control {
+    padding-left: 2.4rem;
+    padding-right: 2.4rem;
+}
+
+.es-search__icon {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--text-muted);
+    pointer-events: none;
+    font-size: 0.9rem;
+}
+
+.es-search__clear {
+    position: absolute;
+    right: 0.5rem;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.es-search__clear:hover {
+    background: #e2e8f0;
+    color: var(--text-main);
+}
+
+/* Only offered once there is something to clear -- a permanent x next to an
+   empty box is noise. Toggled by .es-search--filled from the input handler. */
+.es-search--filled .es-search__clear {
+    display: inline-flex;
+}
+
+/* The browser's own search x would sit alongside ours. */
+.es-search input[type="search"]::-webkit-search-cancel-button,
+.es-search input[type="search"]::-webkit-search-decoration {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
 /* Pagination -- see app/Views/common/pagination_glass.php */
 .pagination-glass .page-link {
     color: var(--accent-indigo);
