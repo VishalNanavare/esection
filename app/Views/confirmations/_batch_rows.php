@@ -27,7 +27,7 @@ $highlightId = $highlightId ?? 0;
                     <span class="text-muted small d-block fw-normal">Nee Name: <?= esc($r['student_nee_name']) ?></span>
                 <?php endif; ?>
             </td>
-            <td class="small text-muted"><?= esc($r['clg_add'] ?? $r['uni_add'] ?? '') ?></td>
+            <td class="small text-muted"><?= esc_address($r['clg_add'] ?? $r['uni_add'] ?? '') ?></td>
             <td><span class="badge badge-glass-indigo"><?= esc($r['case_no']) ?></span></td>
             <td><?= esc($r['mig_TC'] ?: '-') ?></td>
             <td><?= esc($r['p_degree'] ?: '-') ?></td>

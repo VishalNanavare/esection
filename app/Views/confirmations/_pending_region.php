@@ -83,7 +83,7 @@
                                             <?php endif; ?>
                                         </td>
                                         <td><span class="badge badge-glass-indigo"><?= esc($s['eligibility_case_no']) ?></span></td>
-                                        <td class="small text-muted"><?= esc($s['clg_add']) ?></td>
+                                        <td class="small text-muted"><?= esc_address($s['clg_add']) ?></td>
                                         <?php if ($isConfirmed): ?>
                                             <td colspan="5" class="text-center text-muted small">Already confirmed &mdash; see <a href="<?= $historyHref ?>">Confirmation History</a></td>
                                         <?php elseif (! $canCreate): ?>
@@ -118,34 +118,68 @@
                                             </td>
                                             <td>
                                                 <input type="text" name="checklist[<?= $s['id'] ?>][remark]" class="form-control form-control-sm mb-1" placeholder="Remark">
-                                                <div class="conf-from-panel border rounded p-2 small" style="display:none;">
-                                                    <label class="form-label small mb-1">Confirmation From</label>
-                                                    <select name="checklist[<?= $s['id'] ?>][conf_from]" class="form-select form-select-sm mb-1 conf-from-select">
-                                                        <option value="">Select</option>
-                                                        <?php foreach (\App\Services\ConfirmationService::CONF_FROM_OPTIONS as $opt): ?>
-                                                            <option value="<?= esc($opt) ?>"><?= esc($opt) ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <input type="text" name="checklist[<?= $s['id'] ?>][conf_from_text]" class="form-control form-control-sm mb-1 conf-from-other" placeholder="Confirmation from (specify)" style="display:none;">
-                                                    <label class="form-label small mb-1">Student Clarification</label>
-                                                    <select name="checklist[<?= $s['id'] ?>][conf_from_select]" class="form-select form-select-sm mb-1">
-                                                        <option value="">Select</option>
-                                                        <?php foreach (\App\Services\ConfirmationService::CLARIFICATION_OPTIONS as $opt): ?>
-                                                            <option value="<?= esc($opt) ?>"><?= esc($opt) ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                    <label class="form-label small mb-1">Name Change</label>
-                                                    <select name="checklist[<?= $s['id'] ?>][etc_data]" class="form-select form-select-sm">
-                                                        <option value="">Select</option>
-                                                        <?php foreach (\App\Services\ConfirmationService::NAME_CHANGE_OPTIONS as $opt): ?>
-                                                            <option value="<?= esc($opt) ?>"><?= esc($opt) ?></option>
-                                                        <?php endforeach; ?>
-                                                    </select>
-                                                </div>
                                             </td>
                                             <td><?= render_status_badge('Pending') ?></td>
                                         <?php endif; ?>
                                     </tr>
+
+                                    <?php if (! $isConfirmed && $canCreate): ?>
+                                    <?php /*
+                                      These four clarification fields used to live inside the REMARK
+                                      cell -- one narrow column -- so the panel overflowed it and spilled
+                                      across the cells beside it.
+
+                                      Same four fields, same names, so the submitted payload is
+                                      unchanged and the server was not touched. They now sit in a
+                                      full-width row directly under the candidate they describe, where
+                                      there is room to label and lay them out.
+                                    */ ?>
+                                    <tr class="conf-detail-row" data-for="<?= (int) $s['id'] ?>" hidden>
+                                        <td colspan="11" class="conf-detail-cell">
+                                            <div class="conf-detail">
+                                                <div class="conf-detail__head">
+                                                    <i class="fa fa-info-circle me-1"></i>
+                                                    Clarification for <strong><?= esc($s['student_name']) ?></strong>
+                                                </div>
+
+                                                <div class="row g-3">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small mb-1">Confirmation From</label>
+                                                        <select name="checklist[<?= $s['id'] ?>][conf_from]" class="form-select form-select-sm conf-from-select">
+                                                            <option value="">Select</option>
+                                                            <?php foreach (\App\Services\ConfirmationService::CONF_FROM_OPTIONS as $opt): ?>
+                                                                <option value="<?= esc($opt) ?>"><?= esc($opt) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                        <input type="text" name="checklist[<?= $s['id'] ?>][conf_from_text]"
+                                                               class="form-control form-control-sm mt-2 conf-from-other"
+                                                               placeholder="Please specify" style="display:none;">
+                                                    </div>
+
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small mb-1">Student Clarification</label>
+                                                        <select name="checklist[<?= $s['id'] ?>][conf_from_select]" class="form-select form-select-sm">
+                                                            <option value="">Select</option>
+                                                            <?php foreach (\App\Services\ConfirmationService::CLARIFICATION_OPTIONS as $opt): ?>
+                                                                <option value="<?= esc($opt) ?>"><?= esc($opt) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+
+                                                    <div class="col-md-4">
+                                                        <label class="form-label small mb-1">Name Change</label>
+                                                        <select name="checklist[<?= $s['id'] ?>][etc_data]" class="form-select form-select-sm">
+                                                            <option value="">Select</option>
+                                                            <?php foreach (\App\Services\ConfirmationService::NAME_CHANGE_OPTIONS as $opt): ?>
+                                                                <option value="<?= esc($opt) ?>"><?= esc($opt) ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </tbody>
                         </table>

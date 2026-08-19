@@ -14,20 +14,28 @@ $(document).ready(function () {
     // Mirrors con_view.php's own show/hide: the confirmation-from details only
     // matter once Migration/TC is marked "Yes" for that student's row.
     $(document).on('change', '.mig-tc-select', function () {
-        var $panel = $(this).closest('tr').find('.conf-from-panel');
+        // The clarification fields now live in their own full-width row
+        // beneath the candidate, rather than crammed into the REMARK cell, so
+        // this reaches the NEXT row instead of into the current one.
+        var $row    = $(this).closest('tr');
+        var $detail = $row.next('.conf-detail-row');
 
         if ($(this).val() === 'Yes') {
-            $panel.show();
-        } else {
-            $panel.hide();
-            $panel.find('select').val('');
-            $panel.find('.conf-from-other').val('').hide();
+            $detail.removeAttr('hidden').addClass('conf-detail-row--open');
+            return;
         }
+
+        $detail.attr('hidden', 'hidden').removeClass('conf-detail-row--open');
+        $detail.find('select').val('');
+        $detail.find('.conf-from-other').val('').hide();
     });
 
     $(document).on('change', '.conf-from-select', function () {
-        var $other = $(this).closest('.conf-from-panel').find('.conf-from-other');
+        // Scoped to the detail row now, not the removed .conf-from-panel.
+        var $other = $(this).closest('.conf-detail-row').find('.conf-from-other');
+
         $other.toggle($(this).val() === 'other');
+
         if ($(this).val() !== 'other') {
             $other.val('');
         }

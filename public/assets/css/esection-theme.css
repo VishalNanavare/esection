@@ -1407,3 +1407,56 @@ input[type="password"]::-ms-reveal,
 input[type="password"]::-ms-clear {
     display: none;
 }
+
+/* Bootstrap reveals a validation message with a GENERAL SIBLING selector:
+       .is-invalid ~ .invalid-feedback { display: block }
+   Wrapping the input in .es-pw puts the input one level down, so it stops
+   being a sibling of its own message and the message never appears again --
+   silently, which is the worst way for validation to fail.
+
+   :has() restores it by matching the wrapper that CONTAINS the invalid field.
+   The JS additionally mirrors the class onto the wrapper, so this still works
+   on a browser without :has(). */
+.es-pw:has(> .form-control.is-invalid) ~ .invalid-feedback,
+.es-pw.es-pw-invalid ~ .invalid-feedback,
+.was-validated .es-pw:has(> :invalid) ~ .invalid-feedback {
+    display: block;
+}
+
+/* --- Confirmation clarification row ---------------------------------------
+   The four clarification fields used to sit inside the REMARK cell, which is
+   one narrow column -- the panel overflowed it and spilled over the cells
+   beside it. They are now a full-width row under the candidate, so they have
+   the width to be laid out and labelled.
+   ------------------------------------------------------------------------ */
+.conf-detail-cell {
+    background: var(--bg-secondary);
+    border-top: 0 !important;
+    padding: 0 !important;
+}
+
+.conf-detail {
+    padding: 1rem 1.25rem 1.25rem;
+    border-left: 3px solid var(--accent-indigo);
+}
+
+.conf-detail__head {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+/* Opens by expanding rather than appearing, so the eye follows where the
+   extra fields came from. */
+.conf-detail-row--open > .conf-detail-cell > .conf-detail {
+    animation: esDetailOpen var(--es-dur-slow) var(--es-ease) both;
+}
+
+@keyframes esDetailOpen {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .conf-detail-row--open > .conf-detail-cell > .conf-detail { animation: none; }
+}

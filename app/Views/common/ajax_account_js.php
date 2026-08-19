@@ -27,6 +27,12 @@ $(document).ready(function () {
         $confirm[0].setCustomValidity(mismatch ? 'The two new passwords do not match.' : '');
         $confirm.toggleClass('is-invalid', mismatch);
 
+        // Mirrored onto the show/hide wrapper. es_password_toggle_js wraps
+        // password inputs, which breaks Bootstrap's
+        // `.is-invalid ~ .invalid-feedback` sibling rule -- the theme restores
+        // it with :has(), and this keeps it working without :has() too.
+        $confirm.closest('.es-pw').toggleClass('es-pw-invalid', mismatch);
+
         return !mismatch;
     }
 

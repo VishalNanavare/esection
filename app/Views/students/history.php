@@ -42,7 +42,7 @@
                             <?php foreach ($batches as $b): ?>
                                 <tr>
                                     <td class="fw-bold text-dark"><?= esc($b['array_space']) ?></td>
-                                    <td class="small text-muted"><?= esc($b['clg_add']) ?></td>
+                                    <td class="small text-muted"><?= esc_address($b['clg_add']) ?></td>
                                     <td><?= esc($b['admission_taken_in']) ?></td>
                                     <td><?= esc($b['admission_taken_year']) ?></td>
                                     <td class="text-center"><span class="badge badge-glass-indigo"><?= (int) $b['student_count'] ?></span></td>

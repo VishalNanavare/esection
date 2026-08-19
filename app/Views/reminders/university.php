@@ -115,7 +115,7 @@
                                         </td>
                                         <td class="fw-bold text-dark"><?= esc($stud['student_name']) ?></td>
                                         <td><span class="badge badge-glass-indigo"><?= esc($stud['eligibility_case_no']) ?></span></td>
-                                        <td class="small text-muted"><?= esc($stud['clg_add']) ?></td>
+                                        <td class="small text-muted"><?= esc_address($stud['clg_add']) ?></td>
                                         <td><?= esc($stud['admission_taken_year']) ?></td>
                                         <td>
                                             <?php if (!empty($stud['reminder_note_count'])): ?>
