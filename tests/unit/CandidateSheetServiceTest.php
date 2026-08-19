@@ -4,6 +4,7 @@ namespace Tests\Unit;
 
 use App\Services\CandidateSheetService;
 use CodeIgniter\Test\CIUnitTestCase;
+use OpenSpout\Common\Entity\Cell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use ReflectionClass;
@@ -261,5 +262,81 @@ final class CandidateSheetServiceTest extends CIUnitTestCase
             ['student_name', 'student_nee_name', 'eligibility_case_no', 'verification_by_you', 'email'],
             array_keys($result['rows'][0]['data'])
         );
+    }
+
+    /**
+     * Builds a workbook whose rows are padded out to $width cells -- the shape
+     * OpenSpout yields when a sheet's declared used range is wider than the
+     * real data, e.g. a template reused from one that once had content typed
+     * and deleted far to the right.
+     *
+     * @param list<list<string>> $rows
+     */
+    private function paddedWorkbook(array $rows, int $width): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'sheet') . '.xlsx';
+
+        $writer = new Writer();
+        $writer->openToFile($path);
+
+        foreach ($rows as $row) {
+            $cells = [];
+
+            for ($i = 0; $i < $width; $i++) {
+                $cells[] = Cell::fromValue($row[$i] ?? '');
+            }
+
+            $writer->addRow(new Row($cells));
+        }
+
+        $writer->close();
+        $this->tempFiles[] = $path;
+
+        return $path;
+    }
+
+    /**
+     * A genuine five-column sheet must not be rejected just because its used
+     * range was inherited wide from a reused template.
+     */
+    public function testPhantomWideUsedRangeIsAccepted(): void
+    {
+        $service    = new CandidateSheetService();
+        $reflection = new ReflectionClass($service);
+
+        // Five real columns, every row padded to 40 cells.
+        $path = $this->paddedWorkbook([
+            self::HEADING,
+            ['Priya Sharma', '', 'IDOL/2026/0142', '', ''],
+            ['Rahul Patel', '', 'IDOL/2026/0143', '', 'rahul@example.com'],
+        ], 40);
+
+        $parsed = $reflection->getMethod('parse')->invoke($service, $path);
+
+        $this->assertCount(2, $parsed['rows'], 'a padded five-column sheet was wrongly rejected or lost rows');
+        $this->assertSame('Priya Sharma', $parsed['rows'][0]['cells'][0]);
+    }
+
+    /**
+     * A sheet that really does carry more than the column cap of DATA is still
+     * refused -- the cap protects against a hostile or wrong file, only the
+     * measurement changed.
+     */
+    public function testSheetWithTooManyRealColumnsIsStillRejected(): void
+    {
+        $service    = new CandidateSheetService();
+        $reflection = new ReflectionClass($service);
+
+        $wideRow = [];
+        for ($i = 0; $i < 35; $i++) {
+            $wideRow[] = 'value ' . $i;
+        }
+
+        $path = $this->paddedWorkbook([$wideRow, $wideRow], 35);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('more than');
+
+        $reflection->getMethod('parse')->invoke($service, $path);
     }
 }

@@ -14,6 +14,9 @@ $(document).ready(function () {
 
     var studentList = [];
 
+    // Which studentList row is being edited, or null while adding a new one.
+    var editingIndex = null;
+
     // --- Auto-fill university details on selection -------------------------
     $('#clg_add_select').on('change', function () {
         var colId = $(this).val();
@@ -40,7 +43,12 @@ $(document).ready(function () {
     });
 
     // --- Batch list --------------------------------------------------------
-    $('#btn_add_student').on('click', function () {
+    // Reads and validates the five entry-panel inputs the SAME way whether the
+    // operator is adding a new candidate or editing an existing one. Returns a
+    // clean record, or null after saying what is wrong. The two defaults match
+    // what the batch save and the Excel importer apply, so a row typed here is
+    // indistinguishable from one filled any other way.
+    function collectEntryPanel() {
         var name        = $('#stud_name').val().trim();
         var neeName     = $('#stud_nee_name').val().trim() || '-';
         var caseNo      = $('#eligibility_case_no').val().trim();
@@ -48,53 +56,105 @@ $(document).ready(function () {
         var email       = $('#stud_email').val().trim();
 
         if (!name || !caseNo) {
-            if (window.Swal) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Missing required fields',
-                    text: 'Please enter the candidate full name and the eligibility case number.',
-                    confirmButtonText: 'OK'
-                });
-            }
-            return;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Missing required fields',
+                text: 'Please enter the candidate full name and the eligibility case number.',
+                confirmButtonText: 'OK'
+            });
+            return null;
         }
 
         if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-            if (window.Swal) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Email looks incorrect',
-                    text: 'Leave it blank or enter a valid address, e.g. name@example.com.',
-                    confirmButtonText: 'OK'
-                });
-            }
-            return;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Email looks incorrect',
+                text: 'Leave it blank or enter a valid address, e.g. name@example.com.',
+                confirmButtonText: 'OK'
+            });
+            return null;
         }
 
-        studentList.push({
+        return {
             student_name: name,
             student_nee_name: neeName,
             eligibility_case_no: caseNo,
             verification_by_you: verifyByYou,
             email: email
-        });
+        };
+    }
 
-        renderStudentTable();
+    // Empties the panel. refillCaseNo asks the server for the next suggested
+    // case number (Settings > Document Numbering) rather than leaving it blank
+    // -- fully editable, same as the one just used.
+    function clearEntryPanel(refillCaseNo) {
+        $('#stud_name, #stud_nee_name, #verification_by_you, #stud_email, #eligibility_case_no').val('');
 
-        $('#stud_name, #stud_nee_name, #verification_by_you, #stud_email').val('');
+        if (refillCaseNo) {
+            $.get('<?= base_url("students/generateCaseNo") ?>').done(function (res) {
+                if (res && res.case_no) {
+                    $('#eligibility_case_no').val(res.case_no);
+                }
+            });
+        }
+    }
+
+    // Loads a row back into the panel and switches it to "update this row".
+    function enterEditMode(idx) {
+        var item = studentList[idx];
+
+        if (!item) {
+            return;
+        }
+
+        editingIndex = idx;
+
+        // The two defaults are shown as blank so the operator sees the same
+        // placeholder they typed against, not a value they never entered.
+        $('#stud_name').val(item.student_name);
+        $('#stud_nee_name').val(item.student_nee_name === '-' ? '' : item.student_nee_name);
+        $('#eligibility_case_no').val(item.eligibility_case_no);
+        $('#verification_by_you').val(item.verification_by_you === 'Marksheet Verification' ? '' : item.verification_by_you);
+        $('#stud_email').val(item.email || '');
+
+        $('#btn_add_student').html('<i class="fa fa-check me-1"></i> Update Candidate');
+        $('#btn_cancel_edit').show();
+
+        renderStudentTable();          // marks the row being edited
         $('#stud_name').trigger('focus');
+    }
 
-        // Refill with a fresh suggestion (Settings > Document Numbering
-        // format) rather than leaving it blank -- fully editable, same as
-        // the one that was just accepted.
-        $.get('<?= base_url("students/generateCaseNo") ?>').done(function (res) {
-            if (res && res.case_no) {
-                $('#eligibility_case_no').val(res.case_no);
-            }
-        });
+    // Back to "add a new candidate".
+    function exitEditMode() {
+        editingIndex = null;
+        $('#btn_add_student').html('<i class="fa fa-plus me-1"></i> Add Candidate to List');
+        $('#btn_cancel_edit').hide();
+        clearEntryPanel(true);
+        renderStudentTable();
+    }
 
-        esNotify('success', 'Candidate added to the batch');
+    $('#btn_add_student').on('click', function () {
+        var record = collectEntryPanel();
+
+        if (record === null) {
+            return;
+        }
+
+        if (editingIndex === null) {
+            studentList.push(record);
+            renderStudentTable();
+            clearEntryPanel(true);
+            $('#stud_name').trigger('focus');
+            esNotify('success', 'Candidate added to the batch');
+            return;
+        }
+
+        studentList[editingIndex] = record;
+        exitEditMode();
+        esNotify('success', 'Candidate updated');
     });
+
+    $('#btn_cancel_edit').on('click', exitEditMode);
 
 
     /* =================================================================
@@ -246,6 +306,12 @@ $(document).ready(function () {
     });
 
     $('#btn_sheet_back').on('click', sheetResetToPicker);
+
+    // Any dismissal -- Cancel, the X, backdrop, Esc -- returns the modal to the
+    // upload step. Without this, closing after a read left the previous file's
+    // preview (and its sheetRows) in place, so reopening showed step 2 for a
+    // file the operator had already moved on from.
+    $('#candidateSheetModal').on('hidden.bs.modal', sheetResetToPicker);
 
     $('#sheet_check_all').on('change', function () {
         $('#sheet_preview_table tbody input.sheet-row-check').prop('checked', $(this).is(':checked'));
@@ -413,15 +479,21 @@ $(document).ready(function () {
         // input and were previously concatenated straight into innerHTML,
         // so a candidate name containing markup executed immediately.
         $.each(studentList, function (idx, item) {
+            var rowAttr = (idx === editingIndex) ? ' class="table-active"' : '';
+
             tbody.append(
-                '<tr>' +
+                '<tr' + rowAttr + '>' +
                     '<td>' + (idx + 1) + '</td>' +
                     '<td class="fw-bold text-dark">' + esEscapeHtml(item.student_name) + '</td>' +
                     '<td>' + esEscapeHtml(item.student_nee_name) + '</td>' +
                     '<td><span class="badge badge-glass-indigo">' + esEscapeHtml(item.eligibility_case_no) + '</span></td>' +
                     '<td>' + esEscapeHtml(item.verification_by_you) + '</td>' +
                     '<td class="small text-muted">' + esEscapeHtml(item.email || '-') + '</td>' +
-                    '<td class="text-end">' +
+                    '<td class="text-end text-nowrap">' +
+                        '<button type="button" class="btn btn-sm btn-glass text-primary edit-row me-1" ' +
+                                'data-index="' + idx + '" title="Edit candidate">' +
+                            '<i class="fa fa-pencil"></i>' +
+                        '</button>' +
                         '<button type="button" class="btn btn-sm btn-glass text-danger remove-row" ' +
                                 'data-index="' + idx + '" title="Remove candidate">' +
                             '<i class="fa fa-trash"></i>' +
@@ -432,13 +504,47 @@ $(document).ready(function () {
         });
     }
 
+    $(document).on('click', '.edit-row', function () {
+        enterEditMode($(this).data('index'));
+    });
+
     $(document).on('click', '.remove-row', function () {
-        studentList.splice($(this).data('index'), 1);
+        var idx = $(this).data('index');
+
+        // Deleting a row shifts every index below it, so an in-progress edit
+        // would then point at the wrong candidate. Leaving edit mode is simpler
+        // and safer than re-mapping the index -- and it only happens when a
+        // delete is clicked mid-edit, which is rare.
+        if (editingIndex !== null) {
+            exitEditMode();
+        }
+
+        studentList.splice(idx, 1);
         renderStudentTable();
     });
 
     // --- Save batch and generate the dispatch letter -----------------------
     $('#btn_save_and_pdf').on('click', function () {
+        // Fold an open edit in first. While a row is being edited, the
+        // corrected values live only in the entry-panel inputs -- they reach
+        // studentList only when "Update Candidate" is clicked. Saving without
+        // that click would post the row's OLD values, and because the table
+        // still shows the right number of rows with the correction sitting
+        // visibly in the inputs, nothing would signal the loss and the dispatch
+        // letter would go out wrong. So commit the panel now; if it does not
+        // validate, collectEntryPanel() has already said why and the save is
+        // held until the operator fixes or cancels the edit.
+        if (editingIndex !== null) {
+            var openEdit = collectEntryPanel();
+
+            if (openEdit === null) {
+                return;
+            }
+
+            studentList[editingIndex] = openEdit;
+            exitEditMode();
+        }
+
         if (studentList.length === 0) {
             if (window.Swal) {
                 Swal.fire({

@@ -207,6 +207,17 @@ class CandidateSheetService
             $truncated = false;
             $seenSheet = false;
 
+            // A rejection reason is REMEMBERED here and thrown only after the
+            // reader has closed, never mid-iteration.
+            //
+            // Abandoning OpenSpout's row iterator part-way -- with break OR with
+            // a throw -- leaves the workbook's file handle open even after
+            // close(), proven on this host: the temp file stayed locked and
+            // undeletable, while letting the iterator run to the end released
+            // it. So every path here drains the rows to natural EOF (bounded by
+            // the zip guard's 50MB uncompressed cap) and defers the throw.
+            $fatal = null;
+
             foreach ($reader->getSheetIterator() as $sheet) {
                 // Files often lead with an "Instructions" or hidden lookup
                 // sheet, so take the first VISIBLE one rather than index 0.
@@ -218,11 +229,16 @@ class CandidateSheetService
                 $sheetName = $sheet->getName();
 
                 foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                    // Once a fatal condition or the row cap is reached, keep
+                    // draining but stop doing any work.
+                    if ($fatal !== null) {
+                        continue;
+                    }
+
                     if (++$scanned > self::ROW_SCAN_CAP) {
-                        throw new \InvalidArgumentException(
-                            'That sheet has more than ' . number_format(self::ROW_SCAN_CAP) . ' rows. '
-                            . 'Delete any stray content below your candidates, or split the file, and try again.'
-                        );
+                        $fatal = 'That sheet has more than ' . number_format(self::ROW_SCAN_CAP) . ' rows. '
+                            . 'Delete any stray content below your candidates, or split the file, and try again.';
+                        continue;
                     }
 
                     // The heading row, discarded by position exactly as the old
@@ -236,21 +252,30 @@ class CandidateSheetService
                         continue;
                     }
 
-                    $cells = $row->cells;
+                    // OpenSpout pads every non-empty row out to the sheet's
+                    // declared used-range width, so $row->cells can be far wider
+                    // than the operator's data -- a template reused from one that
+                    // once had content typed and deleted out to the right carries
+                    // a "phantom" used range. Trim first, then measure the real
+                    // trailing-data width, so a genuine five-column sheet is not
+                    // rejected for a used range it inherited.
+                    $values = array_map(
+                        static fn ($cell): string => trim((string) $cell->getValue()),
+                        $row->cells
+                    );
 
-                    if (count($cells) > self::MAX_COLUMNS) {
-                        throw new \InvalidArgumentException('That sheet declares an unreasonable number of columns and was not read.');
+                    $realWidth = 0;
+                    foreach ($values as $col => $value) {
+                        if ($value !== '') {
+                            $realWidth = $col + 1;
+                        }
                     }
 
-                    // continue, NOT break.
-                    //
-                    // Abandoning OpenSpout's row iterator part-way leaves the
-                    // workbook's file handle open even after close() -- proven
-                    // on this host: breaking early left the temp file locked
-                    // and undeletable, while draining released it. On a web
-                    // server that is a handle and a temp file leaked per
-                    // oversized upload. Draining the rest costs a few thousand
-                    // no-op iterations and is bounded by ROW_SCAN_CAP.
+                    if ($realWidth > self::MAX_COLUMNS) {
+                        $fatal = 'That sheet has more than ' . self::MAX_COLUMNS . ' columns of data and was not read.';
+                        continue;
+                    }
+
                     if (count($rows) >= self::MAX_ROWS) {
                         $truncated = true;
                         continue;
@@ -258,14 +283,16 @@ class CandidateSheetService
 
                     $rows[] = [
                         'line'  => (int) $rowIndex,
-                        'cells' => array_map(
-                            static fn ($cell): string => trim((string) $cell->getValue()),
-                            $cells
-                        ),
+                        'cells' => $values,
                     ];
                 }
 
-                break; // first visible sheet only
+                break; // first visible sheet only -- reached after the row
+                       // iterator above has been fully drained, so it is safe.
+            }
+
+            if ($fatal !== null) {
+                throw new \InvalidArgumentException($fatal);
             }
 
             if (! $seenSheet) {

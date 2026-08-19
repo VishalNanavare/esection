@@ -83,6 +83,9 @@
                             data-bs-toggle="modal" data-bs-target="#candidateSheetModal">
                         <i class="fa fa-file-excel-o me-1"></i> Fill from Excel
                     </button>
+                    <button type="button" class="btn btn-glass text-muted me-2" id="btn_cancel_edit" style="display:none;">
+                        <i class="fa fa-times me-1"></i> Cancel Edit
+                    </button>
                     <button type="button" class="btn btn-emerald" id="btn_add_student">
                         <i class="fa fa-plus me-1"></i> Add Candidate to List
                     </button>
