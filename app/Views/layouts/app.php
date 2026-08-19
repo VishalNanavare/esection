@@ -65,7 +65,7 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
                     </a>
                 </li>
                 <?php endif; ?>
-                <?php if (can('students.import')): ?>
+                <?php if (feature_enabled('feature_import_enabled') && can('students.import')): ?>
                 <li class="nav-item">
                     <a href="<?= base_url('students/import') ?>" data-label="Import Excel" class="nav-link <?= str_starts_with(uri_string(), 'students/import') ? 'active' : '' ?>">
                         <i class="fa fa-file-excel-o"></i>

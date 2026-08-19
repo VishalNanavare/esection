@@ -10,7 +10,7 @@
                     <p class="text-muted small mb-0">Create eligibility verification dispatch cases for target universities across India.</p>
                 </div>
                 <div>
-                    <?php if (can('students.import')): ?>
+                    <?php if (feature_enabled('feature_import_enabled') && can('students.import')): ?>
                         <a href="<?= base_url('students/import') ?>" class="btn btn-glass me-2"><i class="fa fa-file-excel-o me-1"></i> Import from Excel</a>
                     <?php endif; ?>
                     <?php if (can('students.view')): ?>

@@ -147,6 +147,17 @@ class Students extends BaseController
 
     public function importForm()
     {
+        // The screen itself, not just the upload. StudentImportService refuses
+        // the file, but only once it has been chosen -- so with the toggle off
+        // the operator still reached a full working-looking import page, picked
+        // a workbook, waited for the upload, and only then learned the feature
+        // was switched off. Refusing at the door is the same rule the sidebar
+        // and the New Form button now follow.
+        if (! feature_enabled('feature_import_enabled')) {
+            return redirect()->to(base_url('students/new'))
+                ->with('error', 'Excel import is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         return view('students/import_form', [
             'title'     => 'Import Candidates from Excel',
             'maxSizeKb' => StudentImportService::MAX_SIZE_KB,
@@ -157,6 +168,14 @@ class Students extends BaseController
     /** The blank workbook, with the admission export's own 24 headings. */
     public function importTemplate()
     {
+        // Guarded too. The blank workbook is only useful for an import, and it
+        // is a direct GET -- reachable by anyone who bookmarked it or kept the
+        // tab open, with no upload involved for the service to refuse.
+        if (! feature_enabled('feature_import_enabled')) {
+            return redirect()->to(base_url('students/new'))
+                ->with('error', 'Excel import is currently disabled. Ask an administrator to enable it in Settings > Feature Toggles.');
+        }
+
         try {
             $path = $this->studentImportService->buildTemplate();
         } catch (\Throwable $e) {
