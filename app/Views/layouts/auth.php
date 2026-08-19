@@ -36,8 +36,16 @@
           entered -- so it costs the signed-in navigation nothing.
     */ ?>
     <div id="es-splash" aria-hidden="true">
-        <span class="es-splash__mark"><i class="fa fa-graduation-cap"></i></span>
-        <div class="es-splash__bar"></div>
+        <div class="es-splash__stage">
+            <div class="es-splash__ring">
+                <span class="es-splash__mark"><i class="fa fa-shield"></i></span>
+            </div>
+
+            <div class="es-splash__word">E-Section Portal</div>
+            <div class="es-splash__sub">Institute of Distance &amp; Open Learning</div>
+
+            <div class="es-splash__bar"><span></span></div>
+        </div>
     </div>
 
 

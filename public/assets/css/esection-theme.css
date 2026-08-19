@@ -1112,13 +1112,24 @@ h1, h2, h3, h4, h5, h6 {
     position: fixed;
     inset: 0;
     z-index: 9999;
+
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1.25rem;
-    background: linear-gradient(160deg, #ffffff 0%, var(--bg-secondary) 100%);
-    animation: esSplashOut var(--es-dur-slower) var(--es-ease) 600ms forwards;
+
+    /* Deep indigo, not the near-white gradient this used to be -- that was
+       #ffffff to #f1f5f9, which is a blank screen with something faint in the
+       middle of it. A splash has to read as deliberate. */
+    background:
+        radial-gradient(circle at 20% 15%, rgba(99, 102, 241, .45) 0%, transparent 45%),
+        radial-gradient(circle at 82% 82%, rgba(6, 182, 212, .35) 0%, transparent 48%),
+        linear-gradient(150deg, #1e1b4b 0%, #312e81 45%, #1e293b 100%);
+
+    /* Nothing here is dismissed by JavaScript. The browser runs this animation
+       whether or not a single script on the page parsed, so a splash cannot
+       trap the interface -- the failure that had the previous one deleted. */
+    animation: esSplashOut var(--es-dur-slower) var(--es-ease) 900ms forwards;
+    pointer-events: none;
 }
 
 @keyframes esSplashOut {
@@ -1126,50 +1137,114 @@ h1, h2, h3, h4, h5, h6 {
     to   { opacity: 0; visibility: hidden; }
 }
 
-/* Released as the fade STARTS, so nothing is ever blocked by a pane that is
-   already invisible. */
-#es-splash { pointer-events: none; }
+.es-splash__stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: esSplashIn var(--es-dur-slower) var(--es-ease) both;
+}
 
-.es-splash__mark {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 1.25rem;
-    background: var(--accent-indigo-light);
-    border: 1px solid #c7d2fe;
+@keyframes esSplashIn {
+    from { opacity: 0; transform: translateY(12px) scale(.96); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* The ring is the loader: a gap in the border spun continuously, which reads
+   as motion without needing a second element. */
+.es-splash__ring {
+    position: relative;
+    width: 7rem;
+    height: 7rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    color: var(--accent-indigo);
-    font-size: 1.6rem;
-    animation: esSplashPulse 1.4s var(--es-ease-in-out) infinite;
+    margin-bottom: 1.5rem;
 }
 
-@keyframes esSplashPulse {
-    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 var(--accent-indigo-glow); }
-    50%      { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(79, 70, 229, 0); }
+.es-splash__ring::before,
+.es-splash__ring::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
 }
 
+.es-splash__ring::before {
+    border-color: rgba(255, 255, 255, .14);
+}
+
+.es-splash__ring::after {
+    border-top-color: #a5b4fc;
+    border-right-color: rgba(165, 180, 252, .35);
+    animation: esSplashSpin 1.1s linear infinite;
+}
+
+@keyframes esSplashSpin {
+    to { transform: rotate(360deg); }
+}
+
+.es-splash__mark {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    background: linear-gradient(145deg, rgba(255, 255, 255, .16), rgba(255, 255, 255, .06));
+    border: 1px solid rgba(255, 255, 255, .22);
+    box-shadow: 0 12px 30px -8px rgba(0, 0, 0, .55);
+
+    color: #ffffff;
+    font-size: 1.9rem;
+
+    animation: esSplashBreathe 2.2s var(--es-ease-in-out) infinite;
+}
+
+@keyframes esSplashBreathe {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.06); }
+}
+
+.es-splash__word {
+    color: #ffffff;
+    font-size: 1.35rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.es-splash__sub {
+    color: rgba(226, 232, 240, .72);
+    font-size: 0.82rem;
+    margin-top: 0.3rem;
+}
+
+/* An indeterminate sweep -- it reports "working", not a percentage it would
+   have to invent. */
 .es-splash__bar {
-    width: 11rem;
+    position: relative;
+    width: 12rem;
     height: 3px;
+    margin-top: 1.75rem;
     border-radius: 999px;
-    background: var(--border-card);
+    background: rgba(255, 255, 255, .14);
     overflow: hidden;
 }
 
-.es-splash__bar::after {
-    content: "";
-    display: block;
-    width: 40%;
-    height: 100%;
+.es-splash__bar > span {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 45%;
     border-radius: inherit;
-    background: var(--accent-indigo);
-    animation: esSplashSlide 1.1s var(--es-ease-in-out) infinite;
+    background: linear-gradient(90deg, transparent, #a5b4fc 35%, #67e8f9 75%, transparent);
+    animation: esSplashSweep 1.25s var(--es-ease-in-out) infinite;
 }
 
-@keyframes esSplashSlide {
-    from { transform: translateX(-100%); }
-    to   { transform: translateX(320%); }
+@keyframes esSplashSweep {
+    from { transform: translateX(-110%); }
+    to   { transform: translateX(340%); }
 }
 
 /* --- Page reveal ----------------------------------------------------------
@@ -1274,8 +1349,13 @@ body.es-leaving > .container-fluid {
         visibility: hidden;
     }
 
+    /* Every moving part of the splash. The container itself is hidden
+       outright above rather than animated -- for the one element that MUST
+       disappear, not animating is the safe direction. */
+    .es-splash__stage,
+    .es-splash__ring::after,
     .es-splash__mark,
-    .es-splash__bar::after {
+    .es-splash__bar > span {
         animation: none;
     }
 
