@@ -2,19 +2,27 @@
 /**
  * The <tbody> contents of the Confirmation batch detail table.
  *
- * Takes TWO variables, not one. $highlightId drives the
- * `confirmation-row-highlight` class for the "Already confirmed" deep link on
- * confirmations/index.php -- omitting it from a render call would silently drop
- * that feature rather than fail, so both are documented here as the contract.
+ * Takes THREE variables. $highlightId drives the `confirmation-row-highlight`
+ * class for the "Already confirmed" deep link on confirmations/index.php --
+ * omitting it from a render call would silently drop that feature rather than
+ * fail, so all three are documented here as the contract.
  *
  * @var array $records     rows from ConfirmationService::getBatchDetail()
  * @var int   $highlightId conf_stud_data.id from ?highlight=, or 0
+ * @var bool  $showActions render the Delete cell. Defaults TRUE so the
+ *                         standalone page is unchanged; the View dialog on
+ *                         confirmations/history passes false.
  */
 $highlightId = $highlightId ?? 0;
+$showActions = $showActions ?? true;
+
+// Was hardcoded to 10. It has to follow $showActions now, or the "no records"
+// row spans a column the header does not have.
+$columns = $showActions ? 10 : 9;
 ?>
 <?php if (empty($records)): ?>
     <tr>
-        <td colspan="10" class="text-center text-muted py-4">No records found for this batch.</td>
+        <td colspan="<?= $columns ?>" class="text-center text-muted py-4">No records found for this batch.</td>
     </tr>
 <?php else: ?>
     <?php $i = 1; foreach ($records as $r): ?>
@@ -45,7 +53,16 @@ $highlightId = $highlightId ?? 0;
                     <span class="text-muted d-block">Name Change: <?= esc($r['etc_data']) ?></span>
                 <?php endif; ?>
             </td>
+            <?php if ($showActions): ?>
             <td class="text-end">
+                <?php /*
+                  This form declares data-refresh="#confirmation_batch_rows",
+                  a tbody that exists ONLY on the standalone batch detail page.
+                  Rendered into the dialog on confirmations/history it would
+                  POST, delete the record, and then swap nothing -- the row
+                  would stay on screen looking undeleted. Keeping the cell out
+                  of the dialog is what makes that unreachable.
+                */ ?>
                 <?php if (feature_enabled('feature_delete_enabled') && can('confirmations.delete')): ?>
                     <form action="<?= base_url('confirmations/delete/' . $r['id']) ?>"
                           method="post" class="d-inline js-ajax delete-confirmation-form"
@@ -61,6 +78,7 @@ $highlightId = $highlightId ?? 0;
                     </form>
                 <?php endif; ?>
             </td>
+            <?php endif; ?>
         </tr>
     <?php endforeach; ?>
 <?php endif; ?>

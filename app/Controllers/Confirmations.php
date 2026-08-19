@@ -287,10 +287,35 @@ class Confirmations extends BaseController
     /** One batch's full student detail, for the expand/drill-down view. */
     public function batchDetail($arraySpace)
     {
+        $records = $this->confirmationService->getBatchDetail((int) $arraySpace);
+
+        // Confirmation History opens this in a dialog rather than navigating,
+        // so an AJAX caller gets the records on their own, from the SAME
+        // partial the full page renders.
+        //
+        // `rows`/`count`, deliberately NOT `html`/`remaining`. Those two keys
+        // belong to respondForBatch() below, and esApplyFormResult swaps any
+        // reply carrying `html` into whatever data-refresh names -- so reusing
+        // the name here would let this reply repaint an unrelated region.
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'status' => 'success',
+                'rows'   => view('confirmations/_batch_rows', [
+                    'records'     => $records,
+                    // Both stated rather than left to the partial's defaults:
+                    // Config\View::$saveData is true, so a second render in one
+                    // request inherits the first one's data.
+                    'highlightId' => 0,
+                    'showActions' => false,
+                ]),
+                'count'  => count($records),
+            ]);
+        }
+
         $data = [
             'title'        => 'Confirmation Batch Detail',
             'arraySpace'   => (int) $arraySpace,
-            'records'      => $this->confirmationService->getBatchDetail((int) $arraySpace),
+            'records'      => $records,
             // Optional ?highlight=<conf_stud_data.id>, set by the "Already
             // confirmed" deep link on confirmations/index.php so the specific
             // student that was clicked can be scrolled to and highlighted.
@@ -377,6 +402,11 @@ class Confirmations extends BaseController
                     // Deliberately 0: the deep-link highlight belongs to the
                     // arrival from confirmations/index, not to a later refresh.
                     'highlightId' => 0,
+                    // Stated for the same reason batchDetail() states it: this
+                    // refresh repaints the standalone page, which keeps its
+                    // Delete column, and $saveData means an unstated key can
+                    // inherit a previous render's value.
+                    'showActions' => true,
                 ]),
                 'remaining' => count($records),
             ];

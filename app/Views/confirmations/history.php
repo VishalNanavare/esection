@@ -110,7 +110,25 @@
                                     <td class="small text-muted"><?= esc($b['en_by'] ?: '-') ?></td>
                                     <td class="text-center"><span class="badge badge-glass-indigo"><?= (int) $b['student_count'] ?></span></td>
                                     <td class="text-end">
-                                        <a href="<?= base_url('confirmations/batch/' . $b['array_space']) ?>" class="btn btn-sm btn-glass text-primary me-1">
+                                        <?php /*
+                                          Still a real link to a real page. The
+                                          JS intercepts a plain click and opens
+                                          the dialog, but ctrl/middle-click and
+                                          "open in new tab" are passed through,
+                                          and if the script fails to load the
+                                          button still goes somewhere.
+
+                                          js-view-conf-batch, NOT the students'
+                                          js-view-batch: the two dialogs live in
+                                          different JS partials, and sharing the
+                                          selector would mean two handlers firing
+                                          on one link the moment both files were
+                                          ever loaded together.
+                                        */ ?>
+                                        <a href="<?= base_url('confirmations/batch/' . $b['array_space']) ?>"
+                                           class="btn btn-sm btn-glass text-primary me-1 js-view-conf-batch"
+                                           data-batch="<?= esc($b['array_space'], 'attr') ?>"
+                                           title="View records in this batch">
                                             <i class="fa fa-eye"></i> View
                                         </a>
                                         <?php if (can('confirmations.print')): ?>
@@ -132,6 +150,71 @@
         </div>
     </div>
 </div>
+
+<?php /*
+  Batch records, opened from the View button instead of navigating away.
+  Filled from confirmations/batch/{n}, which answers an AJAX request with the
+  SAME partial its own page renders -- so the dialog cannot show something
+  different from the page behind the same URL.
+
+  Nine columns, not ten: no Delete cell. Beyond the request to hide it, the
+  delete form declares data-refresh="#confirmation_batch_rows" -- a tbody that
+  exists only on the standalone page. Fired from in here it would delete the
+  record and then repaint nothing, leaving the row on screen as though it had
+  failed. The partial takes showActions=false; the standalone page is unchanged.
+*/ ?>
+<div class="modal fade" id="confBatchViewModal" tabindex="-1" aria-labelledby="confBatchViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content glass-card border-secondary border-opacity-25">
+            <div class="modal-header border-bottom border-secondary border-opacity-25">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="confBatchViewModalLabel">
+                        <i class="fa fa-check-square-o me-2 text-indigo"></i>
+                        Confirmation Batch #<span id="conf_view_ref"></span>
+                    </h5>
+                    <p class="text-muted small mb-0" id="conf_view_meta"></p>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body">
+                <div id="conf_view_loading" class="text-center text-muted py-5">
+                    <i class="fa fa-circle-o-notch fa-spin fa-2x d-block mb-2 opacity-50"></i>
+                    Loading records...
+                </div>
+
+                <div class="table-responsive d-none" id="conf_view_wrap">
+                    <table class="table table-glass mb-0">
+                        <thead>
+                            <tr>
+                                <th class="col-sr">#</th>
+                                <th>Candidate</th>
+                                <th>University</th>
+                                <th>Case No.</th>
+                                <th>Mig/TC</th>
+                                <th>Pass/Dgr</th>
+                                <th>Statement of Marks</th>
+                                <th>Letter No./Dated</th>
+                                <th>Remark</th>
+                            </tr>
+                        </thead>
+                        <tbody id="conf_view_rows"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer border-top border-secondary border-opacity-25">
+                <?php if (can('confirmations.print')): ?>
+                    <a href="#" target="_blank" class="btn btn-emerald" id="conf_view_pdf">
+                        <i class="fa fa-file-pdf-o me-1"></i> Eligibility Letter
+                    </a>
+                <?php endif; ?>
+                <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
