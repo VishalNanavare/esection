@@ -46,7 +46,6 @@ $(document).ready(function () {
     var $wrap    = $('#batch_history_wrap');
     var $rows    = $('#batch_history_rows');
     var $pager   = $('#batch_history_pager');
-    var $count   = $('#batch_history_count');
     var $loading = $('#batch_history_loading');
     var $form    = $('#batch_history_filters');
 
@@ -91,11 +90,10 @@ $(document).ready(function () {
             $rows.html(res.rows);
             $pager.html(res.pager || '');
 
-            $count.text(
-                res.total > 0
-                    ? Number(res.total).toLocaleString() + ' batch' + (res.total === 1 ? '' : 'es')
-                    : ''
-            );
+            // No separate count to update: the pager bar carries the range and
+            // the total, and it arrives inside res.pager already rendered by
+            // the same template the full page used. res.total stays in the
+            // reply -- it is part of the published response shape.
 
             if (push) {
                 // The URL stays honest, so the view can be reloaded, bookmarked

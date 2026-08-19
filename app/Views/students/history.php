@@ -111,12 +111,15 @@
                 </div>
             </form>
 
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <small class="text-muted" id="batch_history_count">
-                    <?php if ($pager !== null && $pager->getTotal() > 0): ?>
-                        <?= number_format($pager->getTotal()) ?> batch<?= $pager->getTotal() === 1 ? '' : 'es' ?>
-                    <?php endif; ?>
-                </small>
+            <?php /*
+              The batch count used to live here as well. It is in the pager bar
+              now -- one place, rendered server-side from the same $pager, so it
+              cannot disagree with the range beside it. It used to be maintained
+              twice: this line in PHP and a second copy in
+              ajax_students_history_js, which meant changing the wording in one
+              flipped the text the moment the operator paged.
+            */ ?>
+            <div class="d-flex justify-content-end align-items-center mb-2">
                 <small class="text-muted d-none" id="batch_history_loading">
                     <i class="fa fa-circle-o-notch fa-spin me-1"></i> Loading...
                 </small>

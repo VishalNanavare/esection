@@ -832,6 +832,41 @@ h1, h2, h3, h4, h5, h6 {
     appearance: none;
 }
 
+/* Pagination -- see app/Views/common/pagination_glass.php ------------------
+   The template renders a bar: the row range on the left, the page links on the
+   right. Below sm the two stack and centre, because at that width a range and a
+   page list side by side leaves neither enough room to read. */
+.es-pagebar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+}
+
+/* Holds the left edge even when the nav is absent, so the count does not jump
+   to the middle on a single-page result. */
+.es-pagebar__count { margin-right: auto; }
+
+.es-pagebar__nav { margin-left: auto; }
+
+@media (max-width: 575.98px) {
+    .es-pagebar {
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .es-pagebar__count,
+    .es-pagebar__nav {
+        margin: 0;
+        width: 100%;
+        text-align: center;
+    }
+
+    .es-pagebar__nav .pagination { justify-content: center; }
+}
+
 /* Pagination -- see app/Views/common/pagination_glass.php */
 .pagination-glass .page-link {
     color: var(--accent-indigo);
