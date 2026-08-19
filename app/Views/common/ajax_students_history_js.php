@@ -13,6 +13,36 @@
 $(document).ready(function () {
     'use strict';
 
+    // --- the three batch-derived pickers --------------------------------
+    //
+    // api/batch-* rather than api/academic-years or api/streams: these list
+    // what the verification records actually contain, so every option offered
+    // matches at least one batch. The course case makes the difference
+    // concrete -- stream_details holds "BCOM"/"MCOM" while every batch stores
+    // "F.Y.B.Com"/"MCOM Part I", the two sets share nothing, and the filter is
+    // an exact comparison. Fed from api/streams this picker would have offered
+    // 30 courses and found no batch for any of them.
+
+    esAjaxSelect('.select2-batch-year', '<?= base_url('api/batch-years') ?>', {
+        placeholder: '-- All Years --',
+        context: 'Loading admission years failed'
+    });
+
+    esAjaxSelect('.select2-batch-course', '<?= base_url('api/batch-courses') ?>', {
+        placeholder: '-- All Courses --',
+        context: 'Loading courses failed'
+    });
+
+    // tags: this filter is a LIKE server-side, and it replaces a free-text
+    // input. Without the typed term as a selectable option, "show me every
+    // Mumbai university" -- which the box did yesterday -- would stop being
+    // expressible at all.
+    esAjaxSelect('.select2-batch-university', '<?= base_url('api/batch-universities') ?>', {
+        placeholder: '-- All Universities --',
+        tags: true,
+        context: 'Loading universities failed'
+    });
+
     var $wrap    = $('#batch_history_wrap');
     var $rows    = $('#batch_history_rows');
     var $pager   = $('#batch_history_pager');

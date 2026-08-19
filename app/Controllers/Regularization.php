@@ -93,13 +93,21 @@ class Regularization extends BaseController
      */
     private function historyFilters(): array
     {
+        // Swapped rather than left inverted: from > to matches no row on any
+        // of these screens, so the operator would see an empty table with
+        // nothing saying why -- and the Export link reuses this same reader.
+        [$from, $to] = ordered_date_range(
+            trim((string) ($this->request->getGet('date_from') ?? '')),
+            trim((string) ($this->request->getGet('date_to') ?? ''))
+        );
+
         return [
             'name'       => trim((string) ($this->request->getGet('name') ?? '')),
             'case_no'    => trim((string) ($this->request->getGet('case_no') ?? '')),
             'university' => trim((string) ($this->request->getGet('university') ?? '')),
             'year'       => trim((string) ($this->request->getGet('year') ?? '')),
-            'date_from'  => trim((string) ($this->request->getGet('date_from') ?? '')),
-            'date_to'    => trim((string) ($this->request->getGet('date_to') ?? '')),
+            'date_from'  => $from,
+            'date_to'    => $to,
         ];
     }
 

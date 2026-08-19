@@ -5,18 +5,21 @@ namespace App\Controllers;
 use App\Services\UniversityService;
 use App\Services\ConfirmationService;
 use App\Services\AcademicYearService;
+use App\Services\StudentVerificationService;
 
 class Api extends BaseController
 {
     protected UniversityService $universityService;
     protected ConfirmationService $confirmationService;
     protected AcademicYearService $academicYearService;
+    protected StudentVerificationService $studentService;
 
     public function __construct()
     {
         $this->universityService    = new UniversityService();
         $this->confirmationService = new ConfirmationService();
         $this->academicYearService  = new AcademicYearService();
+        $this->studentService       = new StudentVerificationService();
     }
 
     public function colleges()
@@ -56,6 +59,35 @@ class Api extends BaseController
         $q    = $this->request->getGet('q') ?? $this->request->getGet('term') ?? '';
         $data = $this->confirmationService->searchStreamsForSelect2($q);
         return $this->response->setJSON($data);
+    }
+
+    /**
+     * The three Batch History pickers.
+     *
+     * Separate from streams/academicYears above because they answer a different
+     * question: not "what may be chosen when creating a record" but "what is
+     * there to be found in the records that exist". For courses those two
+     * answers currently share no value at all -- stream_details holds "BCOM"
+     * while every batch stores "F.Y.B.Com" -- so pointing this filter at
+     * api/streams would have offered 30 options that between them match no
+     * batch whatsoever.
+     */
+    public function batchFilterOptions(string $field)
+    {
+        $q = $this->request->getGet('q') ?? $this->request->getGet('term') ?? '';
+
+        // Bounded before the cast, exactly as colleges() does -- a numeric
+        // string above PHP_INT_MAX makes a bare (int) cast raise a PHP 8.5
+        // warning that CodeIgniter promotes to an uncaught ErrorException.
+        $page = (int) filter_var(
+            $this->request->getGet('page') ?? 1,
+            FILTER_VALIDATE_INT,
+            ['options' => ['default' => 1, 'min_range' => 1, 'max_range' => 100000]]
+        );
+
+        return $this->response->setJSON(
+            $this->studentService->filterOptionsForSelect2($field, $q, $page)
+        );
     }
 
     public function academicYears()

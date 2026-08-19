@@ -159,6 +159,61 @@
             config.minimumInputLength = options.minimumInputLength;
         }
 
+        // --- opt-in extras -------------------------------------------------
+        // Every one of these defaults to the behaviour this helper had before
+        // they existed, so the eleven existing call sites are unaffected.
+
+        // A filter needs a way back to "no filter". allowClear needs an empty
+        // option to clear TO, so the markup must carry <option value=""> --
+        // without it Select2 silently refuses to clear.
+        if (options.placeholder) {
+            config.placeholder = options.placeholder;
+            config.allowClear  = true;
+        }
+
+        // `tags` turns the typed text itself into a choice. Used by the
+        // university filter, where the column is matched with LIKE: picking a
+        // listed value finds that one university, while typing "Mumbai" and
+        // taking the offered term keeps the old free-text behaviour of matching
+        // every university whose address contains it. Converting the input to a
+        // plain dropdown would have quietly removed that.
+        if (options.tags) {
+            config.tags = true;
+
+            config.createTag = function (params) {
+                var term = $.trim(params.term);
+
+                return term === '' ? null : { id: term, text: term, esIsSearch: true };
+            };
+
+            config.insertTag = function (data, tag) {
+                // Nothing to offer if the term is already an exact option --
+                // otherwise the list shows the same value twice, once as a
+                // value and once as a search.
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i].id === tag.id || data[i].text === tag.text) {
+                        return;
+                    }
+                }
+
+                // First, not last: it is the broadest match on offer, and
+                // Select2 appends by default, which would bury it under a
+                // page of exact values.
+                data.unshift(tag);
+            };
+
+            config.templateResult = function (data) {
+                if (!data.esIsSearch) {
+                    return data.text;
+                }
+
+                // .text() throughout -- the term is whatever was typed.
+                return $('<span>')
+                    .append($('<em>').addClass('text-muted').text('Match anything containing: '))
+                    .append($('<strong>').text(data.text));
+            };
+        }
+
         return $el.select2(config);
     }
 
@@ -245,6 +300,71 @@
             window.flatpickr(this, {
                 dateFormat: 'Y-m-d',
                 allowInput: true
+            });
+        });
+
+        esLinkDateRanges();
+    }
+
+    /**
+     * Constrain every "Created From"/"Created To" pair so the range cannot be
+     * inverted in the first place.
+     *
+     * Picking a From date sets the To calendar's minDate, and picking a To date
+     * sets the From calendar's maxDate -- both directions, because the operator
+     * may fill either field first. Out-of-range days are then greyed out in the
+     * calendar rather than accepted and silently returning nothing, which is
+     * what an inverted range does today: `en_time >= X AND en_time <= Y` with
+     * X > Y matches no row, and the screen just says there are no batches.
+     *
+     * Paired by name WITHIN A FORM, deliberately. regularization/history also
+     * carries a lone `admission_letter_date` picker in its edit modal, and a
+     * document-wide "first .es-datepicker, second .es-datepicker" rule would
+     * have bound that to the filter panel's From field.
+     *
+     * flatpickr clears a selected date that its new min/max excludes. That is
+     * flatpickr's own behaviour and it is the right one here -- the alternative
+     * is leaving a value on screen that the calendar says is not selectable.
+     */
+    function esLinkDateRanges() {
+        if (!window.flatpickr) {
+            return;
+        }
+
+        $('form').each(function () {
+            var $form = $(this);
+            var from  = $form.find('input[name="date_from"].es-datepicker')[0];
+            var to    = $form.find('input[name="date_to"].es-datepicker')[0];
+
+            if (!from || !to || !from._flatpickr || !to._flatpickr) {
+                return;
+            }
+
+            // esInitDatePickers is re-run after AJAX repaints; linking twice
+            // would stack a second copy of each hook on every pass.
+            if (from.dataset.esRangeLinked === '1') {
+                return;
+            }
+            from.dataset.esRangeLinked = '1';
+            to.dataset.esRangeLinked   = '1';
+
+            // Seed from whatever the page loaded with, so a range restored from
+            // the query string is already constrained before anything is
+            // clicked -- otherwise the very first interaction is unconstrained.
+            if (to.value) {
+                from._flatpickr.set('maxDate', to.value);
+            }
+            if (from.value) {
+                to._flatpickr.set('minDate', from.value);
+            }
+
+            // `set(..., null)` lifts the limit again when a field is cleared.
+            from._flatpickr.config.onChange.push(function (dates, str) {
+                to._flatpickr.set('minDate', str || null);
+            });
+
+            to._flatpickr.config.onChange.push(function (dates, str) {
+                from._flatpickr.set('maxDate', str || null);
             });
         });
     }
@@ -428,8 +548,33 @@
             url += (url.indexOf('?') === -1 ? '?' : '&') + window.location.search.replace(/^\?/, '');
         }
 
+        // es_form_motion has ALREADY put this button into its spinning state by
+        // the time we get here. Its handler is delegated on document and the
+        // layout includes it BEFORE this file, so it runs first and its
+        // `isDefaultPrevented()` guard still sees false -- preventDefault()
+        // below has not happened yet. Its only teardown is `pageshow`, i.e. a
+        // navigation, and an AJAX submit never navigates.
+        //
+        // So nothing clears `es-btn-busy` unless we do it here. Left alone the
+        // CSS `::before` spinner runs forever AND `pointer-events: none` keeps
+        // the button dead however many times `disabled` is set back to false --
+        // the operator has to reload the page to save a second time.
+        //
+        // Only visible on screens without `data-refresh`: everywhere else the
+        // repaint replaces the button node and disposes the stuck class by
+        // accident. Feature Toggles documents having no refresh region, which
+        // is why it is where this surfaced.
+        function stopSpinning() {
+            if (typeof window.esButtonIdle === 'function') {
+                window.esButtonIdle($btn);
+            }
+        }
+
         function restore() {
             closeProcessing();
+            // Before the html() below, deliberately: endBusy restores the label
+            // it captured pre-submit, and `originalHtml` must be what wins.
+            stopSpinning();
             $btn.prop('disabled', false);
             if (busy.button) {
                 $btn.html(originalHtml);
@@ -467,6 +612,14 @@
             // re-arming the control invites a duplicate.
             if (textStatus === 'timeout' || xhr.status === 502 || xhr.status === 503 || xhr.status === 504) {
                 closeProcessing();
+
+                // Stop the spinner but re-assert the disable. A spinner says
+                // "still working", which is the one thing we know is not true;
+                // what we do not know is whether the write landed, so the
+                // control stays shut to keep a duplicate out.
+                stopSpinning();
+                $btn.prop('disabled', true);
+
                 esUnknownOutcome(opts.unknownOutcome);
                 return;
             }
@@ -703,6 +856,7 @@
     window.esSyncCheckAll = esSyncCheckAll;
     window.esInitDatePickers = esInitDatePickers;
     window.esSubmitForm  = esSubmitForm;
+    window.esLinkDateRanges = esLinkDateRanges;
     window.esApplyFormResult = esApplyFormResult;
     window.esBlockingError = esBlockingError;
     window.esUnknownOutcome = esUnknownOutcome;

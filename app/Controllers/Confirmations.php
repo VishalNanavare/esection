@@ -186,8 +186,13 @@ class Confirmations extends BaseController
         $selectedStream   = trim((string) ($this->request->getGet('stream') ?? ''));
         $selectedColg     = trim((string) ($this->request->getGet('clg_add') ?? ''));
         $selectedName     = trim((string) ($this->request->getGet('student_name') ?? ''));
-        $selectedDateFrom = trim((string) ($this->request->getGet('date_from') ?? ''));
-        $selectedDateTo   = trim((string) ($this->request->getGet('date_to') ?? ''));
+        // See ordered_date_range(): an inverted pair matches nothing, and this
+        // screen has no filters partial shared with historyExport() below, so
+        // the call has to appear in both readers.
+        [$selectedDateFrom, $selectedDateTo] = ordered_date_range(
+            trim((string) ($this->request->getGet('date_from') ?? '')),
+            trim((string) ($this->request->getGet('date_to') ?? ''))
+        );
 
         // Every filter is optional -- blank means "no restriction", so the page
         // always shows real data on open (paginated) rather than an empty
@@ -226,8 +231,10 @@ class Confirmations extends BaseController
         $selectedStream = trim((string) ($this->request->getGet('stream') ?? ''));
         $selectedColg   = trim((string) ($this->request->getGet('clg_add') ?? ''));
         $selectedName   = trim((string) ($this->request->getGet('student_name') ?? ''));
-        $selectedFrom   = trim((string) ($this->request->getGet('date_from') ?? ''));
-        $selectedTo     = trim((string) ($this->request->getGet('date_to') ?? ''));
+        [$selectedFrom, $selectedTo] = ordered_date_range(
+            trim((string) ($this->request->getGet('date_from') ?? '')),
+            trim((string) ($this->request->getGet('date_to') ?? ''))
+        );
 
         $batches = $this->confirmationService->getBatchSummariesAll(
             $selectedYear,

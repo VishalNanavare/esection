@@ -27,20 +27,63 @@
                      to search first. The same query string drives the export,
                      so the file always matches what is on screen. */ ?>
             <form action="<?= base_url('students/history') ?>" method="get" class="row g-3 mb-4 filter-panel" id="batch_history_filters">
+                <?php /*
+                  The three pickers below read api/batch-*, NOT the master-data
+                  endpoints the rest of the app uses (api/academic-years,
+                  api/streams). They list the values that actually occur in the
+                  verification records, so every option offered is one that
+                  matches at least one batch.
+
+                  This is not a preference. getBatchSummaries() matches year and
+                  course with HAVING MAX(...) = ?, an exact comparison, and the
+                  master course list shares NO value with what batches store --
+                  it holds "BCOM" where every record holds "F.Y.B.Com". A course
+                  filter fed from api/streams would have offered 30 options and
+                  matched nothing on any of them.
+
+                  Each carries an empty <option> as well as its current value:
+                  Select2's allowClear has nothing to clear to without one.
+                */ ?>
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-semibold">Admission Year</label>
-                    <select name="year" class="form-select select2-ajax-academic-year">
+                    <select name="year" class="form-select select2-batch-year">
+                        <option value=""></option>
                         <?php if ($filters['year'] !== ''): ?>
                             <option value="<?= esc($filters['year']) ?>" selected><?= esc($filters['year']) ?></option>
-                        <?php else: ?>
-                            <option value="">-- All Years --</option>
                         <?php endif; ?>
                     </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-semibold">University</label>
-                    <input type="text" name="university" class="form-control" placeholder="Any part of the name or address"
-                           value="<?= esc($filters['university']) ?>">
+                    <?php /*
+                      Still matched with LIKE server-side, so the typed-term
+                      option this picker offers behaves exactly as the free-text
+                      input it replaces: "Mumbai" finds every Mumbai address.
+                      The stored value is echoed raw, because that is what the
+                      LIKE compares against -- the dropdown's labels are
+                      flattened for display only.
+                    */ ?>
+                    <select name="university" class="form-select select2-batch-university">
+                        <option value=""></option>
+                        <?php if ($filters['university'] !== ''): ?>
+                            <option value="<?= esc($filters['university']) ?>" selected><?= esc(flatten_address($filters['university'])) ?></option>
+                        <?php endif; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-semibold">Course</label>
+                    <?php /*
+                      New control. `course` was already read by
+                      Students::historyFilters() and already applied by
+                      StudentModel::getBatchSummaries() -- the screen simply had
+                      no way to set it, so a working filter sat unreachable.
+                    */ ?>
+                    <select name="course" class="form-select select2-batch-course">
+                        <option value=""></option>
+                        <?php if ($filters['course'] !== ''): ?>
+                            <option value="<?= esc($filters['course']) ?>" selected><?= esc($filters['course']) ?></option>
+                        <?php endif; ?>
+                    </select>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-semibold">Batch No.</label>

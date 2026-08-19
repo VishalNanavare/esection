@@ -342,14 +342,22 @@ class Students extends BaseController
      */
     private function historyFilters(): array
     {
+        // Swapped rather than left inverted: from > to matches no row on any
+        // of these screens, so the operator would see an empty table with
+        // nothing saying why -- and the Export link reuses this same reader.
+        [$from, $to] = ordered_date_range(
+            trim((string) ($this->request->getGet('date_from') ?? '')),
+            trim((string) ($this->request->getGet('date_to') ?? ''))
+        );
+
         return [
             'year'       => trim((string) ($this->request->getGet('year') ?? '')),
             'university' => trim((string) ($this->request->getGet('university') ?? '')),
             'batch'      => trim((string) ($this->request->getGet('batch') ?? '')),
             'course'     => trim((string) ($this->request->getGet('course') ?? '')),
             'name'       => trim((string) ($this->request->getGet('name') ?? '')),
-            'date_from'  => trim((string) ($this->request->getGet('date_from') ?? '')),
-            'date_to'    => trim((string) ($this->request->getGet('date_to') ?? '')),
+            'date_from'  => $from,
+            'date_to'    => $to,
         ];
     }
 

@@ -282,6 +282,18 @@ class StudentVerificationService
     }
 
     /**
+     * The values one batch-history filter can actually match, for its picker.
+     *
+     * Read from the batches themselves rather than from the master tables the
+     * other pickers use -- see StudentModel::distinctForSelect2 for why that
+     * distinction is load-bearing rather than a preference.
+     */
+    public function filterOptionsForSelect2(string $field, ?string $term, int $page = 1): array
+    {
+        return $this->studentModel->distinctForSelect2($field, $term, $page);
+    }
+
+    /**
      * The 4 fields esection_basic's own update_new_form.php allowed editing,
      * plus email (added 2026-08-05 for bulk email; university/year/course
      * were shown but disabled there too, since changing them would misfile

@@ -234,6 +234,115 @@ class StudentModel extends Model
             : $builder->paginate($perPage);
     }
 
+    /**
+     * The batch-history columns a Select2 filter may list values from.
+     *
+     * Keys are what the request asks for, values are the real column names --
+     * the request never names a column itself.
+     */
+    private const FILTER_COLUMNS = [
+        'year'       => 'admission_taken_year',
+        'university' => 'clg_add',
+        'course'     => 'admission_taken_in',
+    ];
+
+    /** Placeholder text saved as if it were data. Never offered as a filter. */
+    private const FILTER_NOISE = [
+        'Select Admission Taken In',
+    ];
+
+    /**
+     * The values a batch-history filter can actually match, shaped for Select2.
+     *
+     * Deliberately read from student_details rather than from the master
+     * tables the other pickers use, because for two of these three columns the
+     * master list is simply not what is stored:
+     *
+     *   - admission_taken_in holds "F.Y.B.Com", "MCOM Part I", "MA Part I".
+     *     stream_details -- which is what api/streams serves -- holds "BCOM",
+     *     "MCOM", "MA". Zero of the 21 course values in use appear in that
+     *     table, and zero of its 30 rows are used by any batch. Since
+     *     getBatchSummaries() matches course with HAVING MAX(...) = ?, an exact
+     *     comparison, a picker fed from stream_details would return no rows for
+     *     every single option it offered.
+     *   - admission_taken_year does currently line up with academic_years, but
+     *     offering a year nobody has a batch in is still a filter that can only
+     *     return nothing.
+     *
+     * A list built from the data cannot develop either fault: every option it
+     * offers is, by construction, an option that matches at least one batch.
+     *
+     * @param  string      $field one of the keys of self::FILTER_COLUMNS
+     * @return array{results: array<int, array{id: string, text: string}>, pagination: array{more: bool}}
+     */
+    public function distinctForSelect2(string $field, ?string $term, int $page = 1, int $perPage = 30): array
+    {
+        // Whitelist, not interpolation. A column name reaches the query as an
+        // identifier, which the binder does not protect -- so the request never
+        // chooses one, it only chooses between these.
+        $column = self::FILTER_COLUMNS[$field] ?? null;
+
+        if ($column === null) {
+            return ['results' => [], 'pagination' => ['more' => false]];
+        }
+
+        $builder = $this->table()
+                        ->select($column . ' AS v')
+                        ->where($column . ' IS NOT NULL')
+                        ->where($column . ' !=', '')
+                        ->groupBy($column);
+
+        // Six rows carry the literal placeholder text of an un-chosen dropdown
+        // in admission_taken_in. It is a data-entry artefact, not a course, and
+        // offering it as something to filter by would be offering a typo.
+        // Excluded by exact value: anything looser risks hiding a real course
+        // that happens to begin with the same word.
+        foreach (self::FILTER_NOISE as $noise) {
+            $builder->where($column . ' !=', $noise);
+        }
+
+        if ($term !== null && $term !== '') {
+            $builder->like($column, like_term($term));
+        }
+
+        // Newest year first -- that is the one being worked on. The other two
+        // are names, where alphabetical is what lets someone find one.
+        $builder->orderBy($column, $field === 'year' ? 'DESC' : 'ASC');
+
+        $page   = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+
+        // One extra row, purely to answer "is there another page?" without a
+        // second COUNT query. It is dropped before the reply is built.
+        $rows = $builder->limit($perPage + 1, $offset)->get()->getResultArray();
+
+        $more = count($rows) > $perPage;
+        if ($more) {
+            array_pop($rows);
+        }
+
+        $results = [];
+
+        foreach ($rows as $r) {
+            $value = (string) $r['v'];
+
+            $results[] = [
+                // The id is the RAW stored value: it is what the filter
+                // compares against, so cleaning it here would stop it matching.
+                'id' => $value,
+                // 154 of the 418 stored addresses contain a literal "<br>".
+                // Select2 renders its option text as text, so an uncleaned
+                // label shows the tag itself to the operator.
+                'text' => $field === 'university' ? flatten_address($value) : $value,
+            ];
+        }
+
+        return [
+            'results'    => $results,
+            'pagination' => ['more' => $more],
+        ];
+    }
+
     public function getGroupedStudentCounts(): array
     {
         $rows = $this->table()

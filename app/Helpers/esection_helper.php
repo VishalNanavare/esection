@@ -188,6 +188,36 @@ if (!function_exists('esc_address')) {
     }
 }
 
+if (!function_exists('flatten_address')) {
+    /**
+     * An address as ONE line of plain text, for places that cannot take markup.
+     *
+     * esc_address() above is the counterpart for page copy: it keeps the line
+     * breaks by turning them into <br />. That is exactly wrong inside a
+     * <option>, a title attribute or a Select2 label, where the tag would be
+     * shown to the operator as literal text -- 154 of the 418 stored addresses
+     * contain one.
+     *
+     * Returns plain text, NOT escaped: the caller escapes at the point of use,
+     * the same division esc_address deliberately does not follow because it
+     * emits markup itself.
+     */
+    function flatten_address($value): string
+    {
+        // The whitespace around the tag goes with it. The stored strings
+        // routinely read "...049. <br>phone-", which would otherwise flatten to
+        // "...049. , phone-" with the comma stranded after a space.
+        $flat = preg_replace('~\s*<br\s*/?>\s*~i', ', ', (string) $value);
+        $flat = preg_replace('/\s+/', ' ', (string) $flat);
+
+        // A doubled or trailing comma is left wherever the tag sat beside one,
+        // or at the very end of the value.
+        $flat = preg_replace('/\s*,(?=\s*,)|,\s*$/', '', (string) $flat);
+
+        return trim((string) $flat);
+    }
+}
+
 if (!function_exists('setting')) {
     /**
      * Read a value from the Settings module's key/value store.
@@ -258,5 +288,48 @@ if (!function_exists('can_any')) {
         }
 
         return false;
+    }
+}
+
+if (!function_exists('ordered_date_range')) {
+    /**
+     * Put a "from"/"to" filter pair the right way round.
+     *
+     * An inverted range is not an empty result, it is a mistake: every history
+     * screen turns the pair into `en_time >= from AND en_time <= to`, so from
+     * later than to matches nothing at all and the screen simply reports no
+     * records. Nothing tells the operator their two dates are the wrong way
+     * around, and the Export button reuses the same query string, so the
+     * spreadsheet comes out empty too.
+     *
+     * The calendars now stop this being reachable by clicking (see
+     * esLinkDateRanges in common/ajax_common_js), but a hand-edited or shared
+     * URL still can, so the swap belongs here as well -- and here it also
+     * covers the exports, which read the query string directly.
+     *
+     * Swapped rather than rejected: the operator's intent is unambiguous, and
+     * every one of these screens echoes the filters back into the form, so the
+     * corrected order is visible rather than silent.
+     *
+     * Either side blank means "no restriction" and is left alone. A value that
+     * does not parse is left alone too -- the models already drop those, and
+     * reordering against a date we could not read would be guesswork.
+     *
+     * @return array{0:string,1:string} [from, to]
+     */
+    function ordered_date_range(string $from, string $to): array
+    {
+        if ($from === '' || $to === '') {
+            return [$from, $to];
+        }
+
+        $f = strtotime($from);
+        $t = strtotime($to);
+
+        if ($f === false || $t === false || $f <= $t) {
+            return [$from, $to];
+        }
+
+        return [$to, $from];
     }
 }
