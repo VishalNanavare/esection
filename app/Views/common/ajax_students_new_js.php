@@ -14,8 +14,65 @@ $(document).ready(function () {
 
     var studentList = [];
 
-    // Which studentList row is being edited, or null while adding a new one.
-    var editingIndex = null;
+    /* -----------------------------------------------------------------
+       Rows are identified by a stable uid, never by array index.
+
+       Index identity breaks the moment the list is mutated: removing row
+       2 renumbers everything below it, so a selection, an open edit or a
+       queued delete captured beforehand silently points at a DIFFERENT
+       candidate. With bulk delete removing several at once, that is not a
+       corner case -- it is the normal path. Every row therefore carries a
+       uid, and selection/edit/delete all address rows by it.
+       ----------------------------------------------------------------- */
+    var uidSeq = 0;
+
+    function nextUid() {
+        uidSeq += 1;
+        return 'c' + uidSeq;
+    }
+
+    // uid of the row being edited, or null while adding a new one.
+    var editingUid = null;
+
+    // uids currently ticked. A Set-like object keyed by uid.
+    var selectedUids = {};
+
+    // Current name filter, lower-cased. '' means show everything.
+    var batchFilter = '';
+
+    function indexOfUid(uid) {
+        for (var i = 0; i < studentList.length; i++) {
+            if (studentList[i].uid === uid) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    function selectedUidList() {
+        var out = [];
+        for (var uid in selectedUids) {
+            if (selectedUids.hasOwnProperty(uid) && indexOfUid(uid) !== -1) {
+                out.push(uid);
+            }
+        }
+        return out;
+    }
+
+    // Rows matching the current filter, in list order.
+    function visibleRows() {
+        if (batchFilter === '') {
+            return studentList.slice();
+        }
+
+        return $.grep(studentList, function (item) {
+            return (item.student_name || '').toLowerCase().indexOf(batchFilter) !== -1;
+        });
+    }
+
+    function esReducedMotion() {
+        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
 
     // --- Auto-fill university details on selection -------------------------
     $('#clg_add_select').on('change', function () {
@@ -100,14 +157,15 @@ $(document).ready(function () {
     }
 
     // Loads a row back into the panel and switches it to "update this row".
-    function enterEditMode(idx) {
-        var item = studentList[idx];
+    function enterEditMode(uid) {
+        var idx  = indexOfUid(uid);
+        var item = idx === -1 ? null : studentList[idx];
 
         if (!item) {
             return;
         }
 
-        editingIndex = idx;
+        editingUid = uid;
 
         // The two defaults are shown as blank so the operator sees the same
         // placeholder they typed against, not a value they never entered.
@@ -126,7 +184,7 @@ $(document).ready(function () {
 
     // Back to "add a new candidate".
     function exitEditMode() {
-        editingIndex = null;
+        editingUid = null;
         $('#btn_add_student').html('<i class="fa fa-plus me-1"></i> Add Candidate to List');
         $('#btn_cancel_edit').hide();
         clearEntryPanel(true);
@@ -140,7 +198,8 @@ $(document).ready(function () {
             return;
         }
 
-        if (editingIndex === null) {
+        if (editingUid === null) {
+            record.uid = nextUid();
             studentList.push(record);
             renderStudentTable();
             clearEntryPanel(true);
@@ -149,8 +208,21 @@ $(document).ready(function () {
             return;
         }
 
-        studentList[editingIndex] = record;
+        var editIdx = indexOfUid(editingUid);
+
+        if (editIdx === -1) {
+            // The row was removed while it was being edited.
+            exitEditMode();
+            esNotify('warning', 'That candidate is no longer in the batch');
+            return;
+        }
+
+        record.uid = editingUid;
+        studentList[editIdx] = record;
+
+        var updatedUid = editingUid;
         exitEditMode();
+        flashRow(updatedUid);
         esNotify('success', 'Candidate updated');
     });
 
@@ -370,6 +442,10 @@ $(document).ready(function () {
 
             existing[key] = true;
             queued.push({
+                // Imported rows get a uid like any other. Without one they
+                // would render with an empty data-uid, so selecting, editing or
+                // removing an imported candidate would address nothing.
+                uid:                 nextUid(),
                 student_name:        row.data.student_name,
                 student_nee_name:    row.data.student_nee_name,
                 eligibility_case_no: row.data.eligibility_case_no,
@@ -461,7 +537,7 @@ $(document).ready(function () {
         });
     });
 
-    function renderStudentTable() {
+    function renderStudentTable(animateUids) {
         var tbody = $('#student_batch_table tbody');
         tbody.empty();
 
@@ -469,9 +545,21 @@ $(document).ready(function () {
 
         if (studentList.length === 0) {
             tbody.append(
-                '<tr id="empty_row"><td colspan="7" class="text-center text-muted py-4">' +
+                '<tr id="empty_row"><td colspan="8" class="text-center text-muted py-4">' +
                 'No candidates added to this batch yet.</td></tr>'
             );
+            refreshBatchToolbar();
+            return;
+        }
+
+        var shown = visibleRows();
+
+        if (shown.length === 0) {
+            tbody.append(
+                '<tr id="empty_row"><td colspan="8" class="text-center text-muted py-4">' +
+                'No candidate matches &ldquo;' + esEscapeHtml(batchFilter) + '&rdquo;.</td></tr>'
+            );
+            refreshBatchToolbar();
             return;
         }
 
@@ -479,10 +567,28 @@ $(document).ready(function () {
         // input and were previously concatenated straight into innerHTML,
         // so a candidate name containing markup executed immediately.
         $.each(studentList, function (idx, item) {
-            var rowAttr = (idx === editingIndex) ? ' class="table-active"' : '';
+            // Filtered-out rows are still RENDERED, just hidden. Removing them
+            // from the DOM would drop their checkbox, and a row hidden by a
+            // filter is still selected -- the operator narrowed the view, they
+            // did not deselect anyone.
+            var hidden   = batchFilter !== ''
+                && (item.student_name || '').toLowerCase().indexOf(batchFilter) === -1;
+            var selected = selectedUids.hasOwnProperty(item.uid);
+
+            var classes = [];
+            if (hidden)                { classes.push('es-row-filtered'); }
+            if (selected)              { classes.push('es-row-selected'); }
+            if (item.uid === editingUid) { classes.push('es-row-editing'); }
+            if (animateUids && animateUids[item.uid] && !esReducedMotion()) { classes.push('es-row-in'); }
 
             tbody.append(
-                '<tr' + rowAttr + '>' +
+                '<tr data-uid="' + esEscapeHtml(item.uid) + '"' +
+                    (classes.length ? ' class="' + classes.join(' ') + '"' : '') + '>' +
+                    '<td>' +
+                        '<input type="checkbox" class="form-check-input batch-row-check" ' +
+                               'value="' + esEscapeHtml(item.uid) + '"' + (selected ? ' checked' : '') +
+                               ' aria-label="Select ' + esEscapeHtml(item.student_name) + '">' +
+                    '</td>' +
                     '<td>' + (idx + 1) + '</td>' +
                     '<td class="fw-bold text-dark">' + esEscapeHtml(item.student_name) + '</td>' +
                     '<td>' + esEscapeHtml(item.student_nee_name) + '</td>' +
@@ -491,36 +597,371 @@ $(document).ready(function () {
                     '<td class="small text-muted">' + esEscapeHtml(item.email || '-') + '</td>' +
                     '<td class="text-end text-nowrap">' +
                         '<button type="button" class="btn btn-sm btn-glass text-primary edit-row me-1" ' +
-                                'data-index="' + idx + '" title="Edit candidate">' +
+                                'data-uid="' + esEscapeHtml(item.uid) + '" title="Edit candidate">' +
                             '<i class="fa fa-pencil"></i>' +
                         '</button>' +
                         '<button type="button" class="btn btn-sm btn-glass text-danger remove-row" ' +
-                                'data-index="' + idx + '" title="Remove candidate">' +
+                                'data-uid="' + esEscapeHtml(item.uid) + '" title="Remove candidate">' +
                             '<i class="fa fa-trash"></i>' +
                         '</button>' +
                     '</td>' +
                 '</tr>'
             );
         });
+
+        refreshBatchToolbar();
     }
 
-    $(document).on('click', '.edit-row', function () {
-        enterEditMode($(this).data('index'));
+    // Briefly highlights a row so an update is visible where it happened,
+    // rather than only in a toast at the corner of the screen.
+    function flashRow(uid) {
+        if (esReducedMotion()) {
+            return;
+        }
+
+        var $row = $('#student_batch_table tbody tr[data-uid="' + uid + '"]');
+        $row.addClass('es-row-flash');
+        setTimeout(function () { $row.removeClass('es-row-flash'); }, 950);
+    }
+
+    // Keeps the toolbar honest about what is selected and what is shown.
+    function refreshBatchToolbar() {
+        var selected = selectedUidList();
+        var shown    = visibleRows();
+
+        $('#btn_bulk_edit,#btn_bulk_delete').prop('disabled', selected.length === 0);
+
+        if (selected.length === 0) {
+            $('#batch_selection_badge').hide().text('');
+        } else {
+            $('#batch_selection_badge').show().text(selected.length + ' selected');
+        }
+
+        $('#batch_filter_note').text(
+            batchFilter === ''
+                ? ''
+                : 'Showing ' + shown.length + ' of ' + studentList.length
+        );
+
+        // The master box reflects only the rows currently SHOWN, because that
+        // is what clicking it will act on.
+        var shownSelected = 0;
+        $.each(shown, function (i, item) {
+            if (selectedUids.hasOwnProperty(item.uid)) {
+                shownSelected += 1;
+            }
+        });
+
+        var $all = $('#batch_check_all');
+        $all.prop('checked', shown.length > 0 && shownSelected === shown.length);
+        $all.prop('indeterminate', shownSelected > 0 && shownSelected < shown.length);
+    }
+
+    /* --- Filter ------------------------------------------------------- */
+
+    // Debounced so a fast typist does not repaint the table on every keystroke.
+    var filterTimer = null;
+
+    $('#batch_filter').on('input', function () {
+        var value = $(this).val();
+
+        clearTimeout(filterTimer);
+        filterTimer = setTimeout(function () {
+            batchFilter = $.trim(value).toLowerCase();
+            renderStudentTable();
+        }, 150);
     });
 
-    $(document).on('click', '.remove-row', function () {
-        var idx = $(this).data('index');
+    $('#btn_clear_filter').on('click', function () {
+        $('#batch_filter').val('');
+        batchFilter = '';
+        renderStudentTable();
+        $('#batch_filter').trigger('focus');
+    });
 
-        // Deleting a row shifts every index below it, so an in-progress edit
-        // would then point at the wrong candidate. Leaving edit mode is simpler
-        // and safer than re-mapping the index -- and it only happens when a
-        // delete is clicked mid-edit, which is rare.
-        if (editingIndex !== null) {
+    /* --- Selection ---------------------------------------------------- */
+
+    $(document).on('change', '.batch-row-check', function () {
+        var uid = $(this).val();
+
+        if ($(this).is(':checked')) {
+            selectedUids[uid] = true;
+            $(this).closest('tr').addClass('es-row-selected');
+        } else {
+            delete selectedUids[uid];
+            $(this).closest('tr').removeClass('es-row-selected');
+        }
+
+        refreshBatchToolbar();
+    });
+
+    $('#batch_check_all').on('change', function () {
+        var check = $(this).is(':checked');
+
+        // Acts on the SHOWN rows only. Ticking "select all" while a filter is
+        // active must not quietly select candidates the operator cannot see.
+        $.each(visibleRows(), function (i, item) {
+            if (check) {
+                selectedUids[item.uid] = true;
+            } else {
+                delete selectedUids[item.uid];
+            }
+        });
+
+        renderStudentTable();
+    });
+
+    /* --- Row actions -------------------------------------------------- */
+
+    $(document).on('click', '.edit-row', function () {
+        enterEditMode($(this).data('uid'));
+    });
+
+    // Removes rows with a slide-out, then repaints. Shared by the single-row
+    // trash button and the bulk remove, so both animate identically.
+    function removeRowsByUid(uids) {
+        if (!uids.length) {
+            return;
+        }
+
+        // An edit in progress on a row being removed cannot survive it.
+        if (editingUid !== null && $.inArray(editingUid, uids) !== -1) {
             exitEditMode();
         }
 
-        studentList.splice(idx, 1);
-        renderStudentTable();
+        var $rows = $();
+        $.each(uids, function (i, uid) {
+            delete selectedUids[uid];
+            $rows = $rows.add('#student_batch_table tbody tr[data-uid="' + uid + '"]');
+        });
+
+        function commit() {
+            studentList = $.grep(studentList, function (item) {
+                return $.inArray(item.uid, uids) === -1;
+            });
+
+            renderStudentTable();
+            esNotify('success', uids.length === 1
+                ? 'Candidate removed'
+                : uids.length + ' candidates removed');
+        }
+
+        if (esReducedMotion() || $rows.length === 0) {
+            commit();
+            return;
+        }
+
+        $rows.addClass('es-row-out');
+        setTimeout(commit, 300);   // matches the .28s esRowOut animation
+    }
+
+    $(document).on('click', '.remove-row', function () {
+        var uid  = $(this).data('uid');
+        var idx  = indexOfUid(uid);
+        var item = idx === -1 ? null : studentList[idx];
+
+        if (!item) {
+            return;
+        }
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Remove this candidate?',
+            html: '<strong>' + esEscapeHtml(item.student_name) + '</strong>'
+                  + '<br><span class="text-muted small">' + esEscapeHtml(item.eligibility_case_no) + '</span>'
+                  + '<br><br><span class="text-muted small">It is only removed from this list. '
+                  + 'Nothing has been saved yet.</span>',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove',
+            cancelButtonText: 'Keep it',
+            confirmButtonColor: '#dc3545',
+            reverseButtons: true,
+            focusCancel: true
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                removeRowsByUid([uid]);
+            }
+        });
+    });
+
+    /* --- Bulk remove -------------------------------------------------- */
+
+    $('#btn_bulk_delete').on('click', function () {
+        var uids = selectedUidList();
+
+        if (uids.length === 0) {
+            return;
+        }
+
+        var names = $.map(uids.slice(0, 5), function (uid) {
+            var idx = indexOfUid(uid);
+            return idx === -1 ? null : esEscapeHtml(studentList[idx].student_name);
+        }).join('<br>');
+
+        var more = uids.length > 5 ? '<br><span class="text-muted small">and ' + (uids.length - 5) + ' more</span>' : '';
+
+        Swal.fire({
+            icon: 'warning',
+            title: 'Remove ' + uids.length + ' candidate' + (uids.length === 1 ? '' : 's') + '?',
+            html: names + more
+                  + '<br><br><span class="text-muted small">They are only removed from this list. '
+                  + 'Nothing has been saved yet.</span>',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, remove ' + uids.length,
+            cancelButtonText: 'Keep them',
+            confirmButtonColor: '#dc3545',
+            reverseButtons: true,
+            focusCancel: true
+        }).then(function (result) {
+            if (result.isConfirmed) {
+                removeRowsByUid(uids);
+            }
+        });
+    });
+
+    /* --- Bulk update -------------------------------------------------- */
+
+    // Each field is written ONLY when its own box is ticked, so an untouched
+    // blank input can never wipe a field across every selected candidate.
+    $(document).on('change', '.bulk-apply', function () {
+        var $input = $('#' + $(this).data('target'));
+        $input.prop('disabled', !$(this).is(':checked'));
+
+        if ($(this).is(':checked')) {
+            $input.trigger('focus');
+        }
+    });
+
+    $('#btn_bulk_edit').on('click', function () {
+        var uids = selectedUidList();
+
+        if (uids.length === 0) {
+            return;
+        }
+
+        $('.bulk-apply').prop('checked', false).trigger('change');
+        $('#bulk_nee, #bulk_verify, #bulk_email').val('');
+
+        $('#bulk_edit_intro').html(
+            '<i class="fa fa-users me-1"></i> Changing <strong>' + uids.length +
+            '</strong> selected candidate' + (uids.length === 1 ? '' : 's') + '.'
+        );
+
+        var $body = $('#bulk_edit_preview tbody').empty();
+
+        $.each(uids, function (i, uid) {
+            var idx = indexOfUid(uid);
+
+            if (idx === -1) {
+                return;
+            }
+
+            var item = studentList[idx];
+
+            $body.append(
+                '<tr>' +
+                    '<td class="text-muted small">' + (i + 1) + '</td>' +
+                    '<td>' + esEscapeHtml(item.student_name) + '</td>' +
+                    '<td class="small text-muted">' + esEscapeHtml(item.eligibility_case_no) + '</td>' +
+                '</tr>'
+            );
+        });
+
+        new bootstrap.Modal(document.getElementById('bulkEditModal')).show();
+    });
+
+    $('#btn_bulk_apply').on('click', function () {
+        var uids = selectedUidList();
+
+        if (uids.length === 0) {
+            return;
+        }
+
+        var changes = {};
+
+        if ($('#bulk_apply_nee').is(':checked')) {
+            changes.student_nee_name = $('#bulk_nee').val().trim() || '-';
+        }
+
+        if ($('#bulk_apply_verify').is(':checked')) {
+            changes.verification_by_you = $('#bulk_verify').val().trim() || 'Marksheet Verification';
+        }
+
+        if ($('#bulk_apply_email').is(':checked')) {
+            var email = $('#bulk_email').val().trim();
+
+            if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Email looks incorrect',
+                    text: 'Leave it blank to clear the address, or enter a valid one.'
+                });
+                return;
+            }
+
+            changes.email = email;
+        }
+
+        if ($.isEmptyObject(changes)) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Nothing to change',
+                text: 'Tick at least one field to apply.'
+            });
+            return;
+        }
+
+        var summary = $.map(changes, function (value, key) {
+            var label = key === 'student_nee_name' ? 'Nee / maiden name'
+                      : key === 'verification_by_you' ? 'Verification remarks'
+                      : 'Email';
+
+            return '<li>' + label + ' &rarr; <strong>' +
+                   esEscapeHtml(value === '' ? '(cleared)' : value) + '</strong></li>';
+        }).join('');
+
+        Swal.fire({
+            icon: 'question',
+            title: 'Apply to ' + uids.length + ' candidate' + (uids.length === 1 ? '' : 's') + '?',
+            html: '<ul class="text-start small mb-0">' + summary + '</ul>',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, apply',
+            cancelButtonText: 'Back',
+            reverseButtons: true
+        }).then(function (result) {
+            if (!result.isConfirmed) {
+                return;
+            }
+
+            var applied = 0;
+
+            $.each(uids, function (i, uid) {
+                var idx = indexOfUid(uid);
+
+                if (idx === -1) {
+                    return;
+                }
+
+                $.each(changes, function (key, value) {
+                    studentList[idx][key] = value;
+                });
+
+                applied += 1;
+            });
+
+            var modal = bootstrap.Modal.getInstance(document.getElementById('bulkEditModal'));
+
+            if (modal) {
+                modal.hide();
+            }
+
+            renderStudentTable();
+
+            // Flash each changed row so the effect is visible in the table.
+            $.each(uids, function (i, uid) { flashRow(uid); });
+
+            esNotify('success', applied + ' candidate' + (applied === 1 ? '' : 's') + ' updated');
+        });
     });
 
     // --- Save batch and generate the dispatch letter -----------------------
@@ -534,14 +975,20 @@ $(document).ready(function () {
         // letter would go out wrong. So commit the panel now; if it does not
         // validate, collectEntryPanel() has already said why and the save is
         // held until the operator fixes or cancels the edit.
-        if (editingIndex !== null) {
+        if (editingUid !== null) {
             var openEdit = collectEntryPanel();
 
             if (openEdit === null) {
                 return;
             }
 
-            studentList[editingIndex] = openEdit;
+            var openIdx = indexOfUid(editingUid);
+
+            if (openIdx !== -1) {
+                openEdit.uid = editingUid;
+                studentList[openIdx] = openEdit;
+            }
+
             exitEditMode();
         }
 
@@ -566,7 +1013,19 @@ $(document).ready(function () {
             admission_taken_year: $('#admission_taken_year').val(),
             admission_taken_in:   $('#admission_taken_in').val(),
             in_favour_of:         $('#In_Favour_of').val(),
-            students:             studentList
+            // uid is client-side row identity and has no business on the wire.
+            // storeCandidateBatch() builds its insert from named keys so an
+            // extra one is harmless, but sending it invites a future reader to
+            // treat it as meaningful.
+            students:             $.map(studentList, function (item) {
+                return {
+                    student_name:        item.student_name,
+                    student_nee_name:    item.student_nee_name,
+                    eligibility_case_no: item.eligibility_case_no,
+                    verification_by_you: item.verification_by_you,
+                    email:               item.email
+                };
+            })
         };
 
         if (window.Swal) {

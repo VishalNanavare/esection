@@ -1,6 +1,73 @@
 <?= $this->extend('layouts/app') ?>
 
 <?= $this->section('content') ?>
+<?php /*
+  Batch-table behaviour and motion.
+
+  Inline <style> is fine here: Config\ContentSecurityPolicy allows
+  'unsafe-inline' for styleSrc, and this belongs to one screen rather than the
+  global stylesheet.
+
+  Every animation is wrapped so it disappears under prefers-reduced-motion --
+  a row sliding out is decoration, and for someone with vestibular sensitivity
+  it is not a neutral one.
+*/ ?>
+<style>
+    /* Ten rows, then scroll. Measured against this table's own row height so
+       it holds ten whatever the font settings, and the header stays put. */
+    #student_batch_scroll {
+        max-height: calc(10 * 3.25rem + 3rem);
+        overflow-y: auto;
+        overflow-x: auto;
+    }
+
+    #student_batch_table thead th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        background: var(--es-surface, #fff);
+    }
+
+    /* Selected rows read as selected without relying on colour alone. */
+    #student_batch_table tbody tr.es-row-selected {
+        background: rgba(99, 102, 241, .08);
+        box-shadow: inset 3px 0 0 0 rgb(99, 102, 241);
+    }
+
+    #student_batch_table tbody tr.es-row-editing {
+        background: rgba(16, 185, 129, .10);
+        box-shadow: inset 3px 0 0 0 rgb(16, 185, 129);
+    }
+
+    @keyframes esRowIn {
+        from { opacity: 0; transform: translateY(-.4rem); }
+        to   { opacity: 1; transform: none; }
+    }
+
+    @keyframes esRowOut {
+        from { opacity: 1; transform: none; }
+        to   { opacity: 0; transform: translateX(2rem); }
+    }
+
+    @keyframes esRowFlash {
+        0%   { background: rgba(16, 185, 129, .35); }
+        100% { background: transparent; }
+    }
+
+    .es-row-in    { animation: esRowIn .22s ease-out both; }
+    .es-row-out   { animation: esRowOut .28s ease-in both; }
+    .es-row-flash { animation: esRowFlash .9s ease-out both; }
+
+    /* A row hidden by the filter, rather than removed -- keeps selection and
+       indices intact while the operator narrows the list. */
+    #student_batch_table tbody tr.es-row-filtered { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .es-row-in, .es-row-out, .es-row-flash { animation: none !important; }
+    }
+</style>
+
+
 <div class="row">
     <div class="col-12">
         <div class="glass-card p-4 mb-4">
@@ -93,10 +160,39 @@
             </div>
 
             <!-- Candidate Batch Table -->
-            <div class="table-responsive mb-4">
-                <table class="table table-glass table-sticky-id" id="student_batch_table">
+            <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between mb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="input-group input-group-sm" style="max-width: 20rem;">
+                        <span class="input-group-text"><i class="fa fa-search"></i></span>
+                        <input type="search" class="form-control" id="batch_filter"
+                               placeholder="Filter by candidate name..." autocomplete="off"
+                               aria-label="Filter the batch list by candidate name">
+                        <button class="btn btn-glass" type="button" id="btn_clear_filter" title="Clear filter">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    </div>
+                    <span class="text-muted small" id="batch_filter_note"></span>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge badge-glass-indigo" id="batch_selection_badge" style="display:none;"></span>
+                    <button type="button" class="btn btn-sm btn-glass text-primary" id="btn_bulk_edit" disabled>
+                        <i class="fa fa-pencil-square-o me-1"></i> Bulk Update
+                    </button>
+                    <button type="button" class="btn btn-sm btn-glass text-danger" id="btn_bulk_delete" disabled>
+                        <i class="fa fa-trash me-1"></i> Remove Selected
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-responsive mb-4" id="student_batch_scroll">
+                <table class="table table-glass table-sticky-id mb-0" id="student_batch_table">
                     <thead>
                         <tr>
+                            <th style="width:2.5rem;">
+                                <input type="checkbox" class="form-check-input" id="batch_check_all"
+                                       title="Select all shown" aria-label="Select all shown candidates">
+                            </th>
                             <th class="col-sr">#</th>
                             <th>Student Full Name</th>
                             <th>Nee / Maiden Name</th>
@@ -108,7 +204,7 @@
                     </thead>
                     <tbody>
                         <tr id="empty_row">
-                            <td colspan="7" class="text-center text-muted py-4">No candidates added to this batch yet. Use the form above to add students.</td>
+                            <td colspan="8" class="text-center text-muted py-4">No candidates added to this batch yet. Use the form above to add students.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -136,7 +232,7 @@
   same path a typed batch uses.
 -->
 <div class="modal fade" id="candidateSheetModal" tabindex="-1" aria-labelledby="candidateSheetLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="candidateSheetLabel">
@@ -145,7 +241,9 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
 
-            <div class="modal-body">
+            <?php /* Capped so the dialog cannot grow with the file: the body
+                     scrolls instead of the window. */ ?>
+            <div class="modal-body" style="max-height:70vh; overflow-y:auto;">
                 <!-- Step 1 -->
                 <div id="sheet_step_pick">
                     <p class="text-muted small">
@@ -215,7 +313,7 @@
 
                     <div class="alert alert-warning py-2 small" id="sheet_truncated_note" style="display:none;"></div>
 
-                    <div class="table-responsive" style="max-height:52vh;">
+                    <div class="table-responsive" style="max-height:46vh; overflow-y:auto;">
                         <table class="table table-sm table-glass table-sticky-id mb-0" id="sheet_preview_table">
                             <thead>
                                 <tr>
@@ -241,6 +339,92 @@
                 <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-emerald" id="btn_sheet_add" disabled>
                     <i class="fa fa-plus me-1"></i> Add Selected to List
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<?php /*
+  Bulk Update.
+
+  Deliberately field-by-field opt-in: each field is only written to the
+  selected candidates when its own "apply" box is ticked. A blank box that was
+  not ticked must never blank out ten people's data -- which is exactly what a
+  naive "edit these together" form does.
+*/ ?>
+<div class="modal fade" id="bulkEditModal" tabindex="-1" aria-labelledby="bulkEditLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="bulkEditLabel">
+                    <i class="fa fa-pencil-square-o me-2 text-primary"></i>Bulk Update Candidates
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body" style="max-height:65vh; overflow-y:auto;">
+                <div class="alert alert-glass py-2 small mb-3" id="bulk_edit_intro"></div>
+
+                <p class="text-muted small">
+                    Tick a field to change it. Anything left unticked is kept exactly as it is
+                    on every selected candidate.
+                </p>
+
+                <div class="row g-3">
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-apply" type="checkbox" id="bulk_apply_nee" data-target="bulk_nee">
+                            <label class="form-check-label fw-semibold" for="bulk_apply_nee">Nee / Maiden Name</label>
+                        </div>
+                        <input type="text" class="form-control mt-1" id="bulk_nee" disabled
+                               placeholder="Leave blank to set it to '-'">
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-apply" type="checkbox" id="bulk_apply_verify" data-target="bulk_verify">
+                            <label class="form-check-label fw-semibold" for="bulk_apply_verify">Verification Remarks</label>
+                        </div>
+                        <input type="text" class="form-control mt-1" id="bulk_verify" disabled
+                               placeholder="Leave blank to set it to 'Marksheet Verification'">
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-check">
+                            <input class="form-check-input bulk-apply" type="checkbox" id="bulk_apply_email" data-target="bulk_email">
+                            <label class="form-check-label fw-semibold" for="bulk_apply_email">Email</label>
+                        </div>
+                        <input type="email" class="form-control mt-1" id="bulk_email" disabled
+                               placeholder="Leave blank to clear the email on every selected candidate">
+                    </div>
+                </div>
+
+                <?php /* Name and case number are per-candidate identity, so they
+                         are NOT offered here -- setting ten people to one name or
+                         one case number is never the intent, and the case number
+                         is what the dispatch letter is keyed on. */ ?>
+                <p class="text-muted small mt-3 mb-0">
+                    <i class="fa fa-info-circle me-1"></i>
+                    Candidate name and eligibility case number are edited one at a time,
+                    with the pencil on each row -- they identify the candidate.
+                </p>
+
+                <div class="table-responsive mt-3" style="max-height:28vh; overflow-y:auto;">
+                    <table class="table table-sm table-glass mb-0" id="bulk_edit_preview">
+                        <thead>
+                            <tr><th>#</th><th>Candidate</th><th>Case no.</th></tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="btn_bulk_apply">
+                    <i class="fa fa-check me-1"></i> Apply to Selected
                 </button>
             </div>
         </div>
