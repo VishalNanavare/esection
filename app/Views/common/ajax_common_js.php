@@ -765,6 +765,7 @@
        navigated away from.
        -------------------------------------------------------------------- */
     var $progress = null;
+    var progressTimer = null;
 
     function progressBar() {
         if ($progress === null) {
@@ -794,66 +795,41 @@
         }, esMotionMs('--es-dur-base', 300));
     }
 
-    /* --- Knowing when we did NOT leave ------------------------------------
-       The page fading out is a promise that something else is arriving. When
-       that turns out to be false the interface is left blank and unusable
-       until a manual refresh, which is exactly what happened here: clicking
-       Logout faded the page, the confirmation dialog cancelled the navigation,
-       and the faded page stayed.
+    /* --- Navigation feedback ----------------------------------------------
+       The progress bar, and ONLY the progress bar.
 
-       Three independent guards, because the list of ways a click can fail to
-       navigate is not one anybody enumerates correctly up front:
+       There used to be a page fade-out here as well: clicking a link dropped
+       the current page to opacity 0 on the promise that another was arriving.
+       When that promise turned out to be false the screen was left blank and
+       unusable until a manual refresh.
 
-         1. the click was cancelled       preventDefault by another handler
-         2. it was never a navigation     download, new tab, fragment, modal
-         3. it just did not happen        anything else at all
+       It was guarded twice -- first for cancelled clicks (the logout
+       confirmation), then for downloads and a pagehide watchdog -- and it
+       stranded the interface a third time anyway, because once beforeunload
+       had fired the watchdog stood down, and a navigation that then failed or
+       was cancelled left the fade in place with nothing to undo it.
 
-       (3) is the one that matters. pagehide fires when the browser really is
-       tearing the page down, so if it has NOT fired shortly after a click, we
-       know we are still here and can put everything back. That covers the
-       cases nobody predicted, including a file download, a cancelled
-       beforeunload prompt, or a server that never answers.
+       The list of ways a navigation can fail to complete is not enumerable,
+       and the fade bought roughly 300ms of cosmetics on a page that was about
+       to be replaced regardless. Removed rather than guarded a fourth time.
+
+       What remains cannot strand anything: a 3px bar that is only ever added
+       on top, so the worst case is a bar that lingers, not a page nobody can
+       read.
        -------------------------------------------------------------------- */
-    var leavingTimer = null;
-    var reallyLeaving = false;
-
-    $(window).on('pagehide beforeunload', function () {
-        reallyLeaving = true;
-    });
-
-    function abandonLeaving() {
-        $('body').removeClass('es-leaving');
-        esProgressDone();
-    }
-
-    function beginLeaving() {
-        esProgressStart();
-        $('body').addClass('es-leaving');
-
-        clearTimeout(leavingTimer);
-
-        // Long enough not to fight a slow but genuine navigation; short enough
-        // that a dead click is corrected before anyone reaches for refresh.
-        leavingTimer = setTimeout(function () {
-            if (!reallyLeaving) {
-                abandonLeaving();
-            }
-        }, 1600);
-    }
 
     $(document).on('click', 'a[href]', function (e) {
         var $link = $(this);
         var href  = $link.attr('href') || '';
 
-        // GUARD 1 -- another handler cancelled it. This delegated handler runs
-        // after handlers bound to the element itself, so a preventDefault from
-        // the logout confirmation has already been recorded by the time we get
-        // here.
+        // Cancelled by another handler -- a confirmation dialog, most often.
+        // This is delegated on document, so handlers bound to the element have
+        // already run and recorded it.
         if (e.isDefaultPrevented()) {
             return;
         }
 
-        // GUARD 2 -- never a navigation of this page to begin with.
+        // Never a navigation of this page to begin with.
         if (e.which > 1 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
             return;
         }
@@ -866,52 +842,41 @@
             return;
         }
 
-        // A file download leaves the page exactly where it is. These are
-        // recognisable by route, and they are the other half of the reported
-        // problem -- an export faded the screen and never came back.
-        if (/\/(export|template|pdf|backup|download)(\/|\?|$)/i.test(href)) {
-            esProgressStart();
-            clearTimeout(leavingTimer);
-            leavingTimer = setTimeout(abandonLeaving, 1600);
-            return;
-        }
+        esProgressStart();
 
-        beginLeaving();
+        // A download leaves the page where it is, so nothing will ever clear
+        // the bar; retire it on a timer instead. Same for any navigation that
+        // simply does not happen.
+        clearTimeout(progressTimer);
+        progressTimer = setTimeout(esProgressDone, 4000);
     });
 
     $(document).on('submit', 'form', function (e) {
-        // Same reasoning as the link guard: a submit that validation or a
-        // confirmation dialog has cancelled is not a submit.
         if (e.isDefaultPrevented() || $(this).is('[target], [data-no-progress]')) {
             return;
         }
 
         esProgressStart();
 
-        clearTimeout(leavingTimer);
-        leavingTimer = setTimeout(function () {
-            if (!reallyLeaving) {
-                abandonLeaving();
-            }
-        }, 1600);
+        clearTimeout(progressTimer);
+        progressTimer = setTimeout(esProgressDone, 4000);
     });
 
-    /* Restored from the back/forward cache still mid-transition, so the page
-       would otherwise reappear faded out and half-navigated. */
     $(window).on('pageshow', function (event) {
-        reallyLeaving = false;
-        clearTimeout(leavingTimer);
-        abandonLeaving();
+        clearTimeout(progressTimer);
+        esProgressDone();
 
         if (event.originalEvent && event.originalEvent.persisted && $progress !== null) {
             $progress.removeClass('es-progress--on es-progress--done').css('width', 0);
         }
     });
 
-    /* A dialog opening over the page is a strong signal the click that opened
-       it was not a navigation -- clear the transition immediately rather than
-       waiting for the timer. */
-    $(document).on('show.bs.modal', abandonLeaving);
+    // A dialog opening over the page means the click that opened it was not a
+    // navigation -- clear the bar now rather than waiting for the timer.
+    $(document).on('show.bs.modal', function () {
+        clearTimeout(progressTimer);
+        esProgressDone();
+    });
 
     window.esMotionMs      = esMotionMs;
     window.esReducedMotion = esReducedMotion;

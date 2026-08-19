@@ -1137,6 +1137,29 @@ h1, h2, h3, h4, h5, h6 {
     to   { opacity: 0; visibility: hidden; }
 }
 
+/* Hard stop, independent of the animation above.
+   ------------------------------------------------------------------------
+   The animation is what normally retires the splash, and it needs no
+   JavaScript. This is the belt to that braces: after 3 seconds the element is
+   collapsed to nothing regardless of whether the animation ran, was
+   interrupted, or never started because the stylesheet loaded oddly.
+
+   A splash that fails to leave is a blank screen with the whole application
+   behind it, so it gets two independent ways out rather than one. */
+#es-splash {
+    animation:
+        esSplashOut var(--es-dur-slower) var(--es-ease) 900ms forwards,
+        esSplashKill 1ms linear 3s forwards;
+}
+
+@keyframes esSplashKill {
+    to {
+        opacity: 0;
+        visibility: hidden;
+        display: none;
+    }
+}
+
 .es-splash__stage {
     display: flex;
     flex-direction: column;
@@ -1297,19 +1320,16 @@ h1, h2, h3, h4, h5, h6 {
 #es-progress.es-progress--on  { opacity: 1; width: 82%; }
 #es-progress.es-progress--done { opacity: 0; width: 100%; }
 
-/* --- Leaving the page -----------------------------------------------------
-   A short fade on the way out, so logging out (or any navigation) reads as a
-   transition rather than a blink. Kept well under the time a real request
-   takes, so it never adds perceptible delay.
-   ------------------------------------------------------------------------ */
-body.es-leaving #wrapper,
-body.es-leaving > .container,
-body.es-leaving > .container-fluid {
-    opacity: 0;
-    transform: translateY(-6px);
-    transition: opacity var(--es-dur-base) var(--es-ease),
-                transform var(--es-dur-base) var(--es-ease);
-}
+/* The page fade-out that used to live here has been removed.
+
+   It dropped the current page to opacity 0 when a link was clicked, on the
+   promise that another page was arriving. Every time that promise was false --
+   a cancelled confirmation, a file download, a navigation that failed -- the
+   screen was left blank until someone refreshed. It was guarded three times
+   and stranded the interface anyway.
+
+   Navigation feedback is the #es-progress bar alone, which is only ever added
+   on top of the page and so cannot hide it. */
 
 /* --- Shared element motion ------------------------------------------------
    Used by the batch table and available to any other list. Defined once here
@@ -1366,8 +1386,7 @@ body.es-leaving > .container-fluid {
         animation: none !important;
     }
 
-    #es-progress,
-    body.es-leaving #wrapper {
+    #es-progress {
         transition: none !important;
     }
 }
