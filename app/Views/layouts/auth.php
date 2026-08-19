@@ -48,6 +48,10 @@
     <!-- Offline JS Assets -->
     <script src="<?= asset_url('assets/js/jquery.min.js') ?>"></script>
     <script src="<?= asset_url('assets/js/bootstrap.bundle.min.js') ?>"></script>
+    <?php // Dependency-free (jQuery only) -- this layout deliberately carries
+          // no Select2/SweetAlert, so it cannot include ajax_common_js. Without
+          // this, pressing Sign In gave no feedback at all. ?>
+    <?= $this->include('common/es_form_motion_js') ?>
     <?= $this->renderSection('scripts') ?>
 </body>
 </html>

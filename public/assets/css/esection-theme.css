@@ -1291,3 +1291,51 @@ body.es-leaving > .container-fluid {
         transition: none !important;
     }
 }
+
+/* --- Busy submit button ---------------------------------------------------
+   Applied by common/es_form_motion_js while a form is in flight. The spinner
+   replaces the button's leading icon rather than being appended, so the label
+   stays put and the button does not change size.
+   ------------------------------------------------------------------------ */
+.es-btn-busy {
+    position: relative;
+    cursor: progress;
+    pointer-events: none;
+}
+
+.es-btn-busy > i,
+.es-btn-busy > .fa {
+    visibility: hidden;
+}
+
+.es-btn-busy::before {
+    content: "";
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    width: 0.95rem;
+    height: 0.95rem;
+    margin-top: -0.475rem;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    opacity: 0.9;
+    animation: esSpin 620ms linear infinite;
+}
+
+/* A button with no icon has nothing to hide behind, so the spinner sits after
+   the label instead of over it. */
+.es-btn-busy.es-btn-busy--trailing::before {
+    left: auto;
+    right: 0.9rem;
+}
+
+@keyframes esSpin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .es-btn-busy::before {
+        animation-duration: 1.6s;
+    }
+}
