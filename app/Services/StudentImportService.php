@@ -300,6 +300,14 @@ class StudentImportService
             $iterated    = 0;
             $foundSheet  = false;
 
+            // A rejection is REMEMBERED and thrown only after the reader closes,
+            // never mid-iteration. Throwing (or breaking) out of OpenSpout's row
+            // iterator leaves the workbook's file handle open even after close()
+            // on this host -- the temp file stays locked and undeletable. So the
+            // loop always drains to EOF (bounded by the zip guard's uncompressed
+            // cap) and the throw is deferred.
+            $fatal = null;
+
             foreach ($reader->getSheetIterator() as $sheet) {
                 // Files often lead with an "Instructions" or hidden lookup
                 // sheet, so take the first VISIBLE one rather than index 0.
@@ -311,10 +319,13 @@ class StudentImportService
                 $sheetName  = $sheet->getName();
 
                 foreach ($sheet->getRowIterator() as $rowIndex => $row) {
+                    if ($fatal !== null) {
+                        continue; // keep draining, do no more work
+                    }
+
                     if (++$iterated > self::PARSE_ROW_CAP) {
-                        throw new \InvalidArgumentException(
-                            'The sheet has content far below the last candidate row. Delete the empty rows below your data and save again.'
-                        );
+                        $fatal = 'The sheet has content far below the last candidate row. Delete the empty rows below your data and save again.';
+                        continue;
                     }
 
                     if ($row->isEmpty()) {
@@ -324,7 +335,8 @@ class StudentImportService
                     $cells = $row->cells;
 
                     if (count($cells) > self::MAX_COLUMNS) {
-                        throw new \InvalidArgumentException('The sheet declares an unreasonable number of columns and was not read.');
+                        $fatal = 'The sheet declares an unreasonable number of columns and was not read.';
+                        continue;
                     }
 
                     if ($headerMap === []) {
@@ -348,6 +360,10 @@ class StudentImportService
                 }
 
                 break;
+            }
+
+            if ($fatal !== null) {
+                throw new \InvalidArgumentException($fatal);
             }
 
             if (! $foundSheet) {
