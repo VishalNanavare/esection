@@ -15,6 +15,35 @@
    ========================================================================== */
 
 :root {
+    /* ----------------------------------------------------------------------
+       Motion.
+
+       One scale, used by everything. Durations were previously written inline
+       at each rule -- 0.15s here, 0.2s there, 0.35s somewhere else -- which is
+       why the interface felt abrupt and inconsistent: nothing shared a rhythm.
+
+       These are deliberately slower than the values they replace. Interface
+       motion reads as "smooth" when the eye can follow it; under about 200ms a
+       transition registers as a jump rather than a movement.
+
+           swift   hover and focus, where a delay would feel laggy
+           base    the default for colour, border and small state changes
+           slow    things that move or resize -- rows, panels, drawers
+           slower  whole-view changes: page reveal, splash, overlays
+
+       --es-ease is a gentle decelerate: quick to start, settling softly, which
+       reads as physical rather than mechanical. --es-ease-in-out is for things
+       that travel and stop, like a drawer.
+
+       Tune the whole application from these six lines.
+       ---------------------------------------------------------------------- */
+    --es-dur-swift: 180ms;
+    --es-dur-base: 300ms;
+    --es-dur-slow: 480ms;
+    --es-dur-slower: 720ms;
+    --es-ease: cubic-bezier(0.16, 1, 0.3, 1);
+    --es-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
     --bg-primary: #f8fafc;
     --bg-secondary: #f1f5f9;
     --bg-card: #ffffff;
@@ -176,7 +205,7 @@ body {
                          such as a Select2 dropdown opened inside a cell */
 @media (prefers-reduced-motion: no-preference) {
     .glass-card {
-        animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        animation: slideUp var(--es-dur-slower) var(--es-ease) forwards;
     }
 }
 
@@ -211,7 +240,8 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--border-card);
     border-radius: 0.85rem;
     box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06), 0 2px 6px -1px rgba(15, 23, 42, 0.03);
-    transition: border-color 0.25s ease-in-out, box-shadow 0.25s ease-in-out;
+    transition: border-color var(--es-dur-base) var(--es-ease),
+                box-shadow var(--es-dur-base) var(--es-ease);
 }
 
 .glass-card:hover {
@@ -354,7 +384,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0.6rem 1.4rem;
     font-weight: 600;
     box-shadow: 0 4px 12px 0 var(--accent-indigo-glow);
-    transition: all 0.2s ease;
+    transition: all var(--es-dur-base) var(--es-ease);
 }
 
 .btn-indigo:hover {
@@ -371,7 +401,7 @@ h1, h2, h3, h4, h5, h6 {
     padding: 0.6rem 1.4rem;
     font-weight: 600;
     box-shadow: 0 4px 12px 0 var(--accent-emerald-glow);
-    transition: all 0.2s ease;
+    transition: all var(--es-dur-base) var(--es-ease);
 }
 
 .btn-emerald:hover {
@@ -387,7 +417,7 @@ h1, h2, h3, h4, h5, h6 {
     border-radius: 0.5rem;
     padding: 0.5rem 1.2rem;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all var(--es-dur-base) var(--es-ease);
 }
 
 .btn-glass:hover {
@@ -413,7 +443,8 @@ h1, h2, h3, h4, h5, h6 {
     color: #0f172a !important;
     border-radius: 0.5rem;
     padding: 0.65rem 1rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color var(--es-dur-base) var(--es-ease),
+                box-shadow var(--es-dur-base) var(--es-ease);
 }
 
 /* Validation state has to be re-asserted with !important, because the base
@@ -591,7 +622,8 @@ h1, h2, h3, h4, h5, h6 {
     background: #ffffff;
     border: 1px solid #cbd5e1;
     border-radius: 0.5rem;
-    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    transition: border-color var(--es-dur-base) var(--es-ease),
+                box-shadow var(--es-dur-base) var(--es-ease);
 }
 
 .select2-container--default .select2-selection--single .select2-selection__rendered {
@@ -778,7 +810,8 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-muted);
     line-height: 1;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color var(--es-dur-base) var(--es-ease),
+                color var(--es-dur-base) var(--es-ease);
 }
 
 .es-search__clear:hover {
@@ -820,7 +853,7 @@ h1, h2, h3, h4, h5, h6 {
 .confirmation-row-highlight {
     background-color: var(--accent-amber-light) !important;
     box-shadow: inset 3px 0 0 0 var(--accent-amber);
-    transition: background-color 0.3s ease;
+    transition: background-color var(--es-dur-slow) var(--es-ease);
 }
 
 /* ==========================================================================
@@ -881,7 +914,9 @@ h1, h2, h3, h4, h5, h6 {
     line-height: 1.4;
     cursor: pointer;
     user-select: none;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition: background-color var(--es-dur-base) var(--es-ease),
+                border-color var(--es-dur-base) var(--es-ease),
+                color var(--es-dur-base) var(--es-ease);
 }
 
 .permission-chip:hover {
@@ -893,7 +928,8 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 0.7rem;
     opacity: 0;
     transform: scale(0.6);
-    transition: opacity 0.15s ease, transform 0.15s ease;
+    transition: opacity var(--es-dur-base) var(--es-ease),
+                transform var(--es-dur-base) var(--es-ease);
 }
 
 .permission-chip__input:checked + .permission-chip {
@@ -1043,5 +1079,215 @@ h1, h2, h3, h4, h5, h6 {
     .user-modal__aside {
         border-right: 0;
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    }
+}
+
+/* ==========================================================================
+   Application motion
+   --------------------------------------------------------------------------
+   Splash, page reveal, navigation progress and the shared row/element
+   animations. Everything here obeys prefers-reduced-motion at the bottom of
+   the block.
+   ========================================================================== */
+
+/* --- Splash ---------------------------------------------------------------
+   A splash screen used to exist here and was removed for two good reasons,
+   both recorded in layouts/app.php: its only removal path was a jQuery load
+   handler, so any JS error above it trapped the whole app behind an opaque
+   overlay with no recovery; and on a server-rendered multi-page app it added
+   dead time to every single navigation.
+
+   This one cannot do either.
+
+   It is removed by a CSS animation with animation-fill-mode: forwards and NO
+   JavaScript whatsoever. If every script on the page fails to parse, the
+   splash still fades and still stops intercepting clicks, because the browser
+   runs the animation regardless. pointer-events is dropped at the start of the
+   fade rather than the end, so the interface is usable while it finishes.
+
+   And it is scoped to the auth layout -- the moment the app is entered -- not
+   to every page load, so it never costs a navigation anything.
+   ------------------------------------------------------------------------ */
+#es-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    background: linear-gradient(160deg, #ffffff 0%, var(--bg-secondary) 100%);
+    animation: esSplashOut var(--es-dur-slower) var(--es-ease) 600ms forwards;
+}
+
+@keyframes esSplashOut {
+    from { opacity: 1; }
+    to   { opacity: 0; visibility: hidden; }
+}
+
+/* Released as the fade STARTS, so nothing is ever blocked by a pane that is
+   already invisible. */
+#es-splash { pointer-events: none; }
+
+.es-splash__mark {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1.25rem;
+    background: var(--accent-indigo-light);
+    border: 1px solid #c7d2fe;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent-indigo);
+    font-size: 1.6rem;
+    animation: esSplashPulse 1.4s var(--es-ease-in-out) infinite;
+}
+
+@keyframes esSplashPulse {
+    0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 var(--accent-indigo-glow); }
+    50%      { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(79, 70, 229, 0); }
+}
+
+.es-splash__bar {
+    width: 11rem;
+    height: 3px;
+    border-radius: 999px;
+    background: var(--border-card);
+    overflow: hidden;
+}
+
+.es-splash__bar::after {
+    content: "";
+    display: block;
+    width: 40%;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--accent-indigo);
+    animation: esSplashSlide 1.1s var(--es-ease-in-out) infinite;
+}
+
+@keyframes esSplashSlide {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(320%); }
+}
+
+/* --- Page reveal ----------------------------------------------------------
+   Every screen's content settles in rather than snapping. This is NOT an
+   overlay: nothing is covered and nothing has to be dismissed, so it cannot
+   trap the interface the way the old splash could.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: no-preference) {
+    .page-body > * {
+        animation: esPageIn var(--es-dur-slower) var(--es-ease) both;
+    }
+
+    /* A gentle stagger so a stack of cards arrives in sequence rather than
+       all at once -- the thing that makes an interface feel composed. Capped
+       at four; beyond that the last card would feel late. */
+    .page-body > *:nth-child(1) { animation-delay: 0ms; }
+    .page-body > *:nth-child(2) { animation-delay: 70ms; }
+    .page-body > *:nth-child(3) { animation-delay: 140ms; }
+    .page-body > *:nth-child(n+4) { animation-delay: 210ms; }
+}
+
+@keyframes esPageIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: none; }
+}
+
+/* --- Navigation progress --------------------------------------------------
+   A slim bar across the top while the next page is being fetched. This is the
+   honest version of a loading screen on a multi-page app: it appears only when
+   the browser is ACTUALLY waiting, and it costs nothing when it is not.
+
+   It never blocks input, so a slow response can still be cancelled or
+   navigated away from.
+   ------------------------------------------------------------------------ */
+#es-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    width: 0;
+    z-index: 10000;
+    background: linear-gradient(90deg, var(--accent-indigo), var(--accent-cyan));
+    box-shadow: 0 0 10px var(--accent-indigo-glow);
+    opacity: 0;
+    pointer-events: none;
+    transition: width var(--es-dur-slower) var(--es-ease),
+                opacity var(--es-dur-base) var(--es-ease);
+}
+
+#es-progress.es-progress--on  { opacity: 1; width: 82%; }
+#es-progress.es-progress--done { opacity: 0; width: 100%; }
+
+/* --- Leaving the page -----------------------------------------------------
+   A short fade on the way out, so logging out (or any navigation) reads as a
+   transition rather than a blink. Kept well under the time a real request
+   takes, so it never adds perceptible delay.
+   ------------------------------------------------------------------------ */
+body.es-leaving #wrapper,
+body.es-leaving > .container,
+body.es-leaving > .container-fluid {
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity var(--es-dur-base) var(--es-ease),
+                transform var(--es-dur-base) var(--es-ease);
+}
+
+/* --- Shared element motion ------------------------------------------------
+   Used by the batch table and available to any other list. Defined once here
+   rather than per screen.
+   ------------------------------------------------------------------------ */
+@keyframes esRowIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: none; }
+}
+
+@keyframes esRowOut {
+    from { opacity: 1; transform: none;                max-height: 6rem; }
+    to   { opacity: 0; transform: translateX(2.5rem);  max-height: 0; }
+}
+
+@keyframes esRowFlash {
+    0%   { background: var(--accent-emerald-light); }
+    100% { background: transparent; }
+}
+
+.es-row-in    { animation: esRowIn var(--es-dur-slow) var(--es-ease) both; }
+.es-row-out   { animation: esRowOut var(--es-dur-slow) var(--es-ease-in-out) both; }
+.es-row-flash { animation: esRowFlash calc(var(--es-dur-slower) * 2) var(--es-ease) both; }
+
+/* --- Reduced motion -------------------------------------------------------
+   One guard for everything above. Motion here is decoration; for someone with
+   vestibular sensitivity it is not neutral, and none of it carries meaning
+   that is lost when it stops.
+
+   The splash is the exception that must still DISAPPEAR -- so it is hidden
+   outright rather than animated, which is the safe direction.
+   ------------------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+    #es-splash {
+        animation: none;
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    .es-splash__mark,
+    .es-splash__bar::after {
+        animation: none;
+    }
+
+    .page-body > *,
+    .es-row-in,
+    .es-row-out,
+    .es-row-flash {
+        animation: none !important;
+    }
+
+    #es-progress,
+    body.es-leaving #wrapper {
+        transition: none !important;
     }
 }

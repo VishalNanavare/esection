@@ -2,15 +2,15 @@
 
 <?= $this->section('content') ?>
 <?php /*
-  Batch-table behaviour and motion.
+  Batch-table presentation.
 
-  Inline <style> is fine here: Config\ContentSecurityPolicy allows
-  'unsafe-inline' for styleSrc, and this belongs to one screen rather than the
-  global stylesheet.
+  Screen-local rules only. The row animations (esRowIn / esRowOut / esRowFlash)
+  and their reduced-motion guard live in esection-theme.css, so every list in
+  the application shares one rhythm rather than each screen inventing its own
+  timings.
 
-  Every animation is wrapped so it disappears under prefers-reduced-motion --
-  a row sliding out is decoration, and for someone with vestibular sensitivity
-  it is not a neutral one.
+  An inline style block is fine here: Config\ContentSecurityPolicy allows
+  'unsafe-inline' for styleSrc, and none of this belongs in the global sheet.
 */ ?>
 <style>
     /* Ten rows, then scroll. Measured against this table's own row height so
@@ -25,46 +25,26 @@
         position: sticky;
         top: 0;
         z-index: 2;
-        background: var(--es-surface, #fff);
+        background: var(--bg-card);
     }
 
-    /* Selected rows read as selected without relying on colour alone. */
+    /* Selected and editing rows read as such without relying on colour alone:
+       each carries an inset bar as well as a tint. */
     #student_batch_table tbody tr.es-row-selected {
         background: rgba(99, 102, 241, .08);
-        box-shadow: inset 3px 0 0 0 rgb(99, 102, 241);
+        box-shadow: inset 3px 0 0 0 var(--accent-indigo);
+        transition: background-color var(--es-dur-base) var(--es-ease);
     }
 
     #student_batch_table tbody tr.es-row-editing {
         background: rgba(16, 185, 129, .10);
-        box-shadow: inset 3px 0 0 0 rgb(16, 185, 129);
+        box-shadow: inset 3px 0 0 0 var(--accent-emerald);
+        transition: background-color var(--es-dur-base) var(--es-ease);
     }
 
-    @keyframes esRowIn {
-        from { opacity: 0; transform: translateY(-.4rem); }
-        to   { opacity: 1; transform: none; }
-    }
-
-    @keyframes esRowOut {
-        from { opacity: 1; transform: none; }
-        to   { opacity: 0; transform: translateX(2rem); }
-    }
-
-    @keyframes esRowFlash {
-        0%   { background: rgba(16, 185, 129, .35); }
-        100% { background: transparent; }
-    }
-
-    .es-row-in    { animation: esRowIn .22s ease-out both; }
-    .es-row-out   { animation: esRowOut .28s ease-in both; }
-    .es-row-flash { animation: esRowFlash .9s ease-out both; }
-
-    /* A row hidden by the filter, rather than removed -- keeps selection and
-       indices intact while the operator narrows the list. */
+    /* Hidden by the filter rather than removed -- keeps its checkbox and its
+       selection while the operator narrows the list. */
     #student_batch_table tbody tr.es-row-filtered { display: none; }
-
-    @media (prefers-reduced-motion: reduce) {
-        .es-row-in, .es-row-out, .es-row-flash { animation: none !important; }
-    }
 </style>
 
 

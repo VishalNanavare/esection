@@ -70,9 +70,6 @@ $(document).ready(function () {
         });
     }
 
-    function esReducedMotion() {
-        return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
 
     // --- Auto-fill university details on selection -------------------------
     $('#clg_add_select').on('change', function () {
@@ -755,7 +752,12 @@ $(document).ready(function () {
         }
 
         $rows.addClass('es-row-out');
-        setTimeout(commit, 300);   // matches the .28s esRowOut animation
+
+        // Held just past --es-dur-slow (480ms) so the row has finished sliding
+        // out before the table repaints under it. Read from the stylesheet
+        // rather than hardcoded, so retuning the motion scale cannot leave this
+        // committing mid-animation.
+        setTimeout(commit, esMotionMs('--es-dur-slow', 480) + 40);
     }
 
     $(document).on('click', '.remove-row', function () {

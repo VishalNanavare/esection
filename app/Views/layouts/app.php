@@ -28,11 +28,18 @@ $esRail = (($_COOKIE['es_rail'] ?? '0') === '1') ? ' class="es-rail"' : '';
 </head>
 <body>
     <?php
-    // The splash screen was removed deliberately. It was an opaque
-    // full-viewport #0f172a overlay at z-index 99999 whose ONLY removal path
-    // was a jQuery load handler -- any JS error above it left the entire app
-    // behind a black screen with no recovery. On a server-rendered
-    // multi-page app it also added ~800ms of dead time to every navigation.
+    // Still no splash on this layout, and for the original reasons: the old
+    // one was an opaque full-viewport overlay whose ONLY removal path was a
+    // jQuery load handler, so any JS error above it left the app behind a
+    // black screen with no recovery -- and on a server-rendered multi-page
+    // app it added dead time to every navigation.
+    //
+    // Signed-in pages get motion that cannot do either: content settles in
+    // via .page-body's own CSS animation, which covers nothing and needs no
+    // dismissing, and #es-progress reports real waiting during a navigation
+    // without blocking input. The splash itself is on the auth layout only,
+    // where entering the application is a moment rather than a hop between
+    // pages.
     ?>
     <div id="wrapper">
         <!-- Left Sidebar Navigation -->

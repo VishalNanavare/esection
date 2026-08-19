@@ -17,6 +17,30 @@
     <link rel="stylesheet" href="<?= asset_url('assets/css/esection-theme.css') ?>">
 </head>
 <body class="d-flex align-items-center justify-content-center min-vh-100 py-5">
+    <?php /*
+      Splash.
+
+      A splash used to live here and was removed for two sound reasons: its
+      only removal path was a jQuery load handler, so any JS error above it
+      trapped the app behind an opaque overlay with no recovery; and on a
+      server-rendered multi-page app it added dead time to every navigation.
+
+      This one cannot repeat either failure.
+
+        - It is dismissed by a CSS animation with fill-mode forwards and NO
+          JavaScript at all. If every script on the page fails to parse, the
+          browser still runs the animation, so the splash still goes away.
+        - #es-splash carries pointer-events: none from the start, so it never
+          intercepts a click even while it is visible.
+        - It is on the AUTH layout only -- the moment the application is
+          entered -- so it costs the signed-in navigation nothing.
+    */ ?>
+    <div id="es-splash" aria-hidden="true">
+        <span class="es-splash__mark"><i class="fa fa-graduation-cap"></i></span>
+        <div class="es-splash__bar"></div>
+    </div>
+
+
     <div class="container">
         <?= $this->renderSection('content') ?>
     </div>

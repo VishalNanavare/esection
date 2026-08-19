@@ -709,6 +709,142 @@
     window.esShowProcessing = showProcessing;
     window.esCloseProcessing = closeProcessing;
 
+    /* =====================================================================
+       Motion
+       ---------------------------------------------------------------------
+       Timings are read FROM the stylesheet rather than duplicated here, so
+       the motion scale has exactly one home. Retuning --es-dur-* in
+       esection-theme.css retunes the JavaScript that has to stay in step
+       with it -- otherwise a slower animation quietly starts committing
+       before it has finished.
+       ===================================================================== */
+
+    var motionCache = {};
+
+    /**
+     * A CSS custom property in milliseconds.
+     *
+     * @param {string} name     e.g. '--es-dur-slow'
+     * @param {number} fallback used when the property is missing or unparsable
+     */
+    function esMotionMs(name, fallback) {
+        if (motionCache.hasOwnProperty(name)) {
+            return motionCache[name];
+        }
+
+        var raw = '';
+
+        try {
+            raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        } catch (e) {
+            raw = '';
+        }
+
+        var ms = fallback;
+
+        if (/^[\d.]+ms$/.test(raw)) {
+            ms = parseFloat(raw);
+        } else if (/^[\d.]+s$/.test(raw)) {
+            ms = parseFloat(raw) * 1000;
+        }
+
+        motionCache[name] = ms;
+
+        return ms;
+    }
+
+    function esReducedMotion() {
+        return window.matchMedia
+            && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    }
+
+    /* --- Navigation progress ---------------------------------------------
+       A slim bar while the next page is being fetched. Honest feedback on a
+       server-rendered app: it appears only when the browser is actually
+       waiting, and it never blocks input, so a slow response can still be
+       navigated away from.
+       -------------------------------------------------------------------- */
+    var $progress = null;
+
+    function progressBar() {
+        if ($progress === null) {
+            $progress = $('<div id="es-progress"></div>').appendTo('body');
+        }
+
+        return $progress;
+    }
+
+    function esProgressStart() {
+        if (esReducedMotion()) {
+            return;
+        }
+
+        progressBar().removeClass('es-progress--done').addClass('es-progress--on');
+    }
+
+    function esProgressDone() {
+        if ($progress === null) {
+            return;
+        }
+
+        $progress.removeClass('es-progress--on').addClass('es-progress--done');
+
+        setTimeout(function () {
+            $progress.removeClass('es-progress--done').css('width', 0);
+        }, esMotionMs('--es-dur-base', 300));
+    }
+
+    /* Real navigations only.
+       Excluded deliberately, because none of them leaves the page and a bar
+       that starts and never finishes is worse than no bar at all:
+         - new tab / modified clicks     the current page stays put
+         - #fragment and javascript:     no request is made
+         - download links                the page does not navigate
+         - anything opting out via data-no-progress
+       -------------------------------------------------------------------- */
+    $(document).on('click', 'a[href]', function (e) {
+        var href = $(this).attr('href') || '';
+
+        if (e.which > 1 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+            return;
+        }
+
+        if ($(this).is('[target], [download], [data-no-progress], [data-bs-toggle]')) {
+            return;
+        }
+
+        if (href === '' || href.charAt(0) === '#' || /^(javascript|mailto|tel):/i.test(href)) {
+            return;
+        }
+
+        esProgressStart();
+        $('body').addClass('es-leaving');
+    });
+
+    $(document).on('submit', 'form', function () {
+        if ($(this).is('[target], [data-no-progress]')) {
+            return;
+        }
+
+        esProgressStart();
+    });
+
+    /* Restored from the back/forward cache still mid-transition, so the page
+       would otherwise reappear faded out and half-navigated. */
+    $(window).on('pageshow', function (event) {
+        $('body').removeClass('es-leaving');
+        esProgressDone();
+
+        if (event.originalEvent && event.originalEvent.persisted && $progress !== null) {
+            $progress.removeClass('es-progress--on es-progress--done').css('width', 0);
+        }
+    });
+
+    window.esMotionMs      = esMotionMs;
+    window.esReducedMotion = esReducedMotion;
+    window.esProgressStart = esProgressStart;
+    window.esProgressDone  = esProgressDone;
+
     $(function () { esInitDatePickers(); });
 })(window, jQuery);
 </script>
