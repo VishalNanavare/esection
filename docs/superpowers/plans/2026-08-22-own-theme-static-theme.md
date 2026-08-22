@@ -98,8 +98,39 @@ git commit -m "<task-specific message>"
 - Copy: `public/assets/js/*.js` → `own_theme/assets/js/`
 - Copy: `public/assets/fonts/*` → `own_theme/assets/fonts/`
 - Copy: `public/assets/vendor/{select2,flatpickr,sweetalert2}` → `own_theme/assets/vendor/`
+- Modify: `.gitignore`
 
-- [ ] **Step 1: Create the directory tree**
+- [ ] **Step 1: Stop ignoring own_theme before creating anything in it**
+
+The working tree currently has an uncommitted local change to `.gitignore`
+containing the line `/own_theme/`. Every later task in this plan runs
+`git add own_theme/...` — that fails (or silently no-ops) while the
+directory is ignored, so this must be undone first, not in the final
+QA phase.
+
+```bash
+grep -n '^/own_theme/$' .gitignore
+```
+
+Remove that exact line from `.gitignore` (it sits between the NetBeans
+block and the Sublime Text comment — replace the line with a blank line
+to preserve the section spacing, matching the blank line that was there
+before), then confirm:
+
+```bash
+git check-ignore -v own_theme || echo "NOT_IGNORED"
+```
+
+Expected: `NOT_IGNORED`.
+
+- [ ] **Step 2: Commit the .gitignore fix on its own**
+
+```bash
+git add .gitignore
+git commit -m "Stop ignoring own_theme before creating tracked theme source in it"
+```
+
+- [ ] **Step 3: Create the directory tree**
 
 ```bash
 mkdir -p own_theme/assets/css own_theme/assets/js own_theme/assets/fonts
@@ -110,7 +141,7 @@ mkdir -p own_theme/pages/extended own_theme/pages/forms own_theme/pages/layouts
 mkdir -p own_theme/pages/maps own_theme/pages/misc own_theme/pages/tables own_theme/pages/ui
 ```
 
-- [ ] **Step 2: Copy existing CSS/JS/fonts/vendor assets**
+- [ ] **Step 4: Copy existing CSS/JS/fonts/vendor assets**
 
 ```bash
 cp public/assets/css/*.css own_theme/assets/css/
@@ -122,7 +153,7 @@ cp -r public/assets/vendor/sweetalert2 own_theme/assets/vendor/sweetalert2
 cp public/favicon.ico own_theme/favicon.ico 2>/dev/null || true
 ```
 
-- [ ] **Step 3: Verify the copy**
+- [ ] **Step 5: Verify the copy**
 
 ```bash
 ls own_theme/assets/css own_theme/assets/js own_theme/assets/fonts own_theme/assets/vendor
@@ -133,7 +164,7 @@ Expected: `esection-theme.css`, `esection-shell.css`, `bootstrap.min.css`,
 `bootstrap.bundle.min.js` in `js/`; the fontawesome webfont files present;
 `select2/`, `flatpickr/`, `sweetalert2/` present under `vendor/`.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
 git add own_theme/assets
@@ -766,20 +797,15 @@ Expected: no output.
   (heaviest new-library integrations). Confirm sidebar/topbar consistency,
   correct active nav state per page, no console errors.
 
-- [ ] **Step 4: Update `.gitignore`**
+- [ ] **Step 4: Confirm own_theme was never re-ignored**
 
-Remove the `/own_theme/` line (own_theme is now real, tracked source, not
-scratch/ignored content).
-
-```bash
-grep -n '^/own_theme/$' .gitignore
-```
-Remove that exact line from `.gitignore`, then:
+Task 0.1 already removed the `/own_theme/` line from `.gitignore` before
+any theme file was created. Confirm no later task's edits reintroduced it:
 
 ```bash
-git add .gitignore
-git commit -m "Stop ignoring own_theme now that it holds real tracked theme source"
+grep -n '^/own_theme/$' .gitignore || echo "CONFIRMED_ABSENT"
 ```
+Expected: `CONFIRMED_ABSENT`.
 
 - [ ] **Step 5: Final commit confirming the full theme**
 
