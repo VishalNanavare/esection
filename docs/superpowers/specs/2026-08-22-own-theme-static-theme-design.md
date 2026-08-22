@@ -13,7 +13,7 @@ design system), copied from `public/assets` into `own_theme/assets`.
 
 Two kinds of pages:
 
-1. **Business pages (32)** — a faithful static mirror of every real screen
+1. **Business pages (33)** — a faithful static mirror of every real screen
    esection's staff-facing app has today.
 2. **UI-kit / generic pages (113, see inventory below)** — a full breadth
    catalog of dashboards, app patterns, components, forms, tables, charts,
@@ -74,7 +74,7 @@ own_theme/
       chartjs/, datatables/, quill/, fullcalendar/,
       sortablejs/, leaflet/                               (new, vendored offline)
   pages/
-    esection/        32 real business screens (see inventory A)
+    esection/        33 real business screens (see inventory A)
     dashboards/      2
     apps/            18
     cards/           5
@@ -89,7 +89,7 @@ own_theme/
     ui/              3
 ```
 
-Total: 32 + 113 = 145 static pages.
+Total: 33 + 113 = 146 static pages.
 
 ## Design-system extensions needed
 
@@ -112,7 +112,7 @@ copies inside `own_theme/assets/css` — the live app's copies under
 
 ## Page inventory
 
-### A. Business pages (32) — mirrors `app/Views`
+### A. Business pages (33) — mirrors `app/Views`
 
 Auth: `auth-login.html`, `auth-forgot-password.html`, `auth-reset-password.html`
 Dashboard: `dashboard.html`
