@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IDOL E-Section Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="../../favicon.ico">
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.ico">
+    <link rel="stylesheet" href="../../assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../assets/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../../assets/vendor/select2/select2.min.css">
+    <link rel="stylesheet" href="../../assets/vendor/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="../../assets/css/esection-theme.css">
+    <link rel="stylesheet" href="../../assets/css/esection-shell.css">
+</head>
+<body>
+    <div id="wrapper">
+        <!-- Left Sidebar Navigation -->
+        <aside id="sidebar">
+            <a href="dashboard.html" class="sidebar-brand">
+                <span class="brand-mark me-2">
+                    <i class="fa fa-graduation-cap text-indigo"></i>
+                </span>
+                <span class="brand-text">ESection Portal</span>
+            </a>
+
+            <ul class="sidebar-menu">
+                <li class="nav-item">
+                    <a href="dashboard.html" data-label="Dashboard" class="nav-link active">
+                        <i class="fa fa-dashboard"></i>
+                        <span class="link-text">Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="students-new.html" data-label="New Form" class="nav-link">
+                        <i class="fa fa-plus-circle"></i>
+                        <span class="link-text">New Form</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="students-import.html" data-label="Import Excel" class="nav-link">
+                        <i class="fa fa-file-excel-o"></i>
+                        <span class="link-text">Import Excel</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="students-history.html" data-label="Batch History" class="nav-link">
+                        <i class="fa fa-list-alt"></i>
+                        <span class="link-text">Batch History</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="confirmations.html" data-label="DD Confirmation" class="nav-link">
+                        <i class="fa fa-check-square-o"></i>
+                        <span class="link-text">DD Confirmation</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="universities.html" data-label="University Directory" class="nav-link">
+                        <i class="fa fa-university"></i>
+                        <span class="link-text">University Directory</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="regularization.html" data-label="Regularization" class="nav-link">
+                        <i class="fa fa-file-text-o"></i>
+                        <span class="link-text">Regularization</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="reminders-university.html" data-label="Reminders" class="nav-link">
+                        <i class="fa fa-clock-o"></i>
+                        <span class="link-text">Reminders</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="bulk-email.html" data-label="Send Emails" class="nav-link">
+                        <i class="fa fa-paper-plane"></i>
+                        <span class="link-text">Send Emails</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="settings.html" data-label="Settings" class="nav-link">
+                        <i class="fa fa-cog"></i>
+                        <span class="link-text">Settings</span>
+                    </a>
+                </li>
+            </ul>
+        </aside>
+
+        <!-- Dims and blocks the page while the mobile drawer is open. -->
+        <div id="sidebar_backdrop"></div>
+
+        <!-- Content Area -->
+        <div id="content-wrapper">
+            <!-- Top Navigation Header -->
+            <header id="topbar">
+                <div class="d-flex align-items-center gap-3 topbar-title">
+                    <button class="toggle-btn" id="sidebar_toggle" type="button"
+                            aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">
+                        <i class="fa fa-bars"></i>
+                    </button>
+                    <div class="text-truncate">
+                        <h6 class="mb-0 fw-bold text-dark text-truncate">IDOL E-Section Dashboard</h6>
+                        <small class="text-muted d-none d-sm-block" style="font-size: 0.75rem;">Institute of Distance &amp; Open Learning</small>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2 gap-md-3">
+                    <div class="topbar-pill d-none d-md-inline-flex">
+                        <i class="fa fa-calendar-o me-2 text-indigo"></i>
+                        <span class="text-muted" id="live_date"></span>
+                        <span class="text-secondary opacity-50 mx-2">|</span>
+                        <i class="fa fa-clock-o me-2 text-indigo"></i>
+                        <span class="text-muted font-monospace" id="live_clock"></span>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="topbar-pill border-0 bg-transparent d-flex align-items-center" type="button"
+                                id="account_menu_btn" data-bs-toggle="dropdown"
+                                data-bs-display="static" aria-expanded="false">
+                            <i class="fa fa-user-circle-o text-indigo"></i>
+                            <span class="font-monospace fw-bold text-dark mx-2 d-none d-sm-inline">Priya Sharma</span>
+                            <span class="badge badge-glass-indigo text-uppercase ms-1 ms-sm-0" style="font-size: 0.65rem;">admin</span>
+                            <i class="fa fa-caret-down text-muted ms-2"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end glass-card border-secondary border-opacity-25 mt-2"
+                            aria-labelledby="account_menu_btn">
+                            <li class="px-3 py-2 d-sm-none">
+                                <div class="small text-muted">Signed in as</div>
+                                <div class="font-monospace fw-bold text-dark">Priya Sharma</div>
+                            </li>
+                            <li class="d-sm-none"><hr class="dropdown-divider"></li>
+                            <li>
+                                <button type="button" class="dropdown-item d-flex align-items-center"
+                                        data-bs-toggle="modal" data-bs-target="#resetPasswordModal">
+                                    <i class="fa fa-key me-2 text-indigo"></i> Reset Password
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a href="auth-login.html"
+                                   class="dropdown-item d-flex align-items-center text-danger logout-btn">
+                                    <i class="fa fa-sign-out me-2"></i> Logout
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Page Body -->
+            <main class="page-body">
+                <!-- Metric Stat Cards -->
+                <div class="row g-3 g-md-4 mb-4">
+                    <div class="col-6 col-xl-3">
+                        <div class="glass-card stat-card h-100">
+                            <div class="stat-card__head">
+                                <span class="stat-card__label">Total Students</span>
+                                <span class="stat-card__icon bg-indigo bg-opacity-10 text-indigo border-indigo border-opacity-25">
+                                    <i class="fa fa-users"></i>
+                                </span>
+                            </div>
+                            <p class="stat-card__value text-dark">4,286</p>
+                            <div class="stat-card__meta"><i class="fa fa-arrow-up me-1 text-emerald"></i> System records</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="glass-card stat-card h-100">
+                            <div class="stat-card__head">
+                                <span class="stat-card__label">Pending Confirmations</span>
+                                <span class="stat-card__icon bg-warning bg-opacity-10 text-warning border-warning border-opacity-25">
+                                    <i class="fa fa-clock-o"></i>
+                                </span>
+                            </div>
+                            <p class="stat-card__value text-warning">137</p>
+                            <div class="stat-card__meta"><i class="fa fa-exclamation-triangle me-1 text-amber"></i> Awaiting verification</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="glass-card stat-card h-100">
+                            <div class="stat-card__head">
+                                <span class="stat-card__label">Active Universities</span>
+                                <span class="stat-card__icon bg-info bg-opacity-10 text-info border-info border-opacity-25">
+                                    <i class="fa fa-university"></i>
+                                </span>
+                            </div>
+                            <p class="stat-card__value text-dark">58</p>
+                            <div class="stat-card__meta"><i class="fa fa-map-marker me-1 text-muted"></i> Nationwide directory</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-xl-3">
+                        <div class="glass-card stat-card h-100">
+                            <div class="stat-card__head">
+                                <span class="stat-card__label">This Month's Regularizations</span>
+                                <span class="stat-card__icon bg-emerald bg-opacity-10 text-emerald border-emerald border-opacity-25">
+                                    <i class="fa fa-file-text-o"></i>
+                                </span>
+                            </div>
+                            <p class="stat-card__value text-emerald">24</p>
+                            <div class="stat-card__meta"><i class="fa fa-check me-1 text-emerald"></i> Processed this month</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="glass-card p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-4">
+                                <h4 class="fw-bold mb-0"><i class="fa fa-history me-2 text-indigo"></i> Recent Activity</h4>
+                                <span class="badge badge-glass-indigo">Last 24 hours</span>
+                            </div>
+
+                            <div class="es-timeline">
+                                <div class="es-timeline-item">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark">Ananya Verma</span>
+                                            <span class="text-muted"> &mdash; DD confirmed for B.A. Program</span>
+                                        </div>
+                                        <small class="text-muted text-nowrap">10 minutes ago</small>
+                                    </div>
+                                </div>
+                                <div class="es-timeline-item">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark">Rohit Malhotra</span>
+                                            <span class="text-muted"> &mdash; New eligibility form submitted</span>
+                                        </div>
+                                        <small class="text-muted text-nowrap">45 minutes ago</small>
+                                    </div>
+                                </div>
+                                <div class="es-timeline-item">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark">Sanjay Kumar</span>
+                                            <span class="text-muted"> &mdash; Batch #482 imported (215 students)</span>
+                                        </div>
+                                        <small class="text-muted text-nowrap">2 hours ago</small>
+                                    </div>
+                                </div>
+                                <div class="es-timeline-item">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark">Fatima Sheikh</span>
+                                            <span class="text-muted"> &mdash; University reminder sent to Delhi University</span>
+                                        </div>
+                                        <small class="text-muted text-nowrap">3 hours ago</small>
+                                    </div>
+                                </div>
+                                <div class="es-timeline-item">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark">Vikram Nair</span>
+                                            <span class="text-muted"> &mdash; Confirmation batch marked pending review</span>
+                                        </div>
+                                        <small class="text-muted text-nowrap">5 hours ago</small>
+                                    </div>
+                                </div>
+                                <div class="es-timeline-item">
+                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                        <div>
+                                            <span class="fw-bold text-dark">Neha Kapoor</span>
+                                            <span class="text-muted"> &mdash; Regularization letter generated</span>
+                                        </div>
+                                        <small class="text-muted text-nowrap">6 hours ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-card border-secondary border-opacity-25">
+                <div class="modal-header border-bottom border-secondary border-opacity-25">
+                    <h5 class="modal-title fw-bold text-dark"><i class="fa fa-key me-2 text-indigo"></i> Reset Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="#" method="post" class="js-ajax"
+                      id="reset_password_form"
+                      data-title="Password"
+                      data-close-modal="#resetPasswordModal"
+                      data-clear-on-success="input[type=password]"
+                      data-busy-button="Saving...">
+                    <div class="modal-body">
+                        <div class="alert bg-info bg-opacity-10 text-info border-info border-opacity-25 rounded-3 small mb-3" role="note">
+                            <i class="fa fa-info-circle me-1"></i>
+                            Your new password must be between
+                            <strong>8</strong> and
+                            <strong>10</strong> characters,
+                            and must differ from your current one.
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold" for="rp_current">Current password</label>
+                            <input type="password" name="current_password" id="rp_current" class="form-control"
+                                   autocomplete="current-password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold" for="rp_new">New password</label>
+                            <input type="password" name="new_password" id="rp_new" class="form-control"
+                                   minlength="8"
+                                   maxlength="10"
+                                   autocomplete="new-password" required>
+                        </div>
+                        <div class="mb-1">
+                            <label class="form-label text-secondary small fw-semibold" for="rp_confirm">Confirm new password</label>
+                            <input type="password" name="confirm_password" id="rp_confirm" class="form-control"
+                                   minlength="8"
+                                   maxlength="10"
+                                   autocomplete="new-password" required>
+                            <div class="invalid-feedback" id="rp_confirm_error">The two new passwords do not match.</div>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-top border-secondary border-opacity-25">
+                        <button type="button" class="btn btn-glass" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-indigo"><i class="fa fa-check me-1"></i> Change password</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Offline Local JS -->
+    <script src="../../assets/js/jquery.min.js"></script>
+    <script src="../../assets/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/vendor/select2/select2.min.js"></script>
+    <script src="../../assets/vendor/flatpickr/flatpickr.min.js"></script>
+    <script src="../../assets/vendor/sweetalert2/sweetalert2.min.js"></script>
+    <script>
+        // Some SweetAlert2 builds only export `Sweetalert2` (the UMD global)
+        // and never assign `Swal`. Normalise here so every call site can rely
+        // on window.Swal existing -- or being null, which each site checks.
+        window.Swal = window.Swal || window.Sweetalert2 || null;
+
+        // Hand button styling to the design system rather than fighting
+        // SweetAlert2's injected CSS. Reassigning window.Swal keeps every
+        // existing Swal.fire(...) call site working unchanged.
+        if (window.Swal && typeof window.Swal.mixin === 'function') {
+            window.Swal = window.Swal.mixin({
+                buttonsStyling: false,
+                customClass: {
+                    popup:         'es-swal',
+                    title:         'es-swal__title',
+                    htmlContainer: 'es-swal__text',
+                    confirmButton: 'btn btn-indigo',
+                    cancelButton:  'btn btn-glass ms-2',
+                    denyButton:    'btn btn-glass ms-2'
+                }
+            });
+        }
+
+        // --- Sidebar: desktop rail vs mobile drawer -------------------------
+        // Vanilla and outside document.ready so the control responds as soon
+        // as it exists, and so a later jQuery error cannot disable navigation.
+        (function () {
+            var LG     = window.matchMedia('(min-width: 992px)');
+            var html   = document.documentElement;
+            var body   = document.body;
+            var toggle = document.getElementById('sidebar_toggle');
+            var scrim  = document.getElementById('sidebar_backdrop');
+
+            function closeDrawer() {
+                body.classList.remove('es-drawer-open');
+                if (toggle) { toggle.setAttribute('aria-expanded', 'false'); }
+            }
+
+            if (toggle) {
+                toggle.addEventListener('click', function () {
+                    if (LG.matches) {
+                        // Desktop: collapse to an icon rail and remember it.
+                        var railed = html.classList.toggle('es-rail');
+                        document.cookie = 'es_rail=' + (railed ? '1' : '0') +
+                                          ';path=/;max-age=31536000;SameSite=Lax;Secure';
+                    } else {
+                        // Mobile: open/close the drawer. Never persisted.
+                        var open = body.classList.toggle('es-drawer-open');
+                        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                    }
+                });
+            }
+
+            if (scrim) { scrim.addEventListener('click', closeDrawer); }
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') { closeDrawer(); }
+            });
+
+            // Crossing the breakpoint must not leave a stale drawer state.
+            if (typeof LG.addEventListener === 'function') {
+                LG.addEventListener('change', closeDrawer);
+            } else if (typeof LG.addListener === 'function') {
+                LG.addListener(closeDrawer);
+            }
+        })();
+
+        $(document).ready(function() {
+            // --- Logout is bound FIRST, deliberately. -----------------------
+            // Anything that throws below (a missing library, a malformed flash
+            // message) would otherwise abort this callback before the logout
+            // handler was ever attached, silently breaking sign-out.
+            $('.logout-btn').on('click', function(e) {
+                // No dialog library? Fall through to the plain <a href> rather
+                // than cancelling navigation and leaving the button inert.
+                if (!window.Swal) {
+                    return true;
+                }
+
+                e.preventDefault();
+                var logoutUrl = this.href;
+
+                Swal.fire({
+                    title: 'Log Out of E-Section?',
+                    text: 'Are you sure you want to exit your active staff session?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Log Out',
+                    cancelButtonText: 'Cancel'
+                }).then(function(result) {
+                    if (result && result.isConfirmed) {
+                        window.location.href = logoutUrl;
+                    }
+                });
+            });
+
+            // Live clock, 12-hour with AM/PM. 2-digit fields so the pill does
+            // not change width every second, and hourCycle 'h12' so midnight
+            // reads 12:00 AM rather than 00:00 AM -- 'hour12: true' alone maps
+            // midnight to hour 24 in some engines.
+            //
+            // en-GB is kept for the DATE only, because it gives day-month-year;
+            // the time is formatted with en-US, which is what actually produces
+            // an AM/PM suffix.
+            function esRenderClock() {
+                var now = new Date();
+
+                $('#live_clock').text(now.toLocaleTimeString('en-US', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h12'
+                }));
+
+                // Cheap to recompute, but only written when it actually changes,
+                // so the DOM is not touched 86,399 times a day for nothing.
+                var dateText = now.toLocaleDateString('en-GB', {
+                    weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'
+                });
+                var $date = $('#live_date');
+                if ($date.text() !== dateText) {
+                    $date.text(dateText);
+                }
+            }
+
+            esRenderClock();
+            setInterval(esRenderClock, 1000);
+        });
+
+        // Replaces the two inline handler attributes this app used to carry:
+        // a submit-the-form-on-change on the bulk-email audience select, and
+        // a reload on the confirmation-history refresh button.
+        //
+        // Delegated from document so it does not matter whether the control
+        // was in the initial HTML or added later.
+        document.addEventListener('change', function (e) {
+            var el = e.target.closest && e.target.closest('[data-submit-on-change]');
+            if (el && el.form) {
+                el.form.submit();
+            }
+        });
+
+        document.addEventListener('click', function (e) {
+            if (e.target.closest && e.target.closest('[data-reload]')) {
+                location.reload();
+            }
+        });
+
+        // --- Reset Password modal: client-side match validation -------------
+        // Ported inline from app/Views/common/ajax_account_js.php (this static
+        // theme has no includes). The authoritative checks live server-side in
+        // the real app; this is only to spare the operator a round trip, and
+        // there is no backend here to actually submit to.
+        $(document).ready(function () {
+            var $form    = $('#reset_password_form');
+            var $newPw   = $('#rp_new');
+            var $confirm = $('#rp_confirm');
+
+            if ($form.length === 0) {
+                return;
+            }
+
+            function checkMatch() {
+                var mismatch = $newPw.val() !== '' && $confirm.val() !== '' && $newPw.val() !== $confirm.val();
+
+                // An empty string is what marks a field valid; any other value
+                // marks it invalid and becomes the browser's own message.
+                $confirm[0].setCustomValidity(mismatch ? 'The two new passwords do not match.' : '');
+                $confirm.toggleClass('is-invalid', mismatch);
+                $confirm.closest('.es-pw').toggleClass('es-pw-invalid', mismatch);
+
+                return !mismatch;
+            }
+
+            $newPw.on('input', checkMatch);
+            $confirm.on('input', checkMatch);
+
+            // Re-check on submit as well: a password manager can fill both
+            // boxes without firing `input`, which would otherwise leave a
+            // stale verdict.
+            $form.on('submit', function (e) {
+                // No backend to post to in this static reference -- prevent
+                // the actual navigation, but still run the same validation
+                // path the live app uses.
+                e.preventDefault();
+                checkMatch();
+            });
+
+            // Clear the fields once the modal is actually dismissed, so the
+            // next open is clean.
+            $('#resetPasswordModal').on('hidden.bs.modal', function () {
+                $form[0].reset();
+                $confirm[0].setCustomValidity('');
+                $confirm.removeClass('is-invalid');
+            });
+        });
+    </script>
+</body>
+</html>
