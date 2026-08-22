@@ -210,6 +210,8 @@ id_ed25519.*
 #-------------------------
 # Editor, tooling and OS leftovers
 #-------------------------
+/docs/*
+/own_theme/*
 node_modules/
 .fleet/
 *.swp
