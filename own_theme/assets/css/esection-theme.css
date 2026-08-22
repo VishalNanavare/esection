@@ -1557,3 +1557,52 @@ input[type="password"]::-ms-clear {
 @media (prefers-reduced-motion: reduce) {
     .conf-detail-row--open > .conf-detail-cell > .conf-detail { animation: none; }
 }
+
+/* ==========================================================================
+   own_theme additions — new component types not used by the live app.
+   Reuses existing custom properties (--es-indigo-rgb, --es-emerald-rgb,
+   etc.) defined earlier in this file. Additive only.
+   ========================================================================== */
+
+/* Kanban board */
+.es-kanban { display: flex; gap: 1rem; overflow-x: auto; padding-bottom: .5rem; }
+.es-kanban-column { flex: 0 0 280px; background: rgba(var(--es-indigo-rgb), .04); border-radius: .75rem; padding: .75rem; }
+.es-kanban-column__title { font-weight: 600; font-size: .85rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .75rem; color: var(--bs-secondary); }
+.es-kanban-card { background: #fff; border-radius: .5rem; padding: .75rem; margin-bottom: .5rem; box-shadow: 0 1px 2px rgba(0,0,0,.06); cursor: grab; }
+.es-kanban-card.sortable-ghost { opacity: .4; }
+
+/* Timeline */
+.es-timeline { position: relative; padding-left: 1.5rem; border-left: 2px solid rgba(var(--es-indigo-rgb), .2); }
+.es-timeline-item { position: relative; padding-bottom: 1.5rem; }
+.es-timeline-item::before { content: ''; position: absolute; left: -1.55rem; top: .2rem; width: .65rem; height: .65rem; border-radius: 50%; background: var(--bs-indigo); }
+
+/* Avatar */
+.es-avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; object-fit: cover; display: inline-flex; align-items: center; justify-content: center; background: rgba(var(--es-indigo-rgb), .12); color: var(--bs-indigo); font-weight: 600; }
+.es-avatar-group { display: flex; }
+.es-avatar-group .es-avatar { margin-left: -.6rem; border: 2px solid #fff; }
+
+/* Ratings */
+.es-rating { display: inline-flex; gap: .15rem; color: var(--bs-warning); }
+
+/* Tree view */
+.es-tree, .es-tree ul { list-style: none; margin: 0; padding-left: 1.25rem; }
+.es-tree > li:first-child { padding-left: 0; }
+.es-tree-toggle { cursor: pointer; }
+.es-tree-toggle .fa { width: 1rem; transition: transform .15s ease; }
+.es-tree-toggle[aria-expanded="true"] .fa { transform: rotate(90deg); }
+
+/* Chart / card containers reuse .glass-card as-is */
+
+/* DataTables x Bootstrap 5 alignment with esection's existing .table look */
+table.dataTable { border-collapse: collapse !important; }
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select { border-radius: .5rem; border: 1px solid var(--bs-border-color); }
+
+/* Quill editor skin to match .form-control */
+.ql-toolbar.ql-snow, .ql-container.ql-snow { border-color: var(--bs-border-color) !important; border-radius: .5rem; }
+.ql-toolbar.ql-snow { border-top-left-radius: .5rem; border-top-right-radius: .5rem; }
+.ql-container.ql-snow { border-bottom-left-radius: .5rem; border-bottom-right-radius: .5rem; }
+
+/* FullCalendar skin */
+.fc { --fc-border-color: var(--bs-border-color); --fc-today-bg-color: rgba(var(--es-indigo-rgb), .06); }
+.fc .fc-button-primary { background: var(--bs-indigo); border-color: var(--bs-indigo); }
